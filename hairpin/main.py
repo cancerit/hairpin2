@@ -5,7 +5,18 @@ SOFT_CLIP_OP = 4
 # for start_end_mate_pairs
 Pairs = Enum('Pairs', [('start', 0), ('end', 1), ('mate_start', 2), ('mate_end', 3)])
 
-
+# Peter modifies a dict, nonref_reads, inplace
+# i.e. each sample has a dict entry
+# dict is sample name : bam record
+# return bam record, handle dict above
+def get_mutant_reads(
+    vcf_record, # called per record
+    bam, # type depends on streaming approach
+    min_basequal: int,
+    clip_qual_cutoff: int,
+    min_mapqual: int
+): # return type probably pysam.AlignedSegment
+    return
 
 # pysam AlignmentFile.Fetch will return iterator over reads
 # which yields AlignedSegment
@@ -39,19 +50,51 @@ def start_end_mate_pairs(
     
     # appears mate posns simply aren't assigned if none
     return [start, end, mate_start, mate_end]
+
+
+# Peter does this in place. Any particular reason?
+# is structure of nonref_reads optimal/appropriate
+def remove_dups_with_wobble(
+    nonref_reads: dict,
+    max_span_ends: int
+) -> dict:
     
+    return 'hello world'
     
-        
+
+# filters analysed on a cohort basis
+def test_filters(
+    vcf_posn: int,
+    mutant_reads: list[pysam.AlignedSegment],
+    cent90_thresh: float,
+    AL_filt_thresh: float
+) -> tuple[bool, bool]:
     
-        
+    mut_pos_f: list[int] = []
+    mut_fracs_f: list[float] = []
+    mut_pos_r: list[int] = []
+    mut_fracs_r: list[float] = []
+    aln_scores: list[float] = []
+     
+    return tuple()
+
+
+# is streaming approach necessary?
+def main(
+    bam_paths: list,
+    intervals, # type?
+    vcf_in_path: str,
+    vcf_out_path: str,
+    clip_qual_cutoff: int,
+    min_mapqual: int,
+    min_basequal: int,
+    max_span: int,
+    AL_thresh: float,
+    cent90_thresh:float,
+    header: bool
+) -> None:
     
-    
-    
-    
-    
-    
-    
-    return [] 
+    return
 
 if __name__ == '__main__':
     # do stuff
