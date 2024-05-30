@@ -12,40 +12,6 @@ Pairs = Enum('Pairs',
              ['start', 'end', 'mate_start', 'mate_end'],
              star = 0)
 
-# pysam AlignmentFile.Fetch will return iterator over reads
-# which yields AlignedSegment
-def start_end_mate_pairs(
-    record: pysam.AlignedSegment,
-    bam: pysam.AlignmentFile
-) -> list[int]:
-    # want the start of the record, the end
-    # start of mate, end of mate
-    # .reference_start
-    mate: pysam.AlignedSegment = bam.mate(record)
-    # Julia XAM gets cigar info differently, checking CG:B,I tag
-    # does this matter?
-    cig: list[tuple[int, int]] = record.cigartuples
-    mate_cig: list[tuple[int, int]] = mate.cigartuples
-    
-    # this gets pos wrt to reference, not query sequence, is that desired?
-    start: int = record.reference_start
-    end: int = record.reference_end
-    mate_start: int = record.reference_start
-    mate_end: int = record.reference_end
-    
-    # behaviour on cig = None?
-    if cig[0][0] == Ops.soft:
-        start -= cig[0][1]
-    if cig[-1][0] == Ops.soft:
-        end += cig[-1][1]
-    if mate_cig[0][0] == Ops.soft:
-        mate_start -= mate_cig[0][1]
-    if mate_cig[-1][0] == Ops.soft:
-        mate_end += mate_cig[-1][1]
-    
-    # appears mate posns simply aren't assigned if none
-    return [start, end, mate_start, mate_end]
-
 
 # Peter does this in place. Any particular reason?
 # is structure of nonref_reads optimal/appropriate
@@ -91,7 +57,7 @@ def main(
     
     vcf_obj: pysam.VariantFile = pysam.VariantFile(vcf_in_path)
     sample_names: list[str] = list(vcf_obj.header.samples)
-    mut_reads: dict[str, list] = {key: [] for key in sample_names}
+    mut_reads: dict[str, list[pysam.AlignedSegment]] = {key: [] for key in sample_names}
     
     # try excepts
     bam_reader_dict: dict[str, Optional[pysam.AlignmentFile]] = dict.fromkeys(sample_names)
@@ -129,7 +95,7 @@ def main(
         samples_w_mutants = [name for name in sample_names if vcf_rec.samples[name]["GT"] == (0, 1)]
         
         for mut_sample_name in samples_w_mutants:
-
+            ### get_mutant_reads
             for read in bam_reader_dict[mut_sample_name].fetch(vcf_rec.chrom, vcf_rec.start, vcf_rec.stop) # type: ignore
                 
                 if any(x is None for x in [read.query_sequence, read.query_qualities, read.cigarstring, read.reference_start, read.reference_end]):
@@ -192,8 +158,73 @@ def main(
                     if read_start <= vcf_rec.pos <= read_end:
                         # ADD READ TO DICT OR SOMETHING
                         mut_reads[mut_sample_name].append(read)
-                    
-
+            ### end
+        ### remove_dups_with_wobble
+        for _, reads in mut_reads.items():
+            if len(reads) == 0:
+                continue
+                # want the start of the record, the end
+            ### start_mate_end_pairs()
+            # incidentally, I suppose hairpin only works for paired data?
+            sorted_ends = []
+            for read in reads:
+                mate = bam.mate(read)
+                
+                if any(x is None for x in [read.reference_start,
+                                        read.reference_end,
+                                        read.cigartuples,
+                                        mate.reference_start,
+                                        mate.reference_end,
+                                        mate.cigartuples]):
+                    continue  # ?
+                
+                # this gets pos wrt to reference, not query sequence, is that desired?
+                start: int = read.reference_start
+                end: int = read.reference_end
+                mate_start: int  = mate.reference_start
+                mate_end: int  = mate.reference_end
+                
+                # Peter
+                # behaviour on cig = None?     
+                # Julia XAM gets cigar info differently, checking CG:B,I tag
+                # does this matter?
+                if read.cigartuples[0][0] == Ops.soft:
+                    start -= read.cigartuples[0][1]
+                if read.cigartuples[-1][0] == Ops.soft:
+                    end += cig[-1][1]
+                if mate.cigartuples[0][0] == Ops.soft:
+                    mate_start -= mate.cigartuples[0][1]
+                if mate.cigartuples[-1][0] == Ops.soft:
+                    mate_end += mate.cigartuples[-1][1]
+                
+                # appears mate posns simply aren't assigned if none
+                sorted_ends.append(sorted([start, end, mate_start, mate_end]))
+            ### end
+            # I don't really understand this
+            sorted_ends: list[list[int]] = sorted(sorted_ends)
+            min_ends: list[list[int]] = [sorted_ends.pop(0)]
+            i = 1
+            while len(sorted_ends) != 0:
+                loop_ends: list[int] = sorted_ends.pop(0)
+                max_spans = map(lambda sublist: max([abs(x - y) for x, y in zip(sublist, loop_ends)]), min_ends)
+                 
+                if all([x <= max_span for x in max_spans]):
+                    min_ends.append(loop_ends)
+                    reads.pop(i)
+                else:
+                    min_ends = [loop_ends]
+                i += 1
+            del(i)
+        ### end
+        
+        ### check hairpin filter
+        vcf_rec
+        mut_reads
+        samples_w_mutants
+        
+        for samp, reads in mut_reads:
+            for read in reads:
+                
     
     return
 
