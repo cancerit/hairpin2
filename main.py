@@ -2,11 +2,13 @@ import pysam
 from enum import Enum
 from typing import Optional
 from hairpin import ref2seq
-import statistics
+from statistics import mean, median, stdev
+import argparse
 
 Ops = Enum('Ops',
            ['match', 'ins', 'delete', 'skip', 'soft', 'hard', 'pad', 'equal', 'diff', 'back'],
            start = 0)
+
 
 # is streaming approach necessary?
 def main(
@@ -17,15 +19,19 @@ def main(
     min_mapqual: int,
     min_basequal: int,
     max_span: int,
-    AL_thresh: float,
-    cent90_thresh:float,
-    header: bool
+    al_thresh: float,
+    cent90_thresh:float
 ) -> None:
     
-    vcf_obj: pysam.VariantFile = pysam.VariantFile(vcf_in_path)
-    sample_names: list[str] = list(vcf_obj.header.samples)
-    mut_reads: dict[str, list[pysam.AlignedSegment]] = {key: [] for key in sample_names}
+    vcf_obj = pysam.VariantFile(vcf_in_path)
+    # init output
+    out_head = vcf_obj.header
+    out_head.add_line("##FILTER=<ID=ALF,Description=\"Median alignment score of reads reporting variant less than {}\">".format(al_thresh))
+    out_head.add_line("##FILTER=<ID=HPF,Description=\"Evidence that variant arises from hairpin artefact\">")
+    vcf_out = pysam.VariantFile(vcf_out_path, 'w', header=out_head)
     
+    sample_names: list[str] = list(vcf_obj.header.samples)
+
     # try excepts
     bam_reader_dict: dict[str, Optional[pysam.AlignmentFile]] = dict.fromkeys(sample_names)
     for path in bam_paths:
@@ -38,11 +44,8 @@ def main(
             exit(1) # error
         else:
             bam_reader_dict[bam_sample] = bam  # type: ignore
-    
-    # init output
-    if header:
-        pass
-    
+
+    mut_reads: dict[str, list[pysam.AlignedSegment]] = {key: [] for key in sample_names}
     # since intervals are unnecessary
     # - they were an artifact of the shearwater mp -
     # just iterate through all records in the vcf
@@ -63,7 +66,7 @@ def main(
         
         for mut_sample_name in samples_w_mutants:
             ### get_mutant_reads
-            for read in bam_reader_dict[mut_sample_name].fetch(vcf_rec.chrom, vcf_rec.start, vcf_rec.stop) # type: ignore
+            for read in bam_reader_dict[mut_sample_name].fetch(vcf_rec.chrom, vcf_rec.start, vcf_rec.stop): # type: ignore
                 
                 if any(x is None for x in [read.query_sequence, read.query_qualities, read.cigarstring, read.reference_start, read.reference_end]):
                     continue  # ?
@@ -106,7 +109,7 @@ def main(
                         continue
                 
                 if ('S' in read.cigarstring and  # type: ignore
-                    statistics.mean(read.query_alignment_qualities) < clip_qual_cutoff):  # type: ignore
+                    mean(read.query_alignment_qualities) < clip_qual_cutoff):  # type: ignore
                     continue
                 
                 if read.flag & 0x40:  # read first in pair
@@ -211,14 +214,14 @@ def main(
                 except KeyError:
                     continue  # ?
                 aln_scores.append(read.get_tag('AS') / read.query_length)  # or should this be .query_alignment_length? (Peter)
-        al_filt = statistics.median(aln_scores) <= AL_thresh
+        al_filt = median(aln_scores) <= al_thresh
         
         if len(mut_read_pos_f) > 1:
             mad_f = max(mut_read_pos_f) - min(mut_read_pos_f)
-            sd_f = statistics.stdev(mut_read_pos_f)
+            sd_f = stdev(mut_read_pos_f)
         if len(mut_read_pos_r) > 1:
             mad_r = max(mut_read_pos_r) - min(mut_read_pos_r)
-            sd_r = statistics.stdev(mut_read_pos_r)
+            sd_r = stdev(mut_read_pos_r)
         # hairpin conditions from Ellis et al.
         hp_filt = True
         # these branches all lead to the same result!
@@ -244,9 +247,30 @@ def main(
         ### end 
 
         ### update vcf record
-    
+        if al_filt:
+            vcf_rec.filter.add("ALF")
+        if hp_filt:
+            vcf_rec.filter.add("HPF")
+        
+        # try except    
+        vcf_out.write(vcf_rec)
+
     return
 
+
 if __name__ == '__main__':
-    # do stuff
-    print('hello world')
+    
+    parser = argparse.ArgumentParser(prog="hairpin")
+    parser.add_argument('-i', '--vcf-in', help="path to input vcf", nargs=1, type=str, required=True)
+    parser.add_argument('-o', '--vcf-out', help="path to vcf out", nargs=1, type=str, required=True)
+    parser.add_argument('-b', '--bams', help="list of paths to bams for samples in input vcf, whitespace separated", nargs='+', type=list, required=True)
+    parser.add_argument('-cq', '--clip-quality-cutoff', default=35)
+    parser.add_argument('-mq', '--min-mapping-quality', default=11)
+    parser.add_argument('-mb', '--min-base-quality', default=25)
+    parser.add_argument('-ms', '--max-read-span', default=6)
+    parser.add_argument('-al', '--AL-filter-threshold', default=0.93)
+    parser.add_argument('-c9', '--cent90-threshold', default=0.15)
+    
+    args = parser.parse_args()
+    
+    
