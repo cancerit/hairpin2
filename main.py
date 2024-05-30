@@ -7,43 +7,10 @@ import statistics
 Ops = Enum('Ops',
            ['match', 'ins', 'delete', 'skip', 'soft', 'hard', 'pad', 'equal', 'diff', 'back'],
            start = 0)
-# for start_end_mate_pairs
-Pairs = Enum('Pairs',
-             ['start', 'end', 'mate_start', 'mate_end'],
-             star = 0)
-
-
-# Peter does this in place. Any particular reason?
-# is structure of nonref_reads optimal/appropriate
-def remove_dups_with_wobble(
-    nonref_reads: dict,
-    max_span_ends: int
-) -> dict:
-    
-    return dict()
-    
-
-# filters analysed on a cohort basis
-def test_filters(
-    vcf_posn: int,
-    mutant_reads: list[pysam.AlignedSegment],
-    cent90_thresh: float,
-    AL_filt_thresh: float
-) -> tuple[bool, bool]:
-    
-    mut_pos_f: list[int] = []
-    mut_fracs_f: list[float] = []
-    mut_pos_r: list[int] = []
-    mut_fracs_r: list[float] = []
-    aln_scores: list[float] = []
-     
-    return tuple()
-
 
 # is streaming approach necessary?
 def main(
     bam_paths: list,
-    intervals, # type?
     vcf_in_path: str,
     vcf_out_path: str,
     clip_qual_cutoff: int,
@@ -218,13 +185,65 @@ def main(
         ### end
         
         ### check hairpin filter
-        vcf_rec
-        mut_reads
-        samples_w_mutants
-        
-        for samp, reads in mut_reads:
+        mut_read_pos_f: list[int] = []
+        mut_read_pos_r: list[int] = []
+        mut_read_fracs_f: list[float] = []
+        mut_read_fracs_r: list[float] = []
+        aln_scores: list[float] = []
+        for _, reads in mut_reads.items():
             for read in reads:
+                if any([x is None for x in [read.reference_start, read.reference_end]]):
+                    continue  # ?
                 
+                mut_pos = ref2seq.ref2querypos(read, vcf_rec.pos)
+                if mut_pos == -1:
+                    continue  # ?
+                if read.flag & 0x10:
+                    read_loc = read.reference_end - mut_pos + 1
+                    mut_read_fracs_r.append(read_loc / (read.reference_start - read.reference_end + 1))
+                    mut_read_pos_r.append(read_loc)
+                else:
+                    read_loc = (mut_pos - read.reference_start + 1)
+                    mut_read_fracs_f.append(read_loc / (read.reference_end - read.reference_start + 1))
+                    mut_read_pos_f.append(read_loc)
+                try:
+                    read.get_tag('AS')
+                except KeyError:
+                    continue  # ?
+                aln_scores.append(read.get_tag('AS') / read.query_length)  # or should this be .query_alignment_length? (Peter)
+        al_filt = statistics.median(aln_scores) <= AL_thresh
+        
+        if len(mut_read_pos_f) > 1:
+            mad_f = max(mut_read_pos_f) - min(mut_read_pos_f)
+            sd_f = statistics.stdev(mut_read_pos_f)
+        if len(mut_read_pos_r) > 1:
+            mad_r = max(mut_read_pos_r) - min(mut_read_pos_r)
+            sd_r = statistics.stdev(mut_read_pos_r)
+        # hairpin conditions from Ellis et al.
+        hp_filt = True
+        # these branches all lead to the same result!
+        if len(mut_read_pos_f) > 1 and len(mut_read_pos_r) > 1:
+            frac_lt_thresh = sum([x <= cent90_thresh for x in mut_read_fracs_f + mut_read_fracs_r]) / (len(mut_read_pos_f) + len(mut_read_pos_r))
+            if (frac_lt_thresh < 0.9 or
+                (mad_f > 2 and mad_r > 2 and sd_f > 2 and sd_r > 2) or
+                (mad_f > 1 and sd_f > 10) or
+                (mad_r > 1 and sd_r > 10)):
+                hp_filt = False
+        elif len(mut_read_pos_f) > 1:
+            if (((sum([x <= cent90_thresh for x in mut_read_pos_f]) / len(mut_read_pos_f)) < 0.9) and
+                mad_f > 0 and
+                sd_f > 4):
+                hp_filt = False
+        elif len(mut_read_pos_r) > 1:
+            if (((sum([x <= cent90_thresh for x in mut_read_pos_r]) / len(mut_read_pos_r)) < 0.9) and
+                mad_r > 0 and
+                sd_r > 4):
+                hp_filt = False
+        else:
+            hp_filt = False
+        ### end 
+
+        ### update vcf record
     
     return
 
