@@ -6,3 +6,4 @@ hairpin.egg-info/
 data/
 data
 __pycache__/
+.helix/
