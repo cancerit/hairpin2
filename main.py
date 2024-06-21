@@ -1,12 +1,17 @@
 import pysam
 from enum import Enum
-from hairpin import ref2seq
+from hairpin import ref2seq, utilities
 from statistics import mean, median, stdev
 import argparse
 import logging
 from itertools import tee
+from functools import partial
 from sys import exit as sysexit
 from dataclasses import dataclass
+from typing import Callable, Optional
+
+EXIT_SUCCESS = 0
+EXIT_FAILURE = 1
 
 Ops = Enum('Ops',
            ['match', 'ins', 'delete', 'skip', 'soft', 'hard', 'pad', 'equal', 'diff', 'back'],
@@ -22,56 +27,43 @@ class MutReadInfo:
     
     
 
+
+def cleanup(code: int, msg: Optional[str] = None) -> None:
+    if code != EXIT_SUCCESS and msg:
+        logging.error(msg)
+    for obj_name in ['vcf_in_handle', 'vcf_out_handle']:
+        if obj_name in locals():
+            locals()[obj_name].close()  # lol
+    if 'bam_reader_d' in locals():
+        locals()['bam_reader_d'].close()
+    if 'log_file' in locals() and locals()['log_file']:
+        locals()['log_file'].close()
+    if code == EXIT_SUCCESS:
+        logging.info('hairpin complete')
+    sysexit(code)
+
+
 def main(
-    bam_paths: list,
-    vcf_in_path: str,
-    vcf_out_path: str,
+    bams: dict[str, pysam.AlignmentFile],
+    vcf_in: pysam.VariantFile,
+    vcf_out: pysam.VariantFile,
     clip_qual_cutoff: int,
     min_mapqual: int,
     min_basequal: int,
     max_span: int,
     al_thresh: float,
-    cent90_thresh:float
-) -> None:
-
-    vcf_obj = pysam.VariantFile(vcf_in_path)
-    # init output
-    out_head = vcf_obj.header
-    out_head.add_line("##FILTER=<ID=ALF,Description=\"Median alignment score of reads reporting variant less than {}\">".format(al_thresh))
-    out_head.add_line("##FILTER=<ID=HPF,Description=\"Evidence that variant arises from hairpin artefact\">")
-    vcf_out = pysam.VariantFile(vcf_out_path, 'w', header=out_head)
-
-    sample_names: list[str] = list(vcf_obj.header.samples)
-
-    # add try excepts
-
-    # func for local scope
-    bam_reader_dict: dict[str, pysam.AlignmentFile] = dict.fromkeys(sample_names)
-    def init_bam_dict() -> None:
-        for path in bam_paths:
-            bam = pysam.AlignmentFile(path, 'rb')
-            # grab the sample name from first SM field
-            # in header field RG
-            # this may cause problems?
-            # check with Peter
-            bam_sample = bam.header.to_dict()['RG'][1]['SM']
-            if bam_sample not in sample_names:
-                logging.error('bam doesnt match')
-                exit(1) # error
-            else:
-                bam_reader_dict[bam_sample] = bam
-        if any([x is None for x in bam_reader_dict.values()]):
-            logging.error('not enough bams')
-            exit(1)
-    init_bam_dict()  # execute w/o polluting namespace 
-
-    for vcf_rec in vcf_obj.fetch():
+    cent90_thresh: float,
+    log_func: Callable,
+) -> int:
+    
+    for vcf_rec in vcf_in.fetch():
 
         if vcf_rec.alts is None:
             logging.error('vcf rec has no alts')
-            continue  # ? ask Peter
+            # Peter what is the correct approach to this state?
+            continue  # ? 
 
-        alt_test: bool = len(vcf_rec.alts[0]) == 1
+        alt_test = len(vcf_rec.alts[0]) == 1
         if vcf_rec.rlen == 1:
             mut_type = "sub" if alt_test else "ins"
         elif alt_test:
@@ -83,8 +75,9 @@ def main(
         samples_w_mutants = [name for name in sample_names if vcf_rec.samples[name]["GT"] == (0, 1)]
 
         if len(samples_w_mutants) == 0:
-            logging.error('no mutants')
-            sysexit(1)
+            logging.error('Mutation {}:{} has no samples exhibiting mutation')
+            # Peter what is the correct approach to this situtation?
+            return EXIT_FAILURE
 
         mut_reads: dict[str, list[pysam.AlignedSegment]] = {key: [] for key in samples_w_mutants}
 
@@ -97,7 +90,7 @@ def main(
         
         for mut_sample_name in samples_w_mutants:
             ### get_mutant_reads
-            read_iter, test_iter = tee(bam_reader_dict[mut_sample_name].fetch(vcf_rec.chrom, vcf_rec.start, (vcf_rec.start + 1)))
+            read_iter, test_iter = tee(bams[mut_sample_name].fetch(vcf_rec.chrom, vcf_rec.start, (vcf_rec.start + 1)))
             try:
                 next(test_iter)
             except StopIteration:
@@ -111,7 +104,6 @@ def main(
             for read in read_iter: # type: ignore
 
                 if not (read.flag & 0x2) or read.flag & 0xE00 or read.mapping_quality < min_mapqual:
-                    # breakpoint()
                     continue
 
                 if any(x is None for x in [read.reference_start,
@@ -120,8 +112,8 @@ def main(
                                         read.query_qualities,
                                         read.cigarstring,
                                         read.cigartuples]):
-                                        # error state or continue?
-                                        sysexit(1)
+                                        # Peter what is the correct response to this state?
+                                        continue
 
                 mut_pos = ref2seq.ref2querypos(read, vcf_rec.start) # VCF 1-INDEXED, BAM 0-INDEXED
                 mut_op = ref2seq.pos2op(mut_pos, read) if mut_pos != -1 else None
@@ -168,12 +160,12 @@ def main(
                     # breakpoint()
                     continue
 
-                mate = bam_reader_dict[mut_sample_name].mate(read)
+                mate = bams[mut_sample_name].mate(read)
 
                 if any(x is None for x in [mate.reference_start,
                                             mate.reference_end,
                                             mate.cigartuples]):
-                                        logging.error('badmate')
+                                        # Peter what is the correct approach to this state
                                         continue
 
                 if read.flag & 0x40:  # read first in pair
@@ -188,7 +180,7 @@ def main(
                         if read.reference_start <= mate.reference_end:
                             read_start = mate.reference_end + 1
                     else:
-                        if read.reference_end >= read.next_reference_start:  # check with Peter, does this map on to his code accurately
+                        if read.reference_end >= read.next_reference_start:
                             read_end = read.next_reference_start - 1
                     # Peter's implemenation comments that this conditional below
                     # checks if mutant overlaps with first read in pair
@@ -211,10 +203,10 @@ def main(
 
                 sorted_ends.append(sorted([soft_start, soft_end, soft_mate_start, soft_mate_end]))
             sorted_ends: list[list[int]] = sorted(sorted_ends)  # sort sublists on first element
+            # Peter what if sorted_ends contains only 1 item?
             min_ends: list[list[int]] = [sorted_ends.pop(0)]
             # I dont' fully understand this segment but I think it recapitulates the Julia (ask Peter)
             i = 1
-            # not sure this is right below...
             while len(sorted_ends) != 0:
                 loop_ends: list[int] = sorted_ends.pop(0)
                 max_spans = map(lambda sublist: max([abs(x - y) for x, y in zip(sublist, loop_ends)]), min_ends)
@@ -225,11 +217,12 @@ def main(
                 else:
                     min_ends = [loop_ends]
                 i += 1
+            del(i)
 
             if read:
                 del(read)
-            # if we got nothing for that sample
 
+            # if we got nothing for that sample
             if len(mut_reads[mut_sample_name]) == 0:
                 # is this an error state? if the sample showed 0/1 would we expect viable reads supporting that mutation?
                 continue
@@ -253,33 +246,35 @@ def main(
                     aln_scores.append(read.get_tag('AS') / read.query_length)  # or should this be .query_alignment_length? (Peter)
                 except KeyError:
                     # Peter what is the correct approach to this state?
-                    # breakpoint()
                     continue  # ?
 
-        if len(aln_scores) == 0:
-            # Peter what is the correct approach to this state?
-            logging.error('bad')
-
-        al_filt = median(aln_scores) <= al_thresh
+        al_filt = (avg_AS := median(aln_scores) <= al_thresh)
 
         fbool = len(mut_read_pos_f) > 1
         rbool = len(mut_read_pos_r) > 1
         # hairpin conditions from Ellis et al.
-        hp_filt = True
         if fbool and not rbool:
             mad_f = max(mut_read_pos_f) - min(mut_read_pos_f)
             sd_f = stdev(mut_read_pos_f)
             if (((sum([x <= cent90_thresh for x in mut_read_pos_f]) / len(mut_read_pos_f)) < 0.9) and
-                mad_f > 0 and
-                sd_f > 4):
+                  mad_f > 0 and
+                  sd_f > 4):
+                log_func(msg='Mutation {}:{} --- passed HPF per Ellis et al. 60B(i)'.format(vcf_rec.chrom, vcf_rec.pos), decision_lvl=2)
                 hp_filt = False
+            else:
+                log_func(msg='Mutation {}:{} --- failed HPF per Ellis et al. 60B(i)'.format(vcf_rec.chrom, vcf_rec.pos), decision_lvl=1)
+                hp_filt = True
         elif rbool and not fbool:
             mad_r = max(mut_read_pos_r) - min(mut_read_pos_r)
             sd_r = stdev(mut_read_pos_r)
             if (((sum([x <= cent90_thresh for x in mut_read_pos_r]) / len(mut_read_pos_r)) < 0.9) and
                   mad_r > 0 and
                   sd_r > 4):
+                log_func(msg='Mutation {}:{} --- passed HPF per Ellis et al. 60A(i)'.format(vcf_rec.chrom, vcf_rec.pos), decision_lvl=2)
                 hp_filt = False
+            else:
+                log_func(msg='Mutation {}:{} --- failed HPF per Ellis et al. 60(i)'.format(vcf_rec.chrom, vcf_rec.pos), decision_lvl=1)
+                hp_filt = True
         elif fbool and rbool:
             mad_f = max(mut_read_pos_f) - min(mut_read_pos_f)
             sd_f = stdev(mut_read_pos_f)
@@ -290,26 +285,35 @@ def main(
                (mad_f > 2 and mad_r > 2 and sd_f > 2 and sd_r > 2) or
                (mad_f > 1 and sd_f > 10) or
                (mad_r > 1 and sd_r > 10)):
+                log_func(msg='Mutation {}:{} --- passed HPF per Ellis et al. 60A(i)'.format(vcf_rec.chrom, vcf_rec.pos), decision_lvl=2)
                 hp_filt = False
+            else:
+                log_func(msg='Mutation {}:{} --- failed HPF per Ellis et al. 60A(i)'.format(vcf_rec.chrom, vcf_rec.pos), decision_lvl=1)
+                hp_filt = True
         else:
+            log_func(msg='Mutation {}:{} --- passed HPF, insufficient reads to support HPF flag', decision_lvl=2)  # Peter does this comment accurately assses the situation
             hp_filt = False
-        ### end 
 
         ### update vcf record
         if al_filt:
+            log_func(msg='Mutation {}:{} --- failed ALF, median AS of {}'.format(vcf_rec.chrom, vcf_rec.pos, avg_AS), decision_lvl=1)
             vcf_rec.filter.add("ALF")
         if hp_filt:
             vcf_rec.filter.add("HPF")
-        
-        # try except
-        breakpoint()
-        vcf_out.write(vcf_rec)
+
+        try:
+            vcf_out.write(vcf_rec)
+        except Exception as e:
+            logging.error('Failed to write VCF, reporting: {}'.format(e))
+            return EXIT_FAILURE
+
+    return EXIT_SUCCESS
 
 
 if __name__ == '__main__':
-    
-    logging.basicConfig(level=logging.INFO)
-    
+
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s ¦ %(levelname)-8s ¦ %(message)s', datefmt='%I:%M:%S')
+
     parser = argparse.ArgumentParser(prog="hairpin")
     parser._optionals.title = 'info'
     parser.add_argument('-v', '--version', help='print version', action='version', version='hairpin 1.0.0')
@@ -324,25 +328,74 @@ if __name__ == '__main__':
     opt.add_argument('-ms', '--max-read-span', help='default: 6', type=int)
     opt.add_argument('-al', '--AL-filter-threshold', help='default: 0.93', type=float)
     opt.add_argument('-c9', '--cent90-threshold', help='default: 0.15', type=float)
-    proc_opt = parser.add_argument_group('procedural options')
-    log_sev_opt = proc_opt.add_mutually_exclusive_group()
-    log_sev_opt.add_argument('-l', help='log reason for flags to file', nargs=1)
-    log_sev_opt.add_argument('-ll', help='as -l, and additionally log reason for NOT flagging to file', nargs=1)
-    log_sev_opt.add_argument('-lll', help='as -ll, and additionaly log reason for discarding reads', nargs=1)
-    
+    log_sev_opt = opt.add_mutually_exclusive_group()
+    log_sev_opt.add_argument('-l', dest='log_path', help='log reason for failing records to file', action=utilities.SetLogAndSeverity)
+    log_sev_opt.add_argument('-ll', dest='log_path', help='as -l, and addtionally log reason for passing records')
+    log_sev_opt.add_argument('-lll', dest='log_path', help='as -ll, and additionaly log reason for discarding reads associated with a record', action=utilities.SetLogAndSeverity)
+
     args = parser.parse_args()
+
+    if not hasattr(args, 'severity'):
+        args.severity = 0
+
     if any([x is None for _, x in vars(args).items()]):
         logging.info('option(s) not provided, using defaults')
-    
-    main(
-        bam_paths=args.bams,
-        vcf_in_path=args.vcf_in,
-        vcf_out_path=args.vcf_out,
+
+
+
+    try:
+        log_file = open(args.log_path) if args.log_path else None
+    except Exception as e:
+        cleanup(1, 'failed to open log file, reporting: {}'.format(e))
+    primed_log_func = partial(utilities.log_decision, log_lvl=args.severity, log_file=log_file)
+
+    try:
+        vcf_in_handle = pysam.VariantFile(args.vcf_in)
+    except Exception as e:
+        cleanup(1, 'failed to open VCF input, reporting: {}'.format(e))
+
+    # init output
+    out_head = vcf_in_handle.header
+    out_head.add_line("##FILTER=<ID=ALF,Description=\"Median alignment score of reads reporting variant less than {}\">".format(args.AL_filter_threshold if args.AL_filter_threshold else None))
+    out_head.add_line("##FILTER=<ID=HPF,Description=\"Evidence that variant arises from hairpin artefact\">")
+
+    try:
+        vcf_out_handle = pysam.VariantFile(args.vcf_out, 'w', header=out_head)
+    except Exception as e:
+        logging.error()
+        cleanup(1, 'failed to open VCF output, reporting: {}'.format(e))
+
+    sample_names: list[str] = list(vcf_out_handle.header.samples)
+
+    # func for local scope
+    bam_reader_d: dict[str, pysam.AlignmentFile] = dict.fromkeys(sample_names)
+    for path in args.bams:
+        try:
+            bam = pysam.AlignmentFile(path, 'rb')
+        except Exception as e:
+            cleanup(1, 'failed to read BAM at {}, reporting: {}'.format(path, e))
+        # grab the sample name from first SM field
+        # in header field RG
+        # this may cause problems?
+        # check with Peter
+        bam_sample = bam.header.to_dict()['RG'][1]['SM']
+        if bam_sample not in sample_names:
+            cleanup(1, 'name in header ({}) of BAM at {} does not match any samples in VCF'.format(bam_sample, path))
+        else:
+            bam_reader_d[bam_sample] = bam
+
+
+    main_code = main(
+        bams=bam_reader_d,
+        vcf_in=vcf_in_handle,
+        vcf_out=vcf_out_handle,
         clip_qual_cutoff=args.clip_quality_cutoff if args.clip_quality_cutoff else 35,
         min_mapqual=args.min_mapping_quality if args.min_mapping_quality else 11,
         min_basequal=args.min_base_quality if args.min_base_quality else 25,
         max_span=args.max_read_span if args.max_read_span else 6,
         al_thresh=args.AL_filter_threshold if args.AL_filter_threshold else 0.93,
-        cent90_thresh=args.cent90_threshold if args.cent90_threshold else 0.15
+        cent90_thresh=args.cent90_threshold if args.cent90_threshold else 0.15,
+        log_func=primed_log_func
     )
 
+    cleanup(main_code)
