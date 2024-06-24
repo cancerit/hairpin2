@@ -17,15 +17,9 @@ Ops = Enum('Ops',
            ['match', 'ins', 'delete', 'skip', 'soft', 'hard', 'pad', 'equal', 'diff', 'back'],
            start = 0)
 
-@dataclass
-class MutReadInfo:
-    
-    read: pysam.AlignedSegment
-    mate: pysam.AlignedSegment
-    local_posn: int
-    cig_op: int
-    
-    
+
+# dataclass for tracking info?
+# define exit codes and do all logging outside of main?
 
 
 def cleanup(code: int, msg: Optional[str] = None) -> None:
@@ -59,23 +53,26 @@ def main(
     for vcf_rec in vcf_in.fetch():
 
         if vcf_rec.alts is None:
-            logging.error('vcf rec has no alts')
+            logging.error('Mutation {}:{} ¦ no alts in VCF')
             # Peter what is the correct approach to this state?
             continue  # ? 
 
-        alt_test = len(vcf_rec.alts[0]) == 1
+        # Peter is it possible for other alts to be longer?
+        # the vcf format doesn't specify as far as I can tell that
+        # alts should be the same length (and elsewhere)
         if vcf_rec.rlen == 1:
-            mut_type = "sub" if alt_test else "ins"
-        elif alt_test:
+            mut_type = "sub" if len(vcf_rec.alts[0]) == 1 else "ins"
+        elif len(vcf_rec.alts[0]) == 1:
             mut_type = "del"
         else:
             mut_type = "complex"
             
-        # check with Peter
+
+        # Peter is this sufficiently specific? You search for 0/1 as a string
         samples_w_mutants = [name for name in sample_names if vcf_rec.samples[name]["GT"] == (0, 1)]
 
         if len(samples_w_mutants) == 0:
-            logging.error('Mutation {}:{} has no samples exhibiting mutation')
+            logging.error('Mutation {}:{} --- no samples exhibiting mutation')
             # Peter what is the correct approach to this situtation?
             return EXIT_FAILURE
 
@@ -87,14 +84,12 @@ def main(
         mut_read_fracs_r: list[float] = []
         aln_scores: list[float] = []
         
-        
         for mut_sample_name in samples_w_mutants:
-            ### get_mutant_reads
             read_iter, test_iter = tee(bams[mut_sample_name].fetch(vcf_rec.chrom, vcf_rec.start, (vcf_rec.start + 1)))
             try:
                 next(test_iter)
             except StopIteration:
-                logging.error('empty iterator')
+                logging.error('Mutation {}:{} --- no reads mapped to region despite 0/1 for sample {}'.format(vcf_rec.chrom, vcf_rec.pos, mut_sample_name))
                 continue
             # Peter the above will skip the sample if no reads are returned by the fetch
             # is that acceptable? Would we not expect reads in the bam if the sample
@@ -116,12 +111,17 @@ def main(
                                         continue
 
                 mut_pos = ref2seq.ref2querypos(read, vcf_rec.start) # VCF 1-INDEXED, BAM 0-INDEXED
+                # Peter this occurs when the cigar string for a read
+                # indicates a deletion over the reference position in the read
+                # despite the vcf calling a single-base substitution
+                # What is the correct approach to this state?
+                if mut_pos is None:
+                    continue
                 mut_op = ref2seq.pos2op(mut_pos, read) if mut_pos != -1 else None
 
 
                 # Check whether read reports variant or not - skip the rest of the loop if does not report variant
                 # First, check for sub
-                # does read.query_x work? or should it be read.query_alignment_x?
                 if mut_type == "sub":
                     if (mut_op not in [Ops.match.value, Ops.diff.value] or
                         read.query_sequence[mut_pos] != vcf_rec.alts[0] or  # what about other alts?
@@ -129,7 +129,7 @@ def main(
                             # breakpoint()
                             continue
                 # Second, check whether length of read can accommodate size of indel
-                # what if other alt is longer?
+                # Peter again could other alt is longer?
                 elif (mut_pos + vcf_rec.rlen > read.query_length or
                       mut_pos + len(vcf_rec.alts[0]) > read.query_length):
                     # breakpoint()
@@ -182,9 +182,6 @@ def main(
                     else:
                         if read.reference_end >= read.next_reference_start:
                             read_end = read.next_reference_start - 1
-                    # Peter's implemenation comments that this conditional below
-                    # checks if mutant overlaps with first read in pair
-                    # I don't see it, perhaps it refers to the code above
                     if read_start <= vcf_rec.start <= read_end:
                         mut_reads[mut_sample_name].append(read)
                     else:
@@ -194,7 +191,7 @@ def main(
                 # get pos wrt to aligned region
                 # Peter
                 # behaviour on cig = None?     
-                # Julia XAM gets cigar info differently, checking CG:B,I tag
+                # Also, Julia XAM gets cigar info differently, checking CG:B,I tag
                 # does this matter?
                 soft_start = (read.reference_start - read.cigartuples[0][1]) if read.cigartuples[0][0] == Ops.soft.value else read.reference_start
                 soft_end = (read.reference_end + read.cigartuples[-1][1]) if read.cigartuples[-1][0] == Ops.soft.value else read.reference_end
@@ -202,33 +199,43 @@ def main(
                 soft_mate_end = (mate.reference_end + mate.cigartuples[-1][1]) if mate.cigartuples[-1][0] == Ops.soft.value else mate.reference_end
 
                 sorted_ends.append(sorted([soft_start, soft_end, soft_mate_start, soft_mate_end]))
+                
+            # if we got nothing for that sample after cycling through all reads
+            if len(mut_reads[mut_sample_name]) == 0:
+                # Peter is this an error state? if the sample showed 0/1 would we expect viable reads supporting that mutation?
+                continue
+
+            # return to per sample
             sorted_ends: list[list[int]] = sorted(sorted_ends)  # sort sublists on first element
             # Peter what if sorted_ends contains only 1 item?
             min_ends: list[list[int]] = [sorted_ends.pop(0)]
-            # I dont' fully understand this segment but I think it recapitulates the Julia (ask Peter)
+            # Peter I dont' fully understand this segment but I think it recapitulates the Julia
             i = 1
+            drop_idx = []
             while len(sorted_ends) != 0:
                 loop_ends: list[int] = sorted_ends.pop(0)
                 max_spans = map(lambda sublist: max([abs(x - y) for x, y in zip(sublist, loop_ends)]), min_ends)
 
                 if all([x <= max_span for x in max_spans]):
                     min_ends.append(loop_ends)
-                    mut_reads[mut_sample_name].pop(i)
+                    drop_idx.append(i)
                 else:
                     min_ends = [loop_ends]
                 i += 1
-            del(i)
-
+            mut_reads[mut_sample_name] = [j for i, j in enumerate(mut_reads[mut_sample_name]) if i not in drop_idx]
+            del(i, drop_idx)
+            
             if read:
                 del(read)
 
-            # if we got nothing for that sample
-            if len(mut_reads[mut_sample_name]) == 0:
-                # is this an error state? if the sample showed 0/1 would we expect viable reads supporting that mutation?
-                continue
+        # if we got nothing for all samples exhibiting 0/1 for this mutation
+        # skip this mutation
+        # Peter please confirm correct approach to this state
+        if all([len(x) == 0 for x in mut_reads.values()]):
+            continue
 
-        for _, reads in mut_reads.items():
-            for read in reads:
+        for read_list in mut_reads.values():
+            for read in read_list:
                 mut_pos = ref2seq.ref2querypos(read, vcf_rec.start)
                 if mut_pos == -1:
                     # breakpoint()
@@ -243,11 +250,12 @@ def main(
                     mut_read_pos_f.append(read_loc)
                 # breakpoint()
                 try:
-                    aln_scores.append(read.get_tag('AS') / read.query_length)  # or should this be .query_alignment_length? (Peter)
+                    aln_scores.append(read.get_tag('AS') / read.query_length)
                 except KeyError:
                     # Peter what is the correct approach to this state?
                     continue  # ?
-
+        if len(aln_scores) == 0:
+            breakpoint()
         al_filt = (avg_AS := median(aln_scores) <= al_thresh)
 
         fbool = len(mut_read_pos_f) > 1
@@ -341,8 +349,6 @@ if __name__ == '__main__':
     if any([x is None for _, x in vars(args).items()]):
         logging.info('option(s) not provided, using defaults')
 
-
-
     try:
         log_file = open(args.log_path) if args.log_path else None
     except Exception as e:
@@ -362,7 +368,6 @@ if __name__ == '__main__':
     try:
         vcf_out_handle = pysam.VariantFile(args.vcf_out, 'w', header=out_head)
     except Exception as e:
-        logging.error()
         cleanup(1, 'failed to open VCF output, reporting: {}'.format(e))
 
     sample_names: list[str] = list(vcf_out_handle.header.samples)
