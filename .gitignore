@@ -7,3 +7,5 @@ data/
 data
 __pycache__/
 .helix/
+build/
+*.txt
