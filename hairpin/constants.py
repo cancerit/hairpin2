@@ -2,6 +2,7 @@ from enum import Enum, IntEnum, Flag
 from typing import Callable, Optional
 import dataclasses as d
 
+VERSION = '0.0.1'
 EXIT_SUCCESS = 0
 EXIT_FAILURE = 1
 
@@ -40,8 +41,8 @@ class ALFilter(FilterData):
 
 @d.dataclass
 class Filters:
-    HP: FilterData
     AL: ALFilter
+    HP: HPFilter
 
     def __iter__(self):
         return ((field.name, getattr(self, field.name)) for field in d.fields(self))

@@ -9,7 +9,7 @@ import sys
 from typing import Optional
 
 
-def cleanup(code: int, msg: Optional[str] = None) -> None:
+def cleanup(code: int = c.EXIT_FAILURE, msg: Optional[str] = None) -> None:
     if code != c.EXIT_SUCCESS and msg:
         logging.error(msg)
     for obj_name in ['vcf_in_handle', 'vcf_out_handle']:
@@ -231,7 +231,7 @@ def test_variant(
                 hp_filt.set()
         else:
             hp_filt.code = c.FiltCodes.INSUFFICIENT_READS.value
-    return c.Filters(hp_filt, al_filt)
+    return c.Filters(al_filt, hp_filt)
 
 
 def process_vcf_record(
@@ -244,7 +244,7 @@ def process_vcf_record(
         raise ValueError('VCF record has no alts')
     
     # favour returning filter bools rather than updated record for testing/reusability
-    filt = c.Filters(c.HPFilter(), c.ALFilter())
+    filt = c.Filters(c.ALFilter(), c.HPFilter())
     alt_log = ''
 
     samples_w_mutants = [name for name in vcf_rec.samples if vcf_rec.samples[name]["GT"] != (0, 0)]
@@ -267,13 +267,12 @@ def process_vcf_record(
     return alt_log, filt
 
 
-if __name__ == '__main__':
-
+def main_cli() -> None:
     logging.basicConfig(level=logging.INFO, format='%(asctime)s ¦ %(levelname)-8s ¦ %(message)s', datefmt='%I:%M:%S')
 
     parser = argparse.ArgumentParser(prog="hairpin")
     parser._optionals.title = 'info'
-    parser.add_argument('-v', '--version', help='print version', action='version', version='hairpin 1.0.0')
+    parser.add_argument('-v', '--version', help='print version', action='version', version=c.VERSION)
     req = parser.add_argument_group('required')
     req.add_argument('-i', '--vcf-in', help="path to input vcf", required=True)
     req.add_argument('-o', '--vcf-out', help="path to vcf out", required=True)
@@ -306,12 +305,12 @@ if __name__ == '__main__':
     try:
         log_file = open(args.log_path, 'w') if args.log_path else sys.stderr
     except Exception as e:
-        cleanup(1, 'failed to open log file, reporting: {}'.format(e))
+        cleanup(msg='failed to open log file, reporting: {}'.format(e))
 
     try:
         vcf_in_handle = pysam.VariantFile(args.vcf_in)
     except Exception as e:
-        cleanup(1, 'failed to open VCF input, reporting: {}'.format(e))
+        cleanup(msg='failed to open VCF input, reporting: {}'.format(e))
 
     # init output
     out_head = vcf_in_handle.header
@@ -321,7 +320,7 @@ if __name__ == '__main__':
     try:
         vcf_out_handle = pysam.VariantFile(args.vcf_out, 'w', header=out_head)
     except Exception as e:
-        cleanup(1, 'failed to open VCF output, reporting: {}'.format(e))
+        cleanup(msg='failed to open VCF output, reporting: {}'.format(e))
 
     sample_names: list[str] = list(vcf_in_handle.header.samples)
 
@@ -330,14 +329,14 @@ if __name__ == '__main__':
         try:
             bam = pysam.AlignmentFile(path, 'rb')
         except Exception as e:
-            cleanup(1, 'failed to read BAM at {}, reporting: {}'.format(path, e))
+            cleanup(msg='failed to read BAM at {}, reporting: {}'.format(path, e))
         # grab the sample name from first SM field
         # in header field RG
         # this may cause problems?
         # check with Peter
         bam_sample = bam.header.to_dict()['RG'][1]['SM']
         if bam_sample not in sample_names:
-            cleanup(1, 'name in header ({}) of BAM at {} does not match any samples in VCF'.format(bam_sample, path))
+            cleanup(msg='name in header ({}) of BAM at {} does not match any samples in VCF'.format(bam_sample, path))
         else:
             bam_reader_d[bam_sample] = bam
 
@@ -365,6 +364,6 @@ if __name__ == '__main__':
             try:
                 vcf_out_handle.write(record)
             except Exception as e:
-                cleanup(1, 'failed to write to vcf, reporting: {}'.format(e))
+                cleanup(msg='failed to write to vcf, reporting: {}'.format(e))
 
-    cleanup(0)
+    cleanup(c.EXIT_SUCCESS)
