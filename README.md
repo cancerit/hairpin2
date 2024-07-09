@@ -1,6 +1,6 @@
 # hairpin-core
 
-Maintainable, transparent, implementation of the hairpin detection and flagging algorithm concieved by Mathijs' Sanders. Implemented here by Peter Campbell and Alex Byrne
+Maintainable, transparent, implementation of the hairpin detection and flagging algorithm concieved by Mathijs' Sanders. Implemented by Peter Campbell and Alex Byrne
 
 ### REQUIREMENTS
 

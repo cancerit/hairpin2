@@ -3,6 +3,7 @@ from hairpin import ref2seq as r2s, constants as c
 from statistics import mean, median, stdev
 import argparse
 import logging
+import json
 from itertools import tee
 from functools import partial
 import sys
@@ -284,16 +285,10 @@ def main_cli() -> None:
     opt.add_argument('-ms', '--max-read-span', help='default: 6', type=int, default=6)
     opt.add_argument('-al', '--al-filter-threshold', help='default: 0.93', type=float, default=0.93)
     opt.add_argument('-c9', '--cent90-threshold', help='default: 0.15', type=float, default=0.15)
-    log_sev_opt = opt.add_mutually_exclusive_group()
-    log_sev_opt.add_argument('-l', dest='log_path', help='log reason for failing records to file', nargs='?', const=None)
+    opt.add_argument('-j', '--json-path', help='log parameters for hairpin execution', nargs='?', type=str)
+    opt.add_argument('-l', '--log-path', help='log reason for failing records', nargs='?')
 
     args = parser.parse_args()
-
-    # needs fixing
-    if any([x is None for _, x in vars(args).items()]):
-        logging.info('option(s) not provided, using defaults')
-
-    al_round = len(str(args.al_filter_threshold).split('.')[1])
 
     primed_validate_read = partial(validate_read,
                                    min_mapqual=args.min_mapping_quality,
@@ -366,4 +361,9 @@ def main_cli() -> None:
             except Exception as e:
                 cleanup(msg='failed to write to vcf, reporting: {}'.format(e))
 
+    try:
+        with open(args.json_path, "w") as jo:
+            json.dump(vars(args), jo)
+    except Exception as e:
+        logging.warning('retaining output, but failed to write to parameters json, reporting {}'.format(e))
     cleanup(c.EXIT_SUCCESS)
