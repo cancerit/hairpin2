@@ -176,13 +176,13 @@ def test_variant(
             for read in read_list:
                 mut_pos, _ = r2s.ref2querypos(read, vcf_rec.start)
                 if read.flag & 0x10:
-                    read_loc = read.query_alignment_end - mut_pos + 1  # Peter since we're getting query mut_pos wrt to the 0-indexed vcf pos, is + 1 correct?
-                    mut_read_fracs_r.append(read_loc / read.query_alignment_length)
-                    mut_read_pos_r.append(read_loc)
+                    read_idx_wrt_aln = read.query_alignment_end - mut_pos  # 1-based position where start, idx 1, is alignment end
+                    mut_read_fracs_r.append(read_idx_wrt_aln / read.query_alignment_length)
+                    mut_read_pos_r.append(read_idx_wrt_aln)
                 else:
-                    read_loc = mut_pos - read.query_alignment_start + 1
-                    mut_read_fracs_f.append(read_loc / read.query_alignment_length)
-                    mut_read_pos_f.append(read_loc)
+                    read_idx_wrt_aln  = mut_pos - read.query_alignment_start + 1
+                    mut_read_fracs_f.append(read_idx_wrt_aln / read.query_alignment_length)
+                    mut_read_pos_f.append(read_idx_wrt_aln)
 
                 try:
                     aln_scores.append(read.get_tag('AS') / read.query_length)
@@ -360,10 +360,10 @@ def main_cli() -> None:
                 vcf_out_handle.write(record)
             except Exception as e:
                 cleanup(msg='failed to write to vcf, reporting: {}'.format(e))
-
-    try:
-        with open(args.json_path, "w") as jo:
-            json.dump(vars(args), jo)
-    except Exception as e:
-        logging.warning('retaining output, but failed to write to parameters json, reporting {}'.format(e))
+    if args.json_path:
+        try:
+            with open(args.json_path, "w") as jo:
+                json.dump(vars(args), jo)
+        except Exception as e:
+            logging.warning('retaining output, but failed to write to parameters json, reporting {}'.format(e))
     cleanup(c.EXIT_SUCCESS)
