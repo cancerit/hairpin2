@@ -297,8 +297,8 @@ def main_cli() -> None:
     opt.add_argument('-ms', '--max-read-span', help='default: 6', type=int, default=6)
     opt.add_argument('-al', '--al-filter-threshold', help='default: 0.93', type=float, default=0.93)
     opt.add_argument('-c9', '--cent90-threshold', help='default: 0.15', type=float, default=0.15)
-    opt.add_argument('-j', '--arg-log', dest='json-path' help='log input parameters to JSON', nargs='?', type=str)
-    opt.add_argument('-l', '--record-log', dest='log-path' help='log basis for decisions on each record to TSV', nargs='?')
+    opt.add_argument('-j', '--arg-log', dest='json_path', help='log input parameters to JSON', nargs='?', type=str)
+    opt.add_argument('-l', '--record-log', dest='log_path', help='log basis for decisions on each record to TSV', nargs='?')
 
     args = parser.parse_args()
 
