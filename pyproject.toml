@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "hairpin"
 version = "0.0.1"
-requires-python = ">= 3.7"
+requires-python = ">= 3.10"
 dependencies = [
     'pysam == 0.22.1'
 ]

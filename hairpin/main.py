@@ -7,10 +7,9 @@ import json
 from itertools import tee
 from functools import partial
 import sys
-from typing import Optional
 
 
-def cleanup(code: int = c.EXIT_FAILURE, msg: Optional[str] = None) -> None:
+def cleanup(code: int = c.EXIT_FAILURE, msg: None | str = None) -> None:
     if code != c.EXIT_SUCCESS and msg:
         logging.error(msg)
     for obj_name in ['vcf_in_handle', 'vcf_out_handle']:
@@ -99,6 +98,19 @@ def validate_read(
                             read_flag |= c.ValidatorFlags.BAD_OP.value
                         if read.query_sequence[mut_pos:len(alt)] != alt:  # type: ignore
                             read_flag |= c.ValidatorFlags.NOT_ALT.value
+                else:  # COMPLEX
+                    max_rng = range(vcf_record.start, vcf_record.stop) if (vcf_record.start + vcf_record.rlen) > (vcf_record.start + len(alt)) else range(vcf_record.start, (vcf_record.start + len(alt)))
+                    try:
+                        mut_rng = list(map(lambda x: r2s.ref2querypos(read, x), max_rng))
+                    except IndexError:
+                        read_flag |= c.ValidatorFlags.NOT_ALIGNED.value
+                    else:
+                        if (mut_rng[0][1] != c.Ops.MATCH.value or
+                            mut_rng[-1][1] != c.Ops.MATCH.value):
+                            read_flag |= c.ValidatorFlags.BAD_OP.value
+                        if read.query_sequence[mut_pos:len(alt)] != alt:  # type: ignore
+                            read_flag |= c.ValidatorFlags.NOT_ALT.value
+
                 # n.b. nothing done if complex read
         if read_flag == c.ValidatorFlags.CLEAR.value:
             # is it safe to assume this is always mate?
@@ -285,8 +297,8 @@ def main_cli() -> None:
     opt.add_argument('-ms', '--max-read-span', help='default: 6', type=int, default=6)
     opt.add_argument('-al', '--al-filter-threshold', help='default: 0.93', type=float, default=0.93)
     opt.add_argument('-c9', '--cent90-threshold', help='default: 0.15', type=float, default=0.15)
-    opt.add_argument('-j', '--json-path', help='log parameters for hairpin execution', nargs='?', type=str)
-    opt.add_argument('-l', '--log-path', help='log reason for failing records', nargs='?')
+    opt.add_argument('-j', '--arg-log', dest='json-path' help='log input parameters to JSON', nargs='?', type=str)
+    opt.add_argument('-l', '--record-log', dest='log-path' help='log basis for decisions on each record to TSV', nargs='?')
 
     args = parser.parse_args()
 

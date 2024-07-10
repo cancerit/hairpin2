@@ -1,5 +1,5 @@
 from enum import Enum, IntEnum, Flag
-from typing import Callable, Optional
+from typing import Callable
 import dataclasses as d
 
 VERSION = '0.0.1'
@@ -21,7 +21,7 @@ ValidatorFlags = Flag('ReadFlags',
 class FilterData:
     name: str
     flag: bool = False
-    code: Optional[int] = None
+    code: int | None = None
 
     def set(self):
         self.flag = True
@@ -37,7 +37,7 @@ class HPFilter(FilterData):
 @d.dataclass
 class ALFilter(FilterData):
     name: str = d.field(default='ALF')
-    avg_as: Optional[float] = None
+    avg_as: float | None = None
 
 @d.dataclass
 class Filters:
@@ -65,12 +65,12 @@ FlagReturn = Callable[..., int]
 
 
 def print_flag(
-    print_enum: Enum
+    print_enum: Flag
 ) -> None:
     print([':'.join([str(e), hex(e.value)]) for e in print_enum])
 
 def print_enum(
-    print_enum: Enum
+    print_enum: IntEnum
 ) -> None:
     print([e for e in print_enum])
 

@@ -4,7 +4,7 @@ Maintainable, transparent, implementation of the hairpin detection and flagging 
 
 ### REQUIREMENTS
 
-* Python3 - tested with 3.12
+* Python >= 3.10
 
 ### INSTALLATION
 
