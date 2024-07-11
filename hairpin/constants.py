@@ -1,4 +1,4 @@
-from enum import Enum, IntEnum, Flag
+from enum import IntEnum, Flag
 from typing import Callable
 import dataclasses as d
 
@@ -15,6 +15,12 @@ Ops = IntEnum('Ops',
 ValidatorFlags = Flag('ReadFlags',
             ['CLEAR', 'FLAG', 'MAPQUAL', 'READ_FIELDS_MISSING', 'NOT_ALIGNED', 'BAD_OP', 'NOT_ALT', 'BASEQUAL', 'SHORT', 'CLIPQUAL', 'MATE_MISSING_FIELDS', 'OVERLAP'],
             start=0)
+
+class NoAlts(ValueError):
+    pass
+
+class NoMutants(ValueError):
+    pass
 
 
 @d.dataclass
@@ -45,7 +51,7 @@ class Filters:
     HP: HPFilter
 
     def __iter__(self):
-        return ((field.name, getattr(self, field.name)) for field in d.fields(self))
+        return (getattr(self, field.name) for field in d.fields(self))
 
     def fill_field(self, field_name, value):
         if hasattr(self, field_name):
@@ -73,4 +79,3 @@ def print_enum(
     print_enum: IntEnum
 ) -> None:
     print([e for e in print_enum])
-

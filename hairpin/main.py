@@ -247,37 +247,23 @@ def test_variant(
     return c.Filters(al_filt, hp_filt)
 
 
-def process_vcf_record(
+def test_record_per_alt(
     bams: dict[str, pysam.AlignmentFile],
     vcf_rec: pysam.VariantRecord,
     variant_tester: c.FiltReturn,
-) -> tuple[str, c.Filters]:
+) -> dict[str, c.Filters]:
 
     if vcf_rec.alts is None:
-        raise ValueError('VCF record has no alts')
-    
-    # favour returning filter bools rather than updated record for testing/reusability
-    filt = c.Filters(c.ALFilter(), c.HPFilter())
-    alt_log = ''
-
+        raise c.NoAlts
     samples_w_mutants = [name for name in vcf_rec.samples if vcf_rec.samples[name]["GT"] != (0, 0)]
     if len(samples_w_mutants) == 0:
-        for _, state in filt:
-            state.code = c.FiltCodes.NO_MUTANTS.value
-    else:
-        bams_w_mutants = {k: v for k, v in bams.items() if k in samples_w_mutants}
-        alt_l = list(vcf_rec.alts)
-        # lock filters as true if flipped true
-        while len(alt_l) > 0 and (filt.HP.flag == False or filt.AL.flag == False):
-            alt = alt_l.pop()
-            filt_loop = variant_tester(vcf_rec, bams_w_mutants, alt)
-            for name, state in filt:
-                if not state.flag:
-                    filt.fill_field(name, filt_loop.get_field(name))
-            if any([f.flag for _, f in filt_loop]):
-                alt_log = alt if alt_log == '' else ':'.join([alt_log, alt])
-        alt_log = '-' if alt_log == '' else alt_log
-    return alt_log, filt
+        raise c.NoMutants
+
+    bams_w_mutants = {k: v for k, v in bams.items() if k in samples_w_mutants}
+    filt_d = {}
+    for alt in vcf_rec.alts:
+        filt_d[alt] = variant_tester(vcf_rec, bams_w_mutants, alt)
+    return filt_d
 
 
 def main_cli() -> None:
@@ -298,7 +284,6 @@ def main_cli() -> None:
     opt.add_argument('-al', '--al-filter-threshold', help='default: 0.93', type=float, default=0.93)
     opt.add_argument('-c9', '--cent90-threshold', help='default: 0.15', type=float, default=0.15)
     opt.add_argument('-j', '--arg-log', dest='json_path', help='log input parameters to JSON', nargs='?', type=str)
-    opt.add_argument('-l', '--record-log', dest='log_path', help='log basis for decisions on each record to TSV', nargs='?')
 
     args = parser.parse_args()
 
@@ -310,11 +295,6 @@ def main_cli() -> None:
     primed_variant_tester = partial(test_variant, al_thresh=args.al_filter_threshold, max_span=args.max_read_span, cent90_thresh=args.cent90_threshold, read_validator=primed_validate_read)
 
     try:
-        log_file = open(args.log_path, 'w') if args.log_path else sys.stderr
-    except Exception as e:
-        cleanup(msg='failed to open log file, reporting: {}'.format(e))
-
-    try:
         vcf_in_handle = pysam.VariantFile(args.vcf_in)
     except Exception as e:
         cleanup(msg='failed to open VCF input, reporting: {}'.format(e))
@@ -323,6 +303,8 @@ def main_cli() -> None:
     out_head = vcf_in_handle.header
     out_head.add_line("##FILTER=<ID=ALF,Description=\"Median alignment score of reads reporting variant less than {}\">".format(args.al_filter_threshold))
     out_head.add_line("##FILTER=<ID=HPF,Description=\"Evidence that variant arises from hairpin artefact\">")
+    out_head.add_line("##INFO=<ID=HPF,Number=1,Type=String,Description=\"alt|code for each alt indicating hairpin filter decision code\">")
+    out_head.add_line("##INFO=<ID=ALF,Number=1,Type=String,Description=\"alt|code|score for each alt indicating AL filter conditions\">")
 
     try:
         vcf_out_handle = pysam.VariantFile(args.vcf_out, 'w', header=out_head)
@@ -349,24 +331,21 @@ def main_cli() -> None:
 
     for record in vcf_in_handle.fetch():
         try:
-            trig_alts, filtering = process_vcf_record(
+            filter_d: dict[str, c.Filters] = test_record_per_alt(
                 bams=bam_reader_d,  # type: ignore
                 vcf_rec=record,
                 variant_tester=primed_variant_tester
             )
-        except ValueError:
+        except c.NoAlts:
             logging.warning('{0: <7}:{1: >12} ¦ no alts for this record'.format(record.chrom, record.pos))
+        except c.NoMutants:
+            logging.warning('{0: <7}:{1: >12} ¦ no samples contain reads exhibiting record alts'.format(record.chrom, record.pos))
         else:
-            if any([f.code == c.FiltCodes.NO_MUTANTS.value for _, f in filtering]):
-                logging.warning('{0: <7}:{1: >12} ¦ no samples contain reads exhibiting record alts'.format(record.chrom, record.pos))
-
-            record_log: str = '{}\t{}\t{}'.format(record.chrom, record.pos, trig_alts)
-            for _, filter in filtering:
-                record_log = record_log + '\t' + ':'.join([str(round(f, 3) if type(f) == float else f) for f in filter])
-                if filter.flag:
-                    record.filter.add(filter.name)
-
-            print(record_log, file = log_file, flush=True)
+            for alt, filter_bundle in filter_d.items():
+                for filter in filter_bundle:
+                    if filter.flag:
+                        record.filter.add(filter.name)
+                    record.info.update({filter.name: '|'.join([alt] + [str(f) if not type(f) == float else str(round(f, 3)) for f in filter][2:])})
 
             try:
                 vcf_out_handle.write(record)
