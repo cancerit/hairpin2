@@ -57,13 +57,13 @@ usage: hairpin [-h] [-v] -i VCF_IN -o VCF_OUT -b BAMS [BAMS ...] [-cq CLIP_QUALI
                 default: 0.93
     -c9 CENT90_THRESHOLD, --cent90-threshold CENT90_THRESHOLD
                 default: 0.15
-    -j [JSON_PATH], --arg-log [JSON_PATH]
-                log input parameters to JSON
+    -j JSON_PATH, --json-log JSON_PATH
+                log input parameters/arguments to JSON
 ```
 
 The basic procedure of this implementation is as follows:
 > For each record in the VCF, test every alt for that record by:
 > * retrieving reads from samples exhibiting the mutations, then
 > * testing each read for validity for use in hairpin testing (i.e. base quality, do they express the correct alt, and so on), then
-> * performing statistical analysis on aggregates of the position of the mutatation relative to the start and end of the aligned portion of the reads
-> * on the results of the statistical analysis pass or fail the record for the filters ALF and HPF, and log a code and relevant info to the INFO field indicating the reason for the decision
+> * performing statistical analysis on aggregates of the position of the mutatation relative to the start and end of the aligned portion of the reads, then
+> * on the results of the statistical analysis, pass or fail the record for the filters ALF and HPF, and log a code and relevant info to the INFO field indicating the reason for the decision
