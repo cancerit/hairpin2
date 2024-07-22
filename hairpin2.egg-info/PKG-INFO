@@ -1,0 +1,5 @@
+Metadata-Version: 2.1
+Name: hairpin2
+Version: 0.0.1a0
+Requires-Python: >=3.10
+Requires-Dist: pysam==0.22.1

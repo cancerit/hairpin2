@@ -1,5 +1,5 @@
 import pysam
-from hairpin import ref2seq as r2s, constants as c
+from hairpin2 import ref2seq as r2s, constants as c
 from statistics import mean, median, stdev
 import argparse
 import logging
@@ -339,7 +339,7 @@ def main_cli() -> None:
         except c.NoAlts:
             logging.warning('{0: <7}:{1: >12} ¦ no alts for this record'.format(record.chrom, record.pos))
         except c.NoMutants:
-            logging.warning('{0: <7}:{1: >12} ¦ no samples contain reads exhibiting record alts'.format(record.chrom, record.pos))
+            logging.warning('{0: <7}:{1: >12} ¦ no samples exhibit record alts'.format(record.chrom, record.pos))
         else:
             for alt, filter_bundle in filter_d.items():
                 for filter in filter_bundle:

@@ -1,4 +1,4 @@
-# hairpin-core
+# hairpin2
 
 Maintainable, transparent, implementation of the hairpin detection and flagging algorithm concieved by Mathijs' Sanders. Implemented by Peter Campbell and Alex Byrne
 
@@ -29,8 +29,8 @@ hairpin -h
 ### DETAILS
 
 ```
-usage: hairpin [-h] [-v] -i VCF_IN -o VCF_OUT -b BAMS [BAMS ...] [-cq CLIP_QUALITY_CUTOFF] [-mq MIN_MAPPING_QUALITY] 
-  [-mb MIN_BASE_QUALITY] [-ms MAX_READ_SPAN] [-al AL_FILTER_THRESHOLD] [-c9 CENT90_THRESHOLD] [-j [JSON_PATH]]
+usage: hairpin2 [-h] [-v] -i VCF_IN -o VCF_OUT -b BAMS [BAMS ...] [-cq CLIP_QUALITY_CUTOFF] [-mq MIN_MAPPING_QUALITY] 
+  [-mb MIN_BASE_QUALITY] [-ms MAX_READ_SPAN] [-al AL_FILTER_THRESHOLD] [-c9 CENT90_THRESHOLD] [-j JSON_PATH]
 
   info:
     -h, --help            show this help message and exit
