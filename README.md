@@ -1,6 +1,6 @@
 # hairpin2 - 0.0.1a
 
-Maintainable, transparent, implementation of the hairpin detection and flagging algorithm concieved by Mathijs' Sanders. Implemented by Peter Campbell and Alex Byrne
+Maintainable, transparent, and fast, implementation of the hairpin detection and flagging algorithm concieved by Mathijs' Sanders. Implemented by Peter Campbell and Alex Byrne
 
 ### REQUIREMENTS
 
@@ -61,7 +61,7 @@ usage: hairpin2 [-h] [-v] -i VCF_IN -o VCF_OUT -b BAMS [BAMS ...] [-cq CLIP_QUAL
                 log input parameters/arguments to JSON
 ```
 
-The tool tests records in a VCF file and applies the `HPF`, indicating a hairpin, and `ALF`, flags as appropriate. It records reasoning for its decisions in the `INFO` field of the VCF records, in the form `HPF=<alt>|<code>` and `ALF=<alt>|<code>|<average AS score>`
+The tool tests records in a VCF file and applies the filter flags `HPF`, indicating a hairpin, and `ALF`, as appropriate. It records reasoning for its decisions in the `INFO` field of the VCF records, in the form `HPF=<alt>|<code>` and `ALF=<alt>|<code>|<average AS score>`
 
 The codes are as follows
 
