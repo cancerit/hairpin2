@@ -1,17 +1,17 @@
 [tool.setuptools]
-packages = ["hairpin"]
+packages = ["hairpin2"]
 
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "hairpin"
-version = "0.0.1"
+name = "hairpin2"
+version = "0.0.1a"
 requires-python = ">= 3.10"
 dependencies = [
     'pysam == 0.22.1'
 ]
 
 [project.scripts]
-hairpin = "hairpin.main:main_cli"
+hairpin2 = "hairpin2.main:main_cli"

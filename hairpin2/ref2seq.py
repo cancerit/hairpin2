@@ -1,5 +1,5 @@
 import pysam
-from hairpin import constants as c
+from hairpin2 import constants as c
 
 def ref2querypos(
             bam_record: pysam.AlignedSegment,
