@@ -14,7 +14,7 @@ Within a virtual environment:
 python -m venv .env
 source .env/bin/activate
 pip install .
-hairpin -h
+hairpin2 -h
 ```
 
 For system-wide access:
@@ -23,7 +23,7 @@ export INST_PATH=/path/to/install/location/
 mkdir -p $INST_PATH
 pip install . --target $INST_PATH
 export PATH=${PATH}:${INST_PATH}/bin
-hairpin -h
+hairpin2 -h
 ```
 
 ### DETAILS
@@ -60,6 +60,20 @@ usage: hairpin2 [-h] [-v] -i VCF_IN -o VCF_OUT -b BAMS [BAMS ...] [-cq CLIP_QUAL
     -j JSON_PATH, --json-log JSON_PATH
                 log input parameters/arguments to JSON
 ```
+
+The tool tests records in a VCF file and applies the HPF, indicating a hairpin, and ALF, flags as appropriate. It records reasoning for its decisions in the INFO field of the VCF records, in the form HPF=<alt>|<code> and ALF=<alt>|<code>|<average AS score>
+
+The codes are as follows
+
+0 - passed/failed on condition 60A(i) of Ellis et al. (HPF only)
+
+1 - passed/failed on condition 60B(i) of Ellis et al. (HPF only)
+
+2 - passed/failed on filter threshold (ALF only)
+
+3 - insufficient appropriate reads to support calling flag (This covers a lot of possiblities, if more granularity is desired, please request it)
+
+4 - no samples have non 0,0 genotype for the record
 
 The basic procedure of this implementation is as follows:
 > For each record in the VCF, test every alt for that record by:
