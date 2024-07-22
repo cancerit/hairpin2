@@ -65,9 +65,9 @@ The tool tests records in a VCF file and applies the `HPF`, indicating a hairpin
 
 The codes are as follows
 
-**0** - passed/failed on condition 60A(i) of Ellis et al. (HPF only)
+**0** - passed/failed on condition 60A(i) of Ellis _et al._ (HPF only)
 
-**1** - passed/failed on condition 60B(i) of Ellis et al. (HPF only)
+**1** - passed/failed on condition 60B(i) of Ellis _et al._ (HPF only)
 
 **2** - passed/failed on filter threshold (ALF only)
 
