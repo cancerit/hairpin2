@@ -65,15 +65,15 @@ The tool tests records in a VCF file and applies the `HPF`, indicating a hairpin
 
 The codes are as follows
 
-0 - passed/failed on condition 60A(i) of Ellis et al. (HPF only)
+**0** - passed/failed on condition 60A(i) of Ellis et al. (HPF only)
 
-1 - passed/failed on condition 60B(i) of Ellis et al. (HPF only)
+**1** - passed/failed on condition 60B(i) of Ellis et al. (HPF only)
 
-2 - passed/failed on filter threshold (ALF only)
+**2** - passed/failed on filter threshold (ALF only)
 
-3 - insufficient appropriate reads to support calling flag (This covers a lot of possiblities, if more granularity is desired, please request it)
+**3** - insufficient appropriate reads to support calling flag (This covers a lot of possiblities, if more granularity is desired, please request it)
 
-4 - no samples have non 0,0 genotype for the record
+**4** - no samples have non 0,0 genotype for the record
 
 The basic procedure of this implementation is as follows:
 > For each record in the VCF, test every alt for that record by:
