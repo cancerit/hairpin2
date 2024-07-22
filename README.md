@@ -61,7 +61,7 @@ usage: hairpin2 [-h] [-v] -i VCF_IN -o VCF_OUT -b BAMS [BAMS ...] [-cq CLIP_QUAL
                 log input parameters/arguments to JSON
 ```
 
-The tool tests records in a VCF file and applies the HPF, indicating a hairpin, and ALF, flags as appropriate. It records reasoning for its decisions in the INFO field of the VCF records, in the form HPF=<alt>|<code> and ALF=<alt>|<code>|<average AS score>
+The tool tests records in a VCF file and applies the `HPF`, indicating a hairpin, and `ALF`, flags as appropriate. It records reasoning for its decisions in the `INFO` field of the VCF records, in the form `HPF=<alt>|<code>` and `ALF=<alt>|<code>|<average AS score>`
 
 The codes are as follows
 
