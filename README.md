@@ -1,4 +1,4 @@
-# hairpin2
+# hairpin2 - 0.0.1a
 
 Maintainable, transparent, implementation of the hairpin detection and flagging algorithm concieved by Mathijs' Sanders. Implemented by Peter Campbell and Alex Byrne
 
