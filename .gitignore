@@ -1,0 +1,11 @@
+data/
+.env/
+dist/
+hairpin.egg-info/
+
+data/
+data
+__pycache__/
+.helix/
+build/
+*.txt
