@@ -275,7 +275,7 @@ def main_cli() -> None:
     req = parser.add_argument_group('required')
     req.add_argument('-i', '--vcf-in', help="path to input vcf", required=True)
     req.add_argument('-o', '--vcf-out', help="path to vcf out", required=True)
-    req.add_argument('-b', '--bams', help="list of paths to bams for samples in input vcf, whitespace separated", nargs='+', required=True)
+    req.add_argument('-b', '--bams', help="list of paths to name-sorted bams for samples in input vcf, whitespace separated", nargs='+', required=True)
     opt = parser.add_argument_group('options')
     opt.add_argument('-cq', '--clip-quality-cutoff', help='default: 35', type=int, default=35)
     opt.add_argument('-mq', '--min-mapping-quality', help='default: 11', type=int, default=11)

@@ -1,6 +1,6 @@
-# hairpin2 - 0.0.1a
+# hairpin2
 
-**Maintainable, transparent, fast, and error-free** implementation of the hairpin detection and flagging algorithm concieved by Mathijs' Sanders. Implemented by Peter Campbell and Alex Byrne
+Maintainable, transparent, implementation of the hairpin detection and flagging algorithm concieved by Mathijs' Sanders. Implemented by Peter Campbell and Alex Byrne
 
 ### REQUIREMENTS
 
@@ -14,7 +14,7 @@ Within a virtual environment:
 python -m venv .env
 source .env/bin/activate
 pip install .
-hairpin2 -h
+hairpin -h
 ```
 
 For system-wide access:
@@ -23,7 +23,7 @@ export INST_PATH=/path/to/install/location/
 mkdir -p $INST_PATH
 pip install . --target $INST_PATH
 export PATH=${PATH}:${INST_PATH}/bin
-hairpin2 -h
+hairpin -h
 ```
 
 ### DETAILS
@@ -42,7 +42,7 @@ usage: hairpin2 [-h] [-v] -i VCF_IN -o VCF_OUT -b BAMS [BAMS ...] [-cq CLIP_QUAL
     -o VCF_OUT, --vcf-out VCF_OUT
                 path to vcf out
     -b BAMS [BAMS ...], --bams BAMS [BAMS ...]
-                list of paths to bams for samples in input vcf, whitespace separated
+                list of paths to name-sorted bams for samples in input vcf, whitespace separated
 
   options:
     -cq CLIP_QUALITY_CUTOFF, --clip-quality-cutoff CLIP_QUALITY_CUTOFF
@@ -60,20 +60,6 @@ usage: hairpin2 [-h] [-v] -i VCF_IN -o VCF_OUT -b BAMS [BAMS ...] [-cq CLIP_QUAL
     -j JSON_PATH, --json-log JSON_PATH
                 log input parameters/arguments to JSON
 ```
-
-The tool tests records in a VCF file and applies the filter flags `HPF`, indicating a hairpin, and `ALF`, as appropriate. It records reasoning for its decisions in the `INFO` field of the VCF records, in the form `HPF=<alt>|<code>` and `ALF=<alt>|<code>|<average AS score>`
-
-The codes are as follows
-
-**0** - passed/failed on condition 60A(i) of Ellis _et al._ (HPF only)
-
-**1** - passed/failed on condition 60B(i) of Ellis _et al._ (HPF only)
-
-**2** - passed/failed on filter threshold (ALF only)
-
-**3** - insufficient appropriate reads to support calling flag (This covers a lot of possiblities, if more granularity is desired, please request it)
-
-**4** - no samples have non 0,0 genotype for the record
 
 The basic procedure of this implementation is as follows:
 > For each record in the VCF, test every alt for that record by:
