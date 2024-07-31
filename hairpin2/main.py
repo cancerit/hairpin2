@@ -1,4 +1,3 @@
-from enum import unique
 import pysam
 from hairpin2 import ref2seq as r2s, constants as c
 from statistics import mean, median, stdev
@@ -61,7 +60,7 @@ def validate_read(
             read_flag |= c.ValidatorFlags.CLIPQUAL.value
         # First, check for sub
         try:
-            mut_pos, mut_op = r2s.ref2querypos(read, vcf_record.start) # VCF 1-INDEXED, BAM 0-INDEXED (vcf_record.start = 0-indexed mutation position)
+            mut_pos, mut_op = r2s.ref2querypos(read, vcf_record.start) # VCF 1-INDEXED, BAM 0-INDEXED - vcf_record.start = 0-indexed mutation position. testing with pos, 1-indexed, to see if match Peter
         except IndexError:
             read_flag |= c.ValidatorFlags.NOT_ALIGNED.value
         else:
@@ -196,6 +195,7 @@ def test_variant(
                     read_idx_wrt_aln  = mut_pos - read.query_alignment_start + 1
                     mut_read_fracs_f.append(read_idx_wrt_aln / read.query_alignment_length)
                     mut_read_pos_f.append(read_idx_wrt_aln)
+
                 try:
                     aln_scores.append(read.get_tag('AS') / read.query_length)
                 except KeyError:
@@ -277,7 +277,6 @@ def main_cli() -> None:
     req.add_argument('-o', '--vcf-out', help="path to vcf out", required=True)
     req.add_argument('-b', '--bams', help="list of paths to name-sorted bams for samples in input vcf, whitespace separated", nargs='+', required=True)
     opt = parser.add_argument_group('options')
-    opt.add_argument('-m', '--name-mapping', help='map VCF sample names to BAM sample names', metavar='VCF:BAM', nargs='+')
     opt.add_argument('-cq', '--clip-quality-cutoff', help='default: 35', type=int, default=35)
     opt.add_argument('-mq', '--min-mapping-quality', help='default: 11', type=int, default=11)
     opt.add_argument('-mb', '--min-base-quality', help='default: 25', type=int, default=25)
@@ -313,7 +312,8 @@ def main_cli() -> None:
         cleanup(msg='failed to open VCF output, reporting: {}'.format(e))
 
     sample_names: list[str] = list(vcf_in_handle.header.samples)
-    bam_reader_d: dict[str, pysam.AlignmentFile] = dict.fromkeys(sample_names)  # type: ignore
+
+    bam_reader_d: dict[str, None | pysam.AlignmentFile] = dict.fromkeys(sample_names)
     for path in args.bams:
         try:
             bam = pysam.AlignmentFile(path, 'rb')
@@ -324,34 +324,15 @@ def main_cli() -> None:
         # this may cause problems?
         # check with Peter
         bam_sample = bam.header.to_dict()['RG'][1]['SM']
-        bam_reader_d[bam_sample] = bam
-    if args.name_mapping:
-        vcf_map_names = []
-        bam_map_names = []
-        for pair in args.name_mapping:
-            kv_split = pair.split(':')  # VCF:BAM
-            if len(kv_split) != 2:
-                cleanup(1, 'name mapping misformatted, more than two elements in map string {}'.format(pair))
-            vcf_map_names.append(kv_split[0])
-            bam_map_names.append(kv_split[1])
-        if len(set(vcf_map_names)) != len(vcf_map_names):
-            cleanup(1, 'duplicate VCF sample names in name mapping')
-        if not sorted(vcf_map_names) == sorted(sample_names):
-            cleanup(1, 'VCF sample names in name mapping do not match VCF sample names as retrieved from VCF')
-        if len(set(bam_map_names)) != len(bam_map_names):
-            cleanup(1, 'duplicate BAM sample names in name mapping')
-        if not sorted(bam_map_names) == sorted(bam_reader_d.keys()):
-            cleanup(1, 'BAM sample names in name mapping do not match BAM sample names as retreived from BAMs')
-        mapped_bam_reader_d = {vcf_map_names[bam_map_names.index(k)]: v for k, v in bam_reader_d.items()}
-    else:
-        for bam_sample in bam_reader_d.keys():
-            if bam_sample not in sample_names:
-                cleanup(msg='name in header ({}) of BAM does not match any samples in VCF'.format(bam_sample))
+        if bam_sample not in sample_names:
+            cleanup(msg='name in header ({}) of BAM at {} does not match any samples in VCF'.format(bam_sample, path))
+        else:
+            bam_reader_d[bam_sample] = bam
 
     for record in vcf_in_handle.fetch():
         try:
             filter_d: dict[str, c.Filters] = test_record_per_alt(
-                bams=mapped_bam_reader_d if args.name_mapping else bam_reader_d,
+                bams=bam_reader_d,  # type: ignore
                 vcf_rec=record,
                 variant_tester=primed_variant_tester
             )
