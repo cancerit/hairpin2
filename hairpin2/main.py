@@ -1,4 +1,3 @@
-from enum import unique
 import pysam
 from hairpin2 import ref2seq as r2s, constants as c
 from statistics import mean, median, stdev
@@ -114,8 +113,8 @@ def validate_read(
 
                 # n.b. nothing done if complex read
         if read_flag == c.ValidatorFlags.CLEAR.value:
-            # is it safe to assume this is always mate?
-            mate_end = r2s.ref_end_via_cigar(mate_cig, read.next_reference_start)  # THIS ONLY WORKS ASSUMING MATE IS NEXT READ
+            # "next", through an unfortunate quirk of history, means "mate", so this is reliable (pulls RNEXT)
+            mate_end = r2s.ref_end_via_cigar(mate_cig, read.next_reference_start)
             if not (read.flag & 0x40):
                 # this looks like it should be checked for indexing snags
                 pair_start = read.reference_start
