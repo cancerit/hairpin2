@@ -313,7 +313,7 @@ def main_cli() -> None:
         cleanup(msg='failed to open VCF output, reporting: {}'.format(e))
 
     sample_names: list[str] = list(vcf_in_handle.header.samples)
-    bam_reader_d: dict[str, pysam.AlignmentFile] = dict.fromkeys(sample_names)  # type: ignore
+    bam_reader_d: dict[str, pysam.AlignmentFile] = {}
     for path in args.bams:
         try:
             bam = pysam.AlignmentFile(path, 'rb')
@@ -323,8 +323,8 @@ def main_cli() -> None:
         # in header field RG
         # this may cause problems?
         # check with Peter
-        bam_sample = bam.header.to_dict()['RG'][1]['SM']
-        bam_reader_d[bam_sample] = bam
+        bam_sample_name = bam.header.to_dict()['RG'][0]['SM']
+        bam_reader_d[bam_sample_name] = bam
     if args.name_mapping:
         vcf_map_names = []
         bam_map_names = []
