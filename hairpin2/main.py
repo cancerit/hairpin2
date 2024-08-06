@@ -1,5 +1,5 @@
 import pysam
-from hairpin2 import ref2seq as r2s, constants as c
+from hairpin2 import ref2seq as r2s, constants as c, helpers as h
 from statistics import mean, median, stdev
 import argparse
 import logging
@@ -60,7 +60,7 @@ def validate_read(
             read_flag |= c.ValidatorFlags.CLIPQUAL.value
         # First, check for sub
         try:
-            mut_pos, mut_op = r2s.ref2querypos(read, vcf_record.start) # VCF 1-INDEXED, BAM 0-INDEXED - vcf_record.start = 0-indexed mutation position. testing with pos, 1-indexed, to see if match Peter
+            mut_pos, mut_op = r2s.ref2querypos(read, vcf_record.start) # VCF 1-INDEXED, BAM 0-INDEXED (vcf_record.start = 0-indexed mutation position)
         except IndexError:
             read_flag |= c.ValidatorFlags.NOT_ALIGNED.value
         else:
@@ -113,8 +113,8 @@ def validate_read(
 
                 # n.b. nothing done if complex read
         if read_flag == c.ValidatorFlags.CLEAR.value:
-            # is it safe to assume this is always mate?
-            mate_end = r2s.ref_end_via_cigar(mate_cig, read.next_reference_start)  # THIS ONLY WORKS ASSUMING MATE IS NEXT READ
+            # "next", through an unfortunate quirk of history, means "mate", so this is reliable (pulls RNEXT)
+            mate_end = r2s.ref_end_via_cigar(mate_cig, read.next_reference_start)
             if not (read.flag & 0x40):
                 # this looks like it should be checked for indexing snags
                 pair_start = read.reference_start
@@ -195,7 +195,6 @@ def test_variant(
                     read_idx_wrt_aln  = mut_pos - read.query_alignment_start + 1
                     mut_read_fracs_f.append(read_idx_wrt_aln / read.query_alignment_length)
                     mut_read_pos_f.append(read_idx_wrt_aln)
-
                 try:
                     aln_scores.append(read.get_tag('AS') / read.query_length)
                 except KeyError:
@@ -277,6 +276,7 @@ def main_cli() -> None:
     req.add_argument('-o', '--vcf-out', help="path to vcf out", required=True)
     req.add_argument('-b', '--bams', help="list of paths to name-sorted bams for samples in input vcf, whitespace separated", nargs='+', required=True)
     opt = parser.add_argument_group('options')
+    opt.add_argument('-m', '--name-mapping', help='map VCF sample names to BAM sample names', metavar='VCF:BAM', nargs='+')
     opt.add_argument('-cq', '--clip-quality-cutoff', help='default: 35', type=int, default=35)
     opt.add_argument('-mq', '--min-mapping-quality', help='default: 11', type=int, default=11)
     opt.add_argument('-mb', '--min-base-quality', help='default: 25', type=int, default=25)
@@ -311,9 +311,11 @@ def main_cli() -> None:
     except Exception as e:
         cleanup(msg='failed to open VCF output, reporting: {}'.format(e))
 
-    sample_names: list[str] = list(vcf_in_handle.header.samples)
-
-    bam_reader_d: dict[str, None | pysam.AlignmentFile] = dict.fromkeys(sample_names)
+    sample_names = list(vcf_in_handle.header.samples)  # type:ignore
+    if len(set(sample_names)) != len(sample_names):
+        cleanup(msg='duplicate sample names in VCF')
+    sample_names: set[str] = set(sample_names)
+    bam_reader_d: dict[str, pysam.AlignmentFile] = {}
     for path in args.bams:
         try:
             bam = pysam.AlignmentFile(path, 'rb')
@@ -323,16 +325,35 @@ def main_cli() -> None:
         # in header field RG
         # this may cause problems?
         # check with Peter
-        bam_sample = bam.header.to_dict()['RG'][1]['SM']
-        if bam_sample not in sample_names:
-            cleanup(msg='name in header ({}) of BAM at {} does not match any samples in VCF'.format(bam_sample, path))
-        else:
-            bam_reader_d[bam_sample] = bam
+        bam_sample_name = bam.header.to_dict()['RG'][0]['SM']
+        bam_reader_d[bam_sample_name] = bam
+    if args.name_mapping:
+        vcf_map_names = []
+        bam_map_names = []
+        for pair in args.name_mapping:
+            kv_split = pair.split(':')  # VCF:BAM
+            if len(kv_split) != 2:
+                cleanup(msg='name mapping misformatted, more than two elements in map string {}'.format(pair))
+            vcf_map_names.append(kv_split[0])
+            bam_map_names.append(kv_split[1])
+        if h.has_duplicates(vcf_map_names):
+            cleanup(msg='duplicate VCF sample names in name mapping')
+        if h.lists_not_equal(vcf_map_names, sample_names):
+            cleanup(msg='VCF sample names in name mapping do not match VCF sample names as retrieved from VCF')
+        if h.has_duplicates(bam_map_names):
+            cleanup(msg='duplicate BAM sample names in name mapping')
+        if h.lists_not_equal(bam_map_names, bam_reader_d.keys()):
+            cleanup(msg='BAM sample names in name mapping do not match BAM sample names as retreived from BAMs')
+        mapped_bam_reader_d = {vcf_map_names[bam_map_names.index(k)]: v for k, v in bam_reader_d.items()}
+    else:
+        names_mismatch = sample_names ^ bam_reader_d.keys()
+        if len(names_mismatch):
+            cleanup(msg='name mismatch between BAMs and VCF: {}'.format(names_mismatch))
 
     for record in vcf_in_handle.fetch():
         try:
             filter_d: dict[str, c.Filters] = test_record_per_alt(
-                bams=bam_reader_d,  # type: ignore
+                bams=mapped_bam_reader_d if args.name_mapping else bam_reader_d,
                 vcf_rec=record,
                 variant_tester=primed_variant_tester
             )

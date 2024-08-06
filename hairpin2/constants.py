@@ -69,13 +69,3 @@ class Filters:
 FiltReturn = Callable[..., Filters]
 FlagReturn = Callable[..., int]
 
-
-def print_flag(
-    print_enum: Flag
-) -> None:
-    print([':'.join([str(e), hex(e.value)]) for e in print_enum])
-
-def print_enum(
-    print_enum: IntEnum
-) -> None:
-    print([e for e in print_enum])
