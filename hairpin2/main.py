@@ -1,5 +1,5 @@
 import pysam
-from hairpin2 import ref2seq as r2s, constants as c
+from hairpin2 import ref2seq as r2s, constants as c, helpers as h
 from statistics import mean, median, stdev
 import argparse
 import logging
@@ -311,7 +311,10 @@ def main_cli() -> None:
     except Exception as e:
         cleanup(msg='failed to open VCF output, reporting: {}'.format(e))
 
-    sample_names: list[str] = list(vcf_in_handle.header.samples)
+    sample_names = list(vcf_in_handle.header.samples)  # type:ignore
+    if len(set(sample_names)) != len(sample_names):
+        cleanup(msg='duplicate sample names in VCF')
+    sample_names: set[str] = set(sample_names)
     bam_reader_d: dict[str, pysam.AlignmentFile] = {}
     for path in args.bams:
         try:
@@ -330,22 +333,22 @@ def main_cli() -> None:
         for pair in args.name_mapping:
             kv_split = pair.split(':')  # VCF:BAM
             if len(kv_split) != 2:
-                cleanup(1, 'name mapping misformatted, more than two elements in map string {}'.format(pair))
+                cleanup(msg='name mapping misformatted, more than two elements in map string {}'.format(pair))
             vcf_map_names.append(kv_split[0])
             bam_map_names.append(kv_split[1])
-        if len(set(vcf_map_names)) != len(vcf_map_names):
-            cleanup(1, 'duplicate VCF sample names in name mapping')
-        if not sorted(vcf_map_names) == sorted(sample_names):
-            cleanup(1, 'VCF sample names in name mapping do not match VCF sample names as retrieved from VCF')
-        if len(set(bam_map_names)) != len(bam_map_names):
-            cleanup(1, 'duplicate BAM sample names in name mapping')
-        if not sorted(bam_map_names) == sorted(bam_reader_d.keys()):
-            cleanup(1, 'BAM sample names in name mapping do not match BAM sample names as retreived from BAMs')
+        if h.has_duplicates(vcf_map_names):
+            cleanup(msg='duplicate VCF sample names in name mapping')
+        if h.lists_not_equal(vcf_map_names, sample_names):
+            cleanup(msg='VCF sample names in name mapping do not match VCF sample names as retrieved from VCF')
+        if h.has_duplicates(bam_map_names):
+            cleanup(msg='duplicate BAM sample names in name mapping')
+        if h.lists_not_equal(bam_map_names, bam_reader_d.keys()):
+            cleanup(msg='BAM sample names in name mapping do not match BAM sample names as retreived from BAMs')
         mapped_bam_reader_d = {vcf_map_names[bam_map_names.index(k)]: v for k, v in bam_reader_d.items()}
     else:
-        for bam_sample in bam_reader_d.keys():
-            if bam_sample not in sample_names:
-                cleanup(msg='name in header ({}) of BAM does not match any samples in VCF'.format(bam_sample))
+        names_mismatch = sample_names ^ bam_reader_d.keys()
+        if len(names_mismatch):
+            cleanup(msg='name mismatch between BAMs and VCF: {}'.format(names_mismatch))
 
     for record in vcf_in_handle.fetch():
         try:
