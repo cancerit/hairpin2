@@ -8,8 +8,8 @@ def has_duplicates(
 
 
 def lists_not_equal(
-    l1: list,
-    l2: list
+    l1: list | set,
+    l2: list | set
 ) -> bool:
     return sorted(l1) != sorted(l2)
 
