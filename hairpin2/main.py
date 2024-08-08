@@ -6,23 +6,6 @@ import logging
 import json
 from itertools import tee
 from functools import partial
-import sys
-
-
-def cleanup(code: int = c.EXIT_FAILURE, msg: None | str = None) -> None:
-    if code != c.EXIT_SUCCESS and msg:
-        logging.error(msg)
-    for obj_name in ['vcf_in_handle', 'vcf_out_handle', 'output_json']:
-        if obj_name in locals():
-            locals()[obj_name].close()  # lol
-    for obj_name in ['bam_reader_d', 'mapped_bam_reader_d']:
-        if obj_name in locals():
-            for k in locals()[obj_name].keys():
-                locals()[obj_name][k].close()
-    if code == c.EXIT_SUCCESS:
-        logging.info('hairpin complete')
-    sys.exit(code)
-
 
 # CIGAR best retrieved from CG:B,I tag - implement in future
 def validate_read(
@@ -279,7 +262,7 @@ def main_cli() -> None:
     opt.add_argument('-ji', '--input-json', help='path to JSON of input parameters; overridden by arguments provided on command line', type=str)
     opt.add_argument('-jo', '--output-json', help='log input arguments to JSON', type=str)
     opt.add_argument('-m', '--name-mapping', help='map VCF sample names to BAM sample names; useful if they differ', metavar='VCF:BAM', nargs='+')
-    opt.add_argument('-al', '--al-filter-threshold', help='median read alignment score below which a variant is flagged as ALF - default: 0.93', type=float)
+    opt.add_argument('-al', '--al-filter-threshold', help='threshhold for median of read alignment scores over read length, below which a variant is flagged as ALF - default: 0.93', type=float)
     opt.add_argument('-mc', '--min-clip-quality', help='discard reads with mean base quality of aligned bases below this value, if they have soft-clipped bases - default: 35', type=int)
     opt.add_argument('-mq', '--min-mapping-quality', help='discard reads with mapping quality below this value - default: 11', type=int)
     opt.add_argument('-mb', '--min-base-quality', help='discard reads with base quality at variant position below this value - default: 25', type=int )
@@ -290,12 +273,15 @@ def main_cli() -> None:
 
     json_config: dict | None = None
     if args.input_json:
-        logging.info('args JSON provided, optional arguments will be loaded from args JSON if not present on command line')
+        logging.info('args JSON provided, arguments will be loaded from JSON if not present on command line')
         try:
             with open(args.input_json, 'r') as f:
                 json_config = json.load(f)
         except Exception as e:
-            cleanup(msg='failed to open input JSON, reporting: {}'.format(e))
+            h.cleanup(msg='failed to open input JSON, reporting: {}'.format(e))
+        else:
+            if not h.verify_json(json_config): # type:ignore
+                h.cleanup(msg='JSON keys are not subset of available arguments (excluding --input-json and --output_json)')
 
     # set arg defaults
     for k in vars(args).keys():
@@ -305,14 +291,15 @@ def main_cli() -> None:
             elif k in c.DEFAULTS.keys():
                 setattr(args, k, c.DEFAULTS[k])
 
-    # test args are sensible
+    # test args are sensible, exit if not
+    h.test_options(args)
 
     if args.output_json:
         try:
             with open(args.output_json, "w") as output_json:
-                json.dump({k: vars(args)[k] for k in (vars(args).keys() - set(['input_json', 'output_json']))}, output_json, indent="")
+                json.dump({k: vars(args)[k] for k in (vars(args).keys() - {'input_json', 'output_json'})}, output_json, indent="")
         except Exception as e:
-            cleanup(msg='failed to write output JSON, reporting: {}'.format(e))
+            h.cleanup(msg='failed to write output JSON, reporting: {}'.format(e))
 
     primed_validate_read = partial(validate_read,
                                    min_mapqual=args.min_mapping_quality,
@@ -324,7 +311,7 @@ def main_cli() -> None:
     try:
         vcf_in_handle = pysam.VariantFile(args.vcf_in)
     except Exception as e:
-        cleanup(msg='failed to open VCF input, reporting: {}'.format(e))
+        h.cleanup(msg='failed to open VCF input, reporting: {}'.format(e))
 
     # init output
     out_head = vcf_in_handle.header
@@ -336,18 +323,18 @@ def main_cli() -> None:
     try:
         vcf_out_handle = pysam.VariantFile(args.vcf_out, 'w', header=out_head)
     except Exception as e:
-        cleanup(msg='failed to open VCF output, reporting: {}'.format(e))
+        h.cleanup(msg='failed to open VCF output, reporting: {}'.format(e))
 
     sample_names = list(vcf_in_handle.header.samples)  # type:ignore
     if len(set(sample_names)) != len(sample_names):
-        cleanup(msg='duplicate sample names in VCF')
+        h.cleanup(msg='duplicate sample names in VCF')
     sample_names: set[str] = set(sample_names)
     bam_reader_d: dict[str, pysam.AlignmentFile] = {}
     for path in args.bams:
         try:
             bam = pysam.AlignmentFile(path, 'rb')
         except Exception as e:
-            cleanup(msg='failed to read BAM at {}, reporting: {}'.format(path, e))
+            h.cleanup(msg='failed to read BAM at {}, reporting: {}'.format(path, e))
         # grab the sample name from first SM field
         # in header field RG
         # this may cause problems?
@@ -360,22 +347,22 @@ def main_cli() -> None:
         for pair in args.name_mapping:
             kv_split = pair.split(':')  # VCF:BAM
             if len(kv_split) != 2:
-                cleanup(msg='name mapping misformatted, more than two elements in map string {}'.format(pair))
+                h.cleanup(msg='name mapping misformatted, more than two elements in map string {}'.format(pair))
             vcf_map_names.append(kv_split[0])
             bam_map_names.append(kv_split[1])
         if h.has_duplicates(vcf_map_names):
-            cleanup(msg='duplicate VCF sample names in name mapping')
+            h.cleanup(msg='duplicate VCF sample names in name mapping')
         if h.lists_not_equal(vcf_map_names, sample_names):
-            cleanup(msg='VCF sample names in name mapping do not match VCF sample names as retrieved from VCF')
+            h.cleanup(msg='VCF sample names in name mapping do not match VCF sample names as retrieved from VCF')
         if h.has_duplicates(bam_map_names):
-            cleanup(msg='duplicate BAM sample names in name mapping')
+            h.cleanup(msg='duplicate BAM sample names in name mapping')
         if h.lists_not_equal(bam_map_names, bam_reader_d.keys()):
-            cleanup(msg='BAM sample names in name mapping do not match BAM sample names as retreived from BAMs')
+            h.cleanup(msg='BAM sample names in name mapping do not match BAM sample names as retreived from BAMs')
         mapped_bam_reader_d = {vcf_map_names[bam_map_names.index(k)]: v for k, v in bam_reader_d.items()}
     else:
         names_mismatch = sample_names ^ bam_reader_d.keys()
         if len(names_mismatch):
-            cleanup(msg='name mismatch between BAMs and VCF: {}'.format(names_mismatch))
+            h.cleanup(msg='name mismatch between BAMs and VCF: {}'.format(names_mismatch))
 
     for record in vcf_in_handle.fetch():
         try:
@@ -398,5 +385,5 @@ def main_cli() -> None:
             try:
                 vcf_out_handle.write(record)  # type:ignore
             except Exception as e:
-                cleanup(msg='failed to write to vcf, reporting: {}'.format(e))
-    cleanup(c.EXIT_SUCCESS)
+                h.cleanup(msg='failed to write to vcf, reporting: {}'.format(e))
+    h.cleanup(c.EXIT_SUCCESS)
