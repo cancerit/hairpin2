@@ -7,13 +7,6 @@ from hairpin2 import constants as c
 def cleanup(code: int = c.EXIT_FAILURE, msg: None | str = None) -> None:
     if code != c.EXIT_SUCCESS and msg:
         logging.error(msg)
-    for obj_name in ['vcf_in_handle', 'vcf_out_handle', 'output_json']:
-        if obj_name in locals():
-            locals()[obj_name].close()
-    for obj_name in ['bam_reader_d', 'mapped_bam_reader_d']:
-        if obj_name in locals():
-            for v in locals()[obj_name].values():
-                v.close()
     if code == c.EXIT_SUCCESS:
         logging.info('hairpin complete')
     sys.exit(code)
