@@ -6,30 +6,13 @@ import logging
 import json
 from itertools import tee
 from functools import partial
-import sys
-
-
-def cleanup(code: int = c.EXIT_FAILURE, msg: None | str = None) -> None:
-    if code != c.EXIT_SUCCESS and msg:
-        logging.error(msg)
-    for obj_name in ['vcf_in_handle', 'vcf_out_handle']:
-        if obj_name in locals():
-            locals()[obj_name].close()  # lol
-    if 'bam_reader_d' in locals():
-        locals()['bam_reader_d'].close()
-    if 'log_file' in locals() and locals()['log_file']:
-        locals()['log_file'].close()
-    if code == c.EXIT_SUCCESS:
-        logging.info('hairpin complete')
-    sys.exit(code)
-
 
 # CIGAR best retrieved from CG:B,I tag - implement in future
 def validate_read(
     vcf_record: pysam.VariantRecord,
     read: pysam.AlignedSegment,
     min_mapqual: int,
-    clip_qual_cutoff: int,
+    min_clipqual: int,
     min_basequal: int,
     alt: str
 ) -> int:
@@ -56,7 +39,7 @@ def validate_read(
         read_flag |= c.ValidatorFlags.READ_FIELDS_MISSING.value
     else:
         if ('S' in read.cigarstring and  # type: ignore
-            mean(read.query_alignment_qualities) < clip_qual_cutoff):  # type: ignore
+            mean(read.query_alignment_qualities) < min_clipqual):  # type: ignore
             read_flag |= c.ValidatorFlags.CLIPQUAL.value
         # First, check for sub
         try:
@@ -136,7 +119,7 @@ def test_variant(
     alt: str,
     al_thresh: float,
     max_span: int,
-    cent90_thresh: float,
+    position_fraction_thresh: float,
     read_validator: c.FlagReturn,
 ) -> c.Filters:
 
@@ -210,7 +193,7 @@ def test_variant(
         if len(mut_read_pos_f) > 1 and not len(mut_read_pos_r) > 1:
             mad_f = max(mut_read_pos_f) - min(mut_read_pos_f)
             sd_f = stdev(mut_read_pos_f)
-            if (((sum([x <= cent90_thresh for x in mut_read_fracs_f]) / len(mut_read_pos_f)) < 0.9) and
+            if (((sum([x <= position_fraction_thresh for x in mut_read_fracs_f]) / len(mut_read_pos_f)) < 0.9) and
                   mad_f > 0 and
                   sd_f > 4):
                 hp_filt.code = c.FiltCodes.SIXTYAI.value  # 60A(i)
@@ -220,7 +203,7 @@ def test_variant(
         elif len(mut_read_pos_r) > 1 and not len(mut_read_pos_f) > 1:
             mad_r = max(mut_read_pos_r) - min(mut_read_pos_r)
             sd_r = stdev(mut_read_pos_r)
-            if (((sum([x <= cent90_thresh for x in mut_read_fracs_r]) / len(mut_read_pos_r)) < 0.9) and
+            if (((sum([x <= position_fraction_thresh for x in mut_read_fracs_r]) / len(mut_read_pos_r)) < 0.9) and
                   mad_r > 0 and
                   sd_r > 4):
                 hp_filt.code = c.FiltCodes.SIXTYAI.value
@@ -232,7 +215,7 @@ def test_variant(
             sd_f = stdev(mut_read_pos_f)
             mad_r = max(mut_read_pos_r) - min(mut_read_pos_r)
             sd_r = stdev(mut_read_pos_r)
-            frac_lt_thresh = sum([x <= cent90_thresh for x in mut_read_fracs_f + mut_read_fracs_r]) / (len(mut_read_pos_f) + len(mut_read_pos_r))
+            frac_lt_thresh = sum([x <= position_fraction_thresh for x in mut_read_fracs_f + mut_read_fracs_r]) / (len(mut_read_pos_f) + len(mut_read_pos_r))
             if (frac_lt_thresh < 0.9 or
                (mad_f > 2 and mad_r > 2 and sd_f > 2 and sd_r > 2) or
                (mad_f > 1 and sd_f > 10) or
@@ -271,33 +254,64 @@ def main_cli() -> None:
     parser = argparse.ArgumentParser(prog="hairpin")
     parser._optionals.title = 'info'
     parser.add_argument('-v', '--version', help='print version', action='version', version=c.VERSION)
-    req = parser.add_argument_group('required')
-    req.add_argument('-i', '--vcf-in', help="path to input vcf", required=True)
-    req.add_argument('-o', '--vcf-out', help="path to vcf out", required=True)
-    req.add_argument('-b', '--bams', help="list of paths to name-sorted bams for samples in input vcf, whitespace separated", nargs='+', required=True)
-    opt = parser.add_argument_group('options')
-    opt.add_argument('-al', '--al-filter-threshold', help='default: 0.93', type=float, default=0.93)
-    opt.add_argument('-cq', '--clip-quality-cutoff', help='default: 35', type=int, default=35)
-    opt.add_argument('-mq', '--min-mapping-quality', help='default: 11', type=int, default=11)
-    opt.add_argument('-mb', '--min-base-quality', help='default: 25', type=int, default=25)
-    opt.add_argument('-ms', '--max-read-span', help='maximum +- position to use when detecting PCR duplicates - default: 6', type=int, default=6)
-    opt.add_argument('-pf', '--position-fraction', help='>90%% of variant reads variant must occur within [fraction] of start/end to allow HPF flag - default: 0.15', type=float, default=0.15)
+    req = parser.add_argument_group('basic')
+    req.add_argument('-i', '--vcf-in', help="path to input vcf")
+    req.add_argument('-o', '--vcf-out', help="path to vcf out")
+    req.add_argument('-b', '--bams', help="list of paths to name-sorted bams for samples in input vcf, whitespace separated", nargs='+')
+    opt = parser.add_argument_group('extended')
+    opt.add_argument('-ji', '--input-json', help='path to JSON of input parameters; overridden by arguments provided on command line', type=str)
+    opt.add_argument('-jo', '--output-json', help='log input arguments to JSON', type=str)
     opt.add_argument('-m', '--name-mapping', help='map VCF sample names to BAM sample names; useful if they differ', metavar='VCF:BAM', nargs='+')
-    opt.add_argument('-j', '--json-log', dest='json_path', help='log input parameters/arguments to JSON', type=str)
+    opt.add_argument('-al', '--al-filter-threshold', help='threshhold for median of read alignment scores over read length, below which a variant is flagged as ALF - default: 0.93', type=float)
+    opt.add_argument('-mc', '--min-clip-quality', help='discard reads with mean base quality of aligned bases below this value, if they have soft-clipped bases - default: 35', type=int)
+    opt.add_argument('-mq', '--min-mapping-quality', help='discard reads with mapping quality below this value - default: 11', type=int)
+    opt.add_argument('-mb', '--min-base-quality', help='discard reads with base quality at variant position below this value - default: 25', type=int )
+    opt.add_argument('-ms', '--max-read-span', help='maximum +- position to use when detecting PCR duplicates - default: 6', type=int)
+    opt.add_argument('-pf', '--position-fraction', help='>90%% of variant reads variant must occur within [fraction] of start/end to allow HPF flag - default: 0.15', type=float)
 
     args = parser.parse_args()
 
+    json_config: dict | None = None
+    if args.input_json:
+        logging.info('args JSON provided, arguments will be loaded from JSON if not present on command line')
+        try:
+            with open(args.input_json, 'r') as f:
+                json_config = json.load(f)
+        except Exception as e:
+            h.cleanup(msg='failed to open input JSON, reporting: {}'.format(e))
+        else:
+            if not h.verify_json(json_config): # type:ignore
+                h.cleanup(msg='JSON keys are not subset of available arguments (excluding --input-json and --output_json)')
+
+    # set arg defaults
+    for k in vars(args).keys():
+        if not vars(args)[k]:
+            if json_config and k in json_config.keys():
+                setattr(args, k, json_config[k])
+            elif k in c.DEFAULTS.keys():
+                setattr(args, k, c.DEFAULTS[k])
+
+    # test args are sensible, exit if not
+    h.test_options(args)
+
+    if args.output_json:
+        try:
+            with open(args.output_json, "w") as output_json:
+                json.dump({k: vars(args)[k] for k in (vars(args).keys() - {'input_json', 'output_json'})}, output_json, indent="")
+        except Exception as e:
+            h.cleanup(msg='failed to write output JSON, reporting: {}'.format(e))
+
     primed_validate_read = partial(validate_read,
                                    min_mapqual=args.min_mapping_quality,
-                                   clip_qual_cutoff=args.clip_quality_cutoff,
+                                   min_clipqual=args.min_clip_quality,
                                    min_basequal=args.min_base_quality)
 
-    primed_variant_tester = partial(test_variant, al_thresh=args.al_filter_threshold, max_span=args.max_read_span, cent90_thresh=args.cent90_threshold, read_validator=primed_validate_read)
+    primed_variant_tester = partial(test_variant, al_thresh=args.al_filter_threshold, max_span=args.max_read_span, position_fraction_thresh=args.position_fraction, read_validator=primed_validate_read)
 
     try:
         vcf_in_handle = pysam.VariantFile(args.vcf_in)
     except Exception as e:
-        cleanup(msg='failed to open VCF input, reporting: {}'.format(e))
+        h.cleanup(msg='failed to open VCF input, reporting: {}'.format(e))
 
     # init output
     out_head = vcf_in_handle.header
@@ -309,18 +323,18 @@ def main_cli() -> None:
     try:
         vcf_out_handle = pysam.VariantFile(args.vcf_out, 'w', header=out_head)
     except Exception as e:
-        cleanup(msg='failed to open VCF output, reporting: {}'.format(e))
+        h.cleanup(msg='failed to open VCF output, reporting: {}'.format(e))
 
     sample_names = list(vcf_in_handle.header.samples)  # type:ignore
     if len(set(sample_names)) != len(sample_names):
-        cleanup(msg='duplicate sample names in VCF')
+        h.cleanup(msg='duplicate sample names in VCF')
     sample_names: set[str] = set(sample_names)
     bam_reader_d: dict[str, pysam.AlignmentFile] = {}
     for path in args.bams:
         try:
             bam = pysam.AlignmentFile(path, 'rb')
         except Exception as e:
-            cleanup(msg='failed to read BAM at {}, reporting: {}'.format(path, e))
+            h.cleanup(msg='failed to read BAM at {}, reporting: {}'.format(path, e))
         # grab the sample name from first SM field
         # in header field RG
         # this may cause problems?
@@ -333,22 +347,22 @@ def main_cli() -> None:
         for pair in args.name_mapping:
             kv_split = pair.split(':')  # VCF:BAM
             if len(kv_split) != 2:
-                cleanup(msg='name mapping misformatted, more than two elements in map string {}'.format(pair))
+                h.cleanup(msg='name mapping misformatted, more than two elements in map string {}'.format(pair))
             vcf_map_names.append(kv_split[0])
             bam_map_names.append(kv_split[1])
         if h.has_duplicates(vcf_map_names):
-            cleanup(msg='duplicate VCF sample names in name mapping')
+            h.cleanup(msg='duplicate VCF sample names in name mapping')
         if h.lists_not_equal(vcf_map_names, sample_names):
-            cleanup(msg='VCF sample names in name mapping do not match VCF sample names as retrieved from VCF')
+            h.cleanup(msg='VCF sample names in name mapping do not match VCF sample names as retrieved from VCF')
         if h.has_duplicates(bam_map_names):
-            cleanup(msg='duplicate BAM sample names in name mapping')
+            h.cleanup(msg='duplicate BAM sample names in name mapping')
         if h.lists_not_equal(bam_map_names, bam_reader_d.keys()):
-            cleanup(msg='BAM sample names in name mapping do not match BAM sample names as retreived from BAMs')
+            h.cleanup(msg='BAM sample names in name mapping do not match BAM sample names as retreived from BAMs')
         mapped_bam_reader_d = {vcf_map_names[bam_map_names.index(k)]: v for k, v in bam_reader_d.items()}
     else:
         names_mismatch = sample_names ^ bam_reader_d.keys()
         if len(names_mismatch):
-            cleanup(msg='name mismatch between BAMs and VCF: {}'.format(names_mismatch))
+            h.cleanup(msg='name mismatch between BAMs and VCF: {}'.format(names_mismatch))
 
     for record in vcf_in_handle.fetch():
         try:
@@ -369,13 +383,7 @@ def main_cli() -> None:
                     record.info.update({filter.name: '|'.join([alt] + [str(f) if not type(f) == float else str(round(f, 3)) for f in filter][2:])})
 
             try:
-                vcf_out_handle.write(record)
+                vcf_out_handle.write(record)  # type:ignore
             except Exception as e:
-                cleanup(msg='failed to write to vcf, reporting: {}'.format(e))
-    if args.json_path:
-        try:
-            with open(args.json_path, "w") as jo:
-                json.dump(vars(args), jo)
-        except Exception as e:
-            logging.warning('retaining output, but failed to write to parameters json, reporting {}'.format(e))
-    cleanup(c.EXIT_SUCCESS)
+                h.cleanup(msg='failed to write to vcf, reporting: {}'.format(e))
+    h.cleanup(c.EXIT_SUCCESS)

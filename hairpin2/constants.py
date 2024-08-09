@@ -6,6 +6,8 @@ VERSION = '0.0.1a'
 EXIT_SUCCESS = 0
 EXIT_FAILURE = 1
 
+DEFAULTS: dict[str, int | float] = dict((('al_filter_threshold', 0.93), ('min_clip_quality', 35), ('min_mapping_quality', 11), ('min_base_quality', 25), ('max_read_span', 6), ('position_fraction', 0.15)))
+
 FiltCodes = IntEnum('FiltCodes',
             ['SIXTYAI', 'SIXTYBI', 'ON_THRESHOLD', 'INSUFFICIENT_READS', 'NO_MUTANTS'],
             start=0)
