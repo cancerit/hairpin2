@@ -97,7 +97,7 @@ def validate_read(
                 # n.b. nothing done if complex read
         if read_flag == c.ValidatorFlags.CLEAR.value:
             # "next", through an unfortunate quirk of history, means "mate", so this is reliable (pulls RNEXT)
-            mate_end = r2s.ref_end_via_cigar(mate_cig, read.next_reference_start)
+            mate_end = r2s.ref_end_via_cigar(mate_cig, read.next_reference_start)  # type:ignore
             if not (read.flag & 0x40):
                 # this looks like it should be checked for indexing snags
                 pair_start = read.reference_start
@@ -106,9 +106,9 @@ def validate_read(
                     if pair_start <= mate_end:
                         pair_start = mate_end + 1
                 else:
-                    if pair_end >= read.next_reference_start:
+                    if pair_end >= read.next_reference_start:  # type:ignore
                         pair_end = read.next_reference_start - 1
-                if not (pair_start <= vcf_record.start <= pair_end):
+                if not (pair_start <= vcf_record.start <= pair_end):  # type:ignore
                     read_flag |= c.ValidatorFlags.OVERLAP.value
     return read_flag
 
@@ -179,7 +179,7 @@ def test_variant(
                     mut_read_fracs_f.append(read_idx_wrt_aln / read.query_alignment_length)
                     mut_read_pos_f.append(read_idx_wrt_aln)
                 try:
-                    aln_scores.append(read.get_tag('AS') / read.query_length)
+                    aln_scores.append(read.get_tag('AS') / read.query_length)  # type:ignore
                 except KeyError:
                     pass
         if len(aln_scores) != 0:
@@ -313,23 +313,11 @@ def main_cli() -> None:
     except Exception as e:
         h.cleanup(msg='failed to open VCF input, reporting: {}'.format(e))
 
-    # init output
-    out_head = vcf_in_handle.header
-    out_head.add_line("##FILTER=<ID=ALF,Description=\"Median alignment score of reads reporting variant less than {}\">".format(args.al_filter_threshold))
-    out_head.add_line("##FILTER=<ID=HPF,Description=\"Evidence that variant arises from hairpin artefact\">")
-    out_head.add_line("##INFO=<ID=HPF,Number=1,Type=String,Description=\"alt|code for each alt indicating hairpin filter decision code\">")
-    out_head.add_line("##INFO=<ID=ALF,Number=1,Type=String,Description=\"alt|code|score for each alt indicating AL filter conditions\">")
-
-    try:
-        vcf_out_handle = pysam.VariantFile(args.vcf_out, 'w', header=out_head)
-    except Exception as e:
-        h.cleanup(msg='failed to open VCF output, reporting: {}'.format(e))
-
     sample_names = list(vcf_in_handle.header.samples)  # type:ignore
     if len(set(sample_names)) != len(sample_names):
         h.cleanup(msg='duplicate sample names in VCF')
     sample_names: set[str] = set(sample_names)
-    bam_reader_d: dict[str, pysam.AlignmentFile] = {}
+    vcf_sample_to_bam_file: dict[str, pysam.AlignmentFile] = {}
     for path in args.bams:
         try:
             bam = pysam.AlignmentFile(path, 'rb')
@@ -339,9 +327,11 @@ def main_cli() -> None:
         # in header field RG
         # this may cause problems?
         # check with Peter
-        bam_sample_name = bam.header.to_dict()['RG'][0]['SM']
-        bam_reader_d[bam_sample_name] = bam
+        bam_sample_name = bam.header.to_dict()['RG'][0]['SM']  # type:ignore
+        vcf_sample_to_bam_file[bam_sample_name] = bam  # type:ignore
     if args.name_mapping:
+        if len(args.name_mapping) > len(args.bams):
+            h.cleanup(msg="more name mappings provided than BAMs")
         vcf_map_names = []
         bam_map_names = []
         for pair in args.name_mapping:
@@ -352,22 +342,35 @@ def main_cli() -> None:
             bam_map_names.append(kv_split[1])
         if h.has_duplicates(vcf_map_names):
             h.cleanup(msg='duplicate VCF sample names in name mapping')
-        if h.lists_not_equal(vcf_map_names, sample_names):
-            h.cleanup(msg='VCF sample names in name mapping do not match VCF sample names as retrieved from VCF')
+        if not set(vcf_map_names) <= sample_names:
+            h.cleanup(msg="VCF sample names provided to flag are not equal to, or a subset of, VCF sample names as retrieved from VCF")
         if h.has_duplicates(bam_map_names):
             h.cleanup(msg='duplicate BAM sample names in name mapping')
-        if h.lists_not_equal(bam_map_names, bam_reader_d.keys()):
-            h.cleanup(msg='BAM sample names in name mapping do not match BAM sample names as retreived from BAMs')
-        mapped_bam_reader_d = {vcf_map_names[bam_map_names.index(k)]: v for k, v in bam_reader_d.items()}
+        if h.lists_not_equal(bam_map_names, vcf_sample_to_bam_file.keys()):  # type:ignore
+            h.cleanup(msg='BAM sample names provided to name mapping flags do not match BAM sample names as retreived from BAM SM tags')
+        vcf_sample_to_bam_file = {vcf_map_names[bam_map_names.index(k)]: v for k, v in vcf_sample_to_bam_file.items()}
     else:
-        names_mismatch = sample_names ^ bam_reader_d.keys()
-        if len(names_mismatch):
-            h.cleanup(msg='name mismatch between BAMs and VCF: {}'.format(names_mismatch))
+        if not vcf_sample_to_bam_file.keys() <= sample_names:
+            h.cleanup(msg='SM tags of BAMs provided do not match VCF sample names: {}'.format(vcf_sample_to_bam_file.keys() - sample_names))
+    if sample_names != vcf_sample_to_bam_file.keys():
+        logging.info("BAMs not provided for all VCF samples; {} will be ignored".format(sample_names - vcf_sample_to_bam_file.keys()))
 
-    for record in vcf_in_handle.fetch():
+    # init output
+    out_head = vcf_in_handle.header  # type:ignore
+    out_head.add_line("##FILTER=<ID=ALF,Description=\"Median alignment score of reads reporting variant less than {}, using samples {}\">".format(args.al_filter_threshold, ', '.join(vcf_sample_to_bam_file.keys())))
+    out_head.add_line("##FILTER=<ID=HPF,Description=\"Variant arises from hairpin artefact, using samples {}\">".format(', '.join(vcf_sample_to_bam_file.keys())))
+    out_head.add_line("##INFO=<ID=HPF,Number=1,Type=String,Description=\"alt|code for each alt indicating hairpin filter decision code\">")
+    out_head.add_line("##INFO=<ID=ALF,Number=1,Type=String,Description=\"alt|code|score for each alt indicating AL filter conditions\">")
+
+    try:
+        vcf_out_handle = pysam.VariantFile(args.vcf_out, 'w', header=out_head)
+    except Exception as e:
+        h.cleanup(msg='failed to open VCF output, reporting: {}'.format(e))
+
+    for record in vcf_in_handle.fetch():  # type:ignore
         try:
             filter_d: dict[str, c.Filters] = test_record_per_alt(
-                bams=mapped_bam_reader_d if args.name_mapping else bam_reader_d,
+                bams=vcf_sample_to_bam_file,
                 vcf_rec=record,
                 variant_tester=primed_variant_tester
             )
