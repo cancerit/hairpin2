@@ -317,7 +317,7 @@ def main_cli() -> None:
     if len(set(sample_names)) != len(sample_names):
         h.cleanup(msg='duplicate sample names in VCF')
     sample_names: set[str] = set(sample_names)
-    vcf_sample_to_bam_file: dict[str, pysam.AlignmentFile] = {}
+    vcf_sample_to_bam_file_map: dict[str, pysam.AlignmentFile] = {}
     for path in args.bams:
         try:
             bam = pysam.AlignmentFile(path, 'rb')
@@ -328,7 +328,7 @@ def main_cli() -> None:
         # this may cause problems?
         # check with Peter
         bam_sample_name = bam.header.to_dict()['RG'][0]['SM']  # type:ignore
-        vcf_sample_to_bam_file[bam_sample_name] = bam  # type:ignore
+        vcf_sample_to_bam_file_map[bam_sample_name] = bam  # type:ignore
     if args.name_mapping:
         if len(args.name_mapping) > len(args.bams):
             h.cleanup(msg="more name mappings provided than BAMs")
@@ -346,19 +346,19 @@ def main_cli() -> None:
             h.cleanup(msg="VCF sample names provided to name mapping flag are not equal to, or a subset of, VCF sample names as retrieved from VCF")
         if h.has_duplicates(bam_map_names):
             h.cleanup(msg='duplicate BAM sample names provided to name mapping flag')
-        if h.lists_not_equal(bam_map_names, vcf_sample_to_bam_file.keys()):  # type:ignore
+        if h.lists_not_equal(bam_map_names, vcf_sample_to_bam_file_map.keys()):  # type:ignore
             h.cleanup(msg='BAM sample names provided to name mapping flag do not match BAM SM tags')
-        vcf_sample_to_bam_file = {vcf_map_names[bam_map_names.index(k)]: v for k, v in vcf_sample_to_bam_file.items()}
+        vcf_sample_to_bam_file_map = {vcf_map_names[bam_map_names.index(k)]: v for k, v in vcf_sample_to_bam_file_map.items()}
     else:
-        if not vcf_sample_to_bam_file.keys() <= sample_names:
-            h.cleanup(msg='BAM SM tags do not match VCF sample names: {}'.format(vcf_sample_to_bam_file.keys() - sample_names))
-    if sample_names != vcf_sample_to_bam_file.keys():
-        logging.info("BAMs not provided for all VCF samples; {} will be ignored".format(sample_names - vcf_sample_to_bam_file.keys()))
+        if not vcf_sample_to_bam_file_map.keys() <= sample_names:
+            h.cleanup(msg='SM tagsdo not match VCF sample names: {}'.format(vcf_sample_to_bam_file_map.keys() - sample_names))
+    if sample_names != vcf_sample_to_bam_file_map.keys():
+        logging.info("BAMs not provided for all VCF samples; {} will be ignored".format(sample_names - vcf_sample_to_bam_file_map.keys()))
 
     # init output
     out_head = vcf_in_handle.header  # type:ignore
-    out_head.add_line("##FILTER=<ID=ALF,Description=\"Median alignment score of reads reporting variant less than {}, using samples {}\">".format(args.al_filter_threshold, ', '.join(vcf_sample_to_bam_file.keys())))
-    out_head.add_line("##FILTER=<ID=HPF,Description=\"Variant arises from hairpin artefact, using samples {}\">".format(', '.join(vcf_sample_to_bam_file.keys())))
+    out_head.add_line("##FILTER=<ID=ALF,Description=\"Median alignment score of reads reporting variant less than {}, using samples {}\">".format(args.al_filter_threshold, ', '.join(vcf_sample_to_bam_file_map.keys())))
+    out_head.add_line("##FILTER=<ID=HPF,Description=\"Variant arises from hairpin artefact, using samples {}\">".format(', '.join(vcf_sample_to_bam_file_map.keys())))
     out_head.add_line("##INFO=<ID=HPF,Number=1,Type=String,Description=\"alt|code for each alt indicating hairpin filter decision code\">")
     out_head.add_line("##INFO=<ID=ALF,Number=1,Type=String,Description=\"alt|code|score for each alt indicating AL filter conditions\">")
 
@@ -370,7 +370,7 @@ def main_cli() -> None:
     for record in vcf_in_handle.fetch():  # type:ignore
         try:
             filter_d: dict[str, c.Filters] = test_record_per_alt(
-                bams=vcf_sample_to_bam_file,
+                bams=vcf_sample_to_bam_file_map,
                 vcf_rec=record,
                 variant_tester=primed_variant_tester
             )
