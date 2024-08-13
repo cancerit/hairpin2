@@ -341,17 +341,17 @@ def main_cli() -> None:
             vcf_map_names.append(kv_split[0])
             bam_map_names.append(kv_split[1])
         if h.has_duplicates(vcf_map_names):
-            h.cleanup(msg='duplicate VCF sample names in name mapping')
+            h.cleanup(msg='duplicate VCF sample names provided to name mapping flag')
         if not set(vcf_map_names) <= sample_names:
             h.cleanup(msg="VCF sample names provided to name mapping flag are not equal to, or a subset of, VCF sample names as retrieved from VCF")
         if h.has_duplicates(bam_map_names):
-            h.cleanup(msg='duplicate BAM sample names in name mapping')
+            h.cleanup(msg='duplicate BAM sample names provided to name mapping flag')
         if h.lists_not_equal(bam_map_names, vcf_sample_to_bam_file.keys()):  # type:ignore
-            h.cleanup(msg='BAM sample names provided to name mapping flag do not match BAM sample names as retreived from BAM SM tags')
+            h.cleanup(msg='BAM sample names provided to name mapping flag do not match BAM SM tags')
         vcf_sample_to_bam_file = {vcf_map_names[bam_map_names.index(k)]: v for k, v in vcf_sample_to_bam_file.items()}
     else:
         if not vcf_sample_to_bam_file.keys() <= sample_names:
-            h.cleanup(msg='SM tags of BAMs provided do not match VCF sample names: {}'.format(vcf_sample_to_bam_file.keys() - sample_names))
+            h.cleanup(msg='SM tags of BAMs do not match VCF sample names: {}'.format(vcf_sample_to_bam_file.keys() - sample_names))
     if sample_names != vcf_sample_to_bam_file.keys():
         logging.info("BAMs not provided for all VCF samples; {} will be ignored".format(sample_names - vcf_sample_to_bam_file.keys()))
 
