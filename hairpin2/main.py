@@ -351,7 +351,7 @@ def main_cli() -> None:
         vcf_sample_to_bam_file = {vcf_map_names[bam_map_names.index(k)]: v for k, v in vcf_sample_to_bam_file.items()}
     else:
         if not vcf_sample_to_bam_file.keys() <= sample_names:
-            h.cleanup(msg='SM tags of BAMs do not match VCF sample names: {}'.format(vcf_sample_to_bam_file.keys() - sample_names))
+            h.cleanup(msg='BAM SM tags do not match VCF sample names: {}'.format(vcf_sample_to_bam_file.keys() - sample_names))
     if sample_names != vcf_sample_to_bam_file.keys():
         logging.info("BAMs not provided for all VCF samples; {} will be ignored".format(sample_names - vcf_sample_to_bam_file.keys()))
 
