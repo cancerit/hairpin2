@@ -7,17 +7,17 @@ For paired data, given a VCF, and BAM files for the samples of that VCF, return 
 `hairpin2` should replace, as far as is possible, the tools known as "Mathijs' Scripts", "AdditionalBamStatistics", "Tim Butler's Scripts" and, unfortunately, probably many other names. It also supersedes `hairpin`, a stopgap version /of Mathijs' Scripts that relied on some of Mathijs' original code, and therefore was unreliable and error prone (though less so than the raw scripts themselves).
 However, this incarnation is not a total replacement for Mathijs' Scripts at this time (and has changed in functionality since the stopgap tool, the original hairpin):
 
-> Mathjis LCM filters includes the following steps:
+>Mathjis LCM filters includes the following steps:
 >    - Preselect: Filters the CaVEMan calls for “PASS” && “CLPM=0” && “ASMD>=140”
 >    - Hairpin Filtering
 >    - Filtering based on fragment numbers.
-> Which are split across the following steps: (As per his scripts)
+>Which are split across the following steps: (As per his scripts)
 >    - preselect
 >    - imitateANNOVAR
 >    - annotateBAMStatistics
 >    - additionalBAMStatistics
 >    - filtering
-> The `hairpin2` module replaces the “additionalBAMStatistics” and most of the “filtering” code. So [one may still need] to run the preselect and fragment based filter.
+>The `hairpin2` module replaces the “additionalBAMStatistics” and most of the “filtering” code. So [one may still need] to run the preselect and fragment based filter.
 
 Since the versions available of "Mathijs' Scripts" are many and varied, we cannot account for all differences/changes, but in general:
   - No more ambiguous/cryptic/unfixable errors - the tool should work on all appropriate data, and if it is unable to produce the expected output it will clearly inform the user (but see N.B. at end of this section)
