@@ -93,7 +93,7 @@ procedural:
 
 Parameters are hopefully mostly clear from the helptext, but some warrant further explanation:
 
-`--al-filter-threshold` - the default value of 0.93 was arrived at by trial and error - since different aligners/platforms calculate alignment score differently, you may want to modify this value appropriately.
+`--al-filter-threshold` - the default value of 0.93 was arrived at by trial and error - since different aligners/platforms calculate alignment score differently, you may want to modify this value appropriately.  
 `--max-read-span`  - Long homopolymer tracts can cause stuttering, where a PCR duplicate will have, for example, an additional A in a tract of As. These reads will align a base or two earlier on the reference genome than they should. As a result pcr duplicate flag machinery fails and they are not flagged as duplicates. max-read-span is then the maximum +- position to use when detecting PCR duplicates.
 `--position-fraction` - cruciform artefacts usually contain segments that align beause the segment is not in ref genome, and so the segment is soft clipped – this pushes the false variants associated with the arterfact to edges of the reads; unlike true variants. If more than 90% of the reads are within that first/last fraction, allow for calling **HPF** flag
 
