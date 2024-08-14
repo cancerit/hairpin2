@@ -30,7 +30,7 @@ Since the versions available of "Mathijs' Scripts" are many and varied, we canno
   - The module **does not** prefilter, or perform fragment filtering
 With regard to prefiltering - this is not performed by this module, as the filtering is not relevant to hairpin detection and should be performed separately. Filtering can be performed using the `vcfilter` or `bcftools` modules.
 
-**N.B.** this program is currently in an alpha/testing phase - it is available on the farm, but is likely to change, or have new features added, rapidly, per user responses. It also may be broken in some way; if so please get in touch. It is not currently publicly available - it will be made public as soon as it is out of this alpha phase.
+**N.B.** this program is currently in an alpha/testing phase - it is available on the farm, but is likely to change, or have new features added, rapidly, per user responses. **It also may be broken in some way; if so please get in touch**. It is not currently publicly available - it will be made public as soon as it is out of this alpha phase.
 
 
 ### ACCESS
@@ -41,12 +41,12 @@ For farm22 use, available as a module.
 module avail hairpin2
 module load <version>
 ```
-N.B. do not confuse with the module `hairpin` - this is `hairpin2`
+ **N.B. do not confuse with the module `hairpin` - this is `hairpin2`**
 
 
 ### ASSUMPTIONS
 
-`hairpin2` is designed for paired data where reads have the MC tag. If this tag is not present in your data, it can be added using samtools fixmate or biobambam2 bamsormadup. The tool expects data specifically in the VCF and BAM formats; support for a wider variety of formats could be implemented if desired.
+`hairpin2` is designed for paired data where reads have the **MC** tag. If this tag is not present in your data, it can be added using `samtools fixmate` or `biobambam2 bamsormadup`. The tool expects data specifically in the VCF and BAM formats; support for a wider variety of formats could be implemented if desired.
 
 
 ### USAGE
@@ -91,29 +91,26 @@ procedural:
 
 **N.B.** the above usage block indicates the call for the tool is `hairpin2` - this is correct for local/vm installs, but for farm usage, for the time being, it is `hairpin2-alpha`
 
-Parameters are hopefully clear from the helptext, but two are more unusual:
+Parameters are hopefully mostly clear from the helptext, but some warrant further explanation:
 
-  `--max-read-span`  - Long homopolymer tracts can cause stuttering, where a PCR duplicate will have, for example, an additional A in a tract of As. These reads will align a base or two earlier on the reference genome than they should. As a result pcr duplicate flag machinery fails and they are not flagged as duplicates. max-read-span is then the maximum +- position to use when detecting PCR duplicates.
-  `--position-fraction` - cruciform artefacts usually contain segments that align beause the segment is not in ref genome, and so the segment is soft clipped – this pushes the false variants associated with the arterfact to edges of the reads; unlike true variants. If more than 90% of the reads are within that first/last fraction, allow for calling **HPF** flag
+`--al-filter-threshold` - the default value of 0.93 was arrived at by trial and error. Another way to consider   
+`--max-read-span`  - Long homopolymer tracts can cause stuttering, where a PCR duplicate will have, for example, an additional A in a tract of As. These reads will align a base or two earlier on the reference genome than they should. As a result pcr duplicate flag machinery fails and they are not flagged as duplicates. max-read-span is then the maximum +- position to use when detecting PCR duplicates.
+`--position-fraction` - cruciform artefacts usually contain segments that align beause the segment is not in ref genome, and so the segment is soft clipped – this pushes the false variants associated with the arterfact to edges of the reads; unlike true variants. If more than 90% of the reads are within that first/last fraction, allow for calling **HPF** flag
 
 
 ### DETAILS
 
-The tool tests records in a VCF file and applies the **HPF**, indicating a hairpin/cruciform artefact, and **ALF** filter flags as appropriate. It records reasoning for its decisions in the INFO field of the VCF records, in the form `HPF=<alt>|<code>` and `ALF=<alt>|<code>|<median AS score>`.
-The codes are as follows:
-  0 - passed/failed on condition 60A(i) of Ellis et al. (**HPF** only)
-  1 - passed/failed on condition 60B(i) of Ellis et al. (**HPF** only)
-  2 - passed/failed on filter threshold (**ALF** only)
-  3 - insufficient appropriate reads to support calling flag (pass only) (This covers a lot of possiblities, if more granularity is desired, please request it)
-  4 - no samples have non 0,0 genotype for the record (pass only)
-For the **ALF** flag, the median alignment score is also recorded.
+The tool tests records in a VCF file and applies the **HPF**, indicating a hairpin/cruciform artefact, and **ALF** filter flags as appropriate. It records reasoning for its decisions in the INFO field of the VCF records, in the form `HPF=<alt>|<code>` and `ALF=<alt>|<code>|<median AS score>`. The codes are as follows:  
 
-The basic procedure of this implementation is as follows:
+**0** - passed/failed on condition 60A(i) of Ellis et al. (HPF only)  
+**1** - passed/failed on condition 60B(i) of Ellis et al. (HPF only)  
+**2** - passed/failed on filter threshold (ALF only)  
+**3** - insufficient appropriate reads to support calling flag (pass only)   (This covers a lot of possiblities, if more granularity is desired, please request it)  
+**4** - no samples have non 0,0 genotype for the record (pass only)  
 
-  For each record in the VCF, test every alt for that record by:
-
-  - retrieving reads from samples exhibiting the mutations
-  - testing each read for validity for use in hairpin testing (i.e. base quality, do they express the correct alt, and so on)
-  - performing statistical analysis on aggregates of the position of the mutatation relative to the start and end of the aligned portion of the reads
-  - on the results of the statistical analysis, pass or fail the record for the filters **ALF** and **HPF**, and log a code and relevant info to the INFO field indicating the reason for the decision
-
+The basic procedure of this implementation is as follows:  
+>   For each record in the VCF, test every alt for that record by:  
+>   1. retrieving reads from samples exhibiting the mutations
+>   2. testing each read for validity for use in hairpin testing (i.e. base quality, do they express the correct alt, and so on)
+>   3. performing statistical analysis on aggregates of the position of the mutatation relative to the start and end of the aligned portion of the reads
+>   4. on the results of the statistical analysis, pass or fail the record for the filters **ALF** and **HPF**, and log a code and relevant info to the **INFO** field indicating the reason for the decision
