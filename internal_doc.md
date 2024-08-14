@@ -35,7 +35,7 @@ Since the versions available of "Mathijs' Scripts" are many and varied, we canno
 **N.B.** this program is currently in an alpha/testing phase - it is available on the farm, but is likely to change, or have new features added, rapidly, per user responses. **It also may be broken in some way; if so please get in touch**. It is not currently publicly available - it will be made public as soon as it is out of this alpha phase.
 
 
-### ACCESS
+### MODULE ACCESS
 
 For local or VM use, see GitLab for install instructions.
 For farm22 use, available as a module.
@@ -43,7 +43,7 @@ For farm22 use, available as a module.
 module avail hairpin2
 module load <version>
 ```
- **N.B. do not confuse with the module `hairpin` - this is `hairpin2`**
+**N.B. do not confuse with the module `hairpin` - this is `hairpin2`**
 
 
 ### ASSUMPTIONS
