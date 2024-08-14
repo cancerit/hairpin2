@@ -11,13 +11,13 @@ However, this incarnation is not a total replacement for Mathijs' Scripts at thi
 >    - Preselect: Filters the CaVEMan calls for “PASS” && “CLPM=0” && “ASMD>=140”
 >    - Hairpin Filtering
 >    - Filtering based on fragment numbers.
->Which are split across the following steps: (As per his scripts)
+    >Which are split across the following steps: (As per his scripts)
 >    - preselect
 >    - imitateANNOVAR
 >    - annotateBAMStatistics
 >    - additionalBAMStatistics
 >    - filtering
->The `hairpin2` module replaces the “additionalBAMStatistics” and most of the “filtering” code. So [one may still need] to run the preselect and fragment based filter.
+    >The `hairpin2` module replaces the “additionalBAMStatistics” and most of the “filtering” code. So [one may still need] to run the preselect and fragment based filter.
 
 Since the versions available of "Mathijs' Scripts" are many and varied, we cannot account for all differences/changes, but in general:
   - No more ambiguous/cryptic/unfixable errors - the tool should work on all appropriate data, and if it is unable to produce the expected output it will clearly inform the user (but see N.B. at end of this section)
