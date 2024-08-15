@@ -37,7 +37,7 @@ Since the versions available of "Mathijs' Scripts" are many and varied, we canno
 
 ### MODULE ACCESS
 
-For local or VM use, see GitLab for install instructions.
+For local or VM use, see README for install instructions.
 For farm22 use, available as a module.
 ```
 module avail hairpin2
