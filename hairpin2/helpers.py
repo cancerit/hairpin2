@@ -14,7 +14,7 @@ def cleanup(code: int = c.EXIT_FAILURE, msg: None | str = None) -> None:
 
 # <= - is subset of
 def verify_json(jd: dict) -> bool:
-    return jd.keys() <= {'vcf_in', 'vcf_out', 'alignments', 'format', 'name_mapping', 'al_filter_threshold', 'min_clip_quality', 'min_mapping_quality', 'min_base_quality', 'max_read_span', 'position_fraction'}
+    return {'al_filter_threshold', 'min_clip_quality', 'min_mapping_quality', 'min_base_quality', 'max_read_span', 'position_fraction'} <= jd.keys()
 
 
 def test_options(args):

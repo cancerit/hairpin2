@@ -42,7 +42,7 @@ def validate_read(
             read_flag |= c.ValidatorFlags.CLIPQUAL.value
         # First, check for sub
         try:
-            mut_pos, mut_op = r2s.ref2querypos(read, vcf_record.start) # VCF 1-INDEXED, BAM 0-INDEXED (vcf_record.start = 0-indexed mutation position)
+            mut_pos, mut_op = r2s.ref2querypos(read, vcf_record.start) # VCF 1-INDEXED, alignments 0-INDEXED (vcf_record.start = 0-indexed mutation position)
         except IndexError:
             read_flag |= c.ValidatorFlags.NOT_ALIGNED.value
         else:
@@ -133,8 +133,8 @@ def test_variant(
     mut_read_fracs_r: list[float] = []
     aln_scores: list[float] = []
 
-    for mut_sample, bam in mutant_alignments.items():
-        read_iter, test_iter = tee(bam.fetch(vcf_rec.chrom, vcf_rec.start, (vcf_rec.start + 1)))
+    for mut_sample, alignment in mutant_alignments.items():
+        read_iter, test_iter = tee(alignment.fetch(vcf_rec.chrom, vcf_rec.start, (vcf_rec.start + 1)))
         try:
             next(test_iter)
         except StopIteration:
@@ -256,7 +256,7 @@ def main_cli() -> None:
     req = parser.add_argument_group('mandatory')
     req.add_argument('-i', '--vcf-in', help="path to input VCF", required=True)
     req.add_argument('-o', '--vcf-out', help="path to write output VCF", required=True)
-    req.add_argument('-a', '--alignments', help="list of paths to S/B/CR/AMs (indicated by --format) for samples in input VCF, whitespace separated", nargs='+', required=True)
+    req.add_argument('-a', '--alignments', help="list of paths to (S/B/CR)AMs (indicated by --format) for samples in input VCF, whitespace separated - (s/b/cr)ai expected in same directories", nargs='+', required=True)
     req.add_argument('-f', "--format", help="format of alignment files; s indicates SAM, b indicates BAM, and c indicates CRAM", choices=["s", "b", "c"], type=str, required=True)
     opt = parser.add_argument_group('extended')
     opt.add_argument('-al', '--al-filter-threshold', help='threshhold for median of read alignment score per base of all relevant reads, below which a variant is flagged as ALF - default: 0.93', type=float)
@@ -267,28 +267,25 @@ def main_cli() -> None:
     opt.add_argument('-pf', '--position-fraction', help='>90%% of variant must occur within POSITION_FRACTION of read edges to allow HPF flag - default: 0.15', type=float)
     proc = parser.add_argument_group('procedural')
     proc.add_argument('-r', '--cram-reference', help="path to FASTA format CRAM reference, overrides $REF_PATH and UR tags - ignored if --format is not CRAM")
-    proc.add_argument('-m', '--name-mapping', help='map VCF sample names to BAM SM tags; useful if they differ', metavar='VCF:BAM', nargs='+')
-    proc.add_argument('-ji', '--input-json', help='path to JSON of input parameters; overridden by arguments provided on command line', type=str)
+    proc.add_argument('-m', '--name-mapping', help='map VCF sample names to alignment SM tags; useful if they differ', metavar='VCF:aln', nargs='+')
+    proc.add_argument('-ji', '--input-json', help='path to JSON of input parameters, from which extended arguments will be loaded - overridden by arguments provided on command line', type=str)
     proc.add_argument('-jo', '--output-json', help='log input arguments to JSON', type=str)
 
     args = parser.parse_args()
 
     json_config: dict | None = None
     if args.input_json:
-        logging.info('args JSON provided, arguments will be loaded from JSON if not present on command line')
+        logging.info('args JSON provided, extended arguments will be loaded from JSON if not present on command line')
         try:
             with open(args.input_json, 'r') as f:
                 json_config = json.load(f)
         except Exception as e:
             h.cleanup(msg='failed to open input JSON, reporting: {}'.format(e))
-        else:
-            if not h.verify_json(json_config): # type:ignore
-                h.cleanup(msg='JSON keys are not subset of available arguments (excluding --input-json and --output_json)')
 
     # set arg defaults
     for k in vars(args).keys():
         if not vars(args)[k]:
-            if json_config and k in json_config.keys():
+            if json_config and k in json_config.keys() and k in c.DEFAULTS.keys():
                 setattr(args, k, json_config[k])
             elif k in c.DEFAULTS.keys():
                 setattr(args, k, c.DEFAULTS[k])
@@ -316,10 +313,13 @@ def main_cli() -> None:
     match args.format:
         case "s":
             mode = "r"
+            logging.info("SAM format specified")
         case "b":
             mode = "rb"
+            logging.info("BAM format specified")
         case "c":
             mode = "rc"
+            logging.info("CRAM format specified")
     for path in args.alignments:
         try:
             alignment = pysam.AlignmentFile(path, mode, reference_filename=args.cram_reference if args.cram_reference and args.format == "c" else None)
@@ -337,7 +337,7 @@ def main_cli() -> None:
         vcf_map_names = []
         alignment_map_names = []
         for pair in args.name_mapping:
-            kv_split = pair.split(':')  # VCF:BAM
+            kv_split = pair.split(':')  # VCF:aln
             if len(kv_split) != 2:
                 h.cleanup(msg='name mapping misformatted, more than two elements in map string {}'.format(pair))
             vcf_map_names.append(kv_split[0])
@@ -353,7 +353,7 @@ def main_cli() -> None:
         vcf_sample_to_alignment_map = {vcf_map_names[alignment_map_names.index(k)]: v for k, v in vcf_sample_to_alignment_map.items()}
     else:
         if not vcf_sample_to_alignment_map.keys() <= sample_names:
-            h.cleanup(msg='BAM SM tags do not match VCF sample names: {}'.format(vcf_sample_to_alignment_map.keys() - sample_names))
+            h.cleanup(msg='alignment SM tags do not match VCF sample names: {}'.format(vcf_sample_to_alignment_map.keys() - sample_names))
     if sample_names != vcf_sample_to_alignment_map.keys():
         logging.info("alignments not provided for all VCF samples; {} will be ignored".format(sample_names - vcf_sample_to_alignment_map.keys()))
 
@@ -373,7 +373,7 @@ def main_cli() -> None:
     if args.output_json:
         try:
             with open(args.output_json, "w") as output_json:
-                json.dump({k: vars(args)[k] for k in (vars(args).keys() - {'input_json', 'output_json'})}, output_json, indent="")
+                json.dump({k: vars(args)[k] for k in (vars(args).keys() - {'input_json', 'output_json', 'format'})}, output_json, indent="")
         except Exception as e:
             h.cleanup(msg='failed to write output JSON, reporting: {}'.format(e))
 
