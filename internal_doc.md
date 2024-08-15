@@ -48,14 +48,16 @@ module load <version>
 
 ### ASSUMPTIONS
 
-`hairpin2` is designed for paired data where reads have the **MC** tag. If this tag is not present in your data, it can be added using `samtools fixmate` or `biobambam2 bamsormadup`. The tool expects data specifically in the VCF and BAM formats; support for a wider variety of formats could be implemented if desired.
+`hairpin2` is designed for paired data where reads have the **MC** tag. If this tag is not present in your data, it can be added using `samtools fixmate` or `biobambam2 bamsormadup`. The tool expects data specifically in the VCF and BAM formats; support for a wider variety of formats could be implemented if desired. There are no further assumptions.
 
 
 ### USAGE
 
 ```
-usage: hairpin [-h] [-v] [-i VCF_IN] [-o VCF_OUT] [-b BAMS [BAMS ...]] [-al AL_FILTER_THRESHOLD] [-mc MIN_CLIP_QUALITY] [-mq MIN_MAPPING_QUALITY] [-mb MIN_BASE_QUALITY] [-ms MAX_READ_SPAN] [-pf POSITION_FRACTION]
-               [-m VCF:BAM [VCF:BAM ...]] [-ji INPUT_JSON] [-jo OUTPUT_JSON]
+usage: hairpin2 [-h] [-v] [-i VCF_IN] [-o VCF_OUT] [-b BAMS [BAMS ...]] [-al AL_FILTER_THRESHOLD] [-mc MIN_CLIP_QUALITY] [-mq MIN_MAPPING_QUALITY] [-mb MIN_BASE_QUALITY]
+                [-ms MAX_READ_SPAN] [-pf POSITION_FRACTION] [-m VCF:BAM [VCF:BAM ...]] [-ji INPUT_JSON] [-jo OUTPUT_JSON]
+
+cruciform artefact flagging algorithm based on Ellis et al. 2020 (DOI: 10.1038/s41596-020-00437-6)
 
 info:
   -h, --help            show this help message and exit
@@ -63,15 +65,15 @@ info:
 
 basic:
   -i VCF_IN, --vcf-in VCF_IN
-                        path to input vcf
+                        path to input VCF
   -o VCF_OUT, --vcf-out VCF_OUT
-                        path to vcf out
+                        path to write output VCF
   -b BAMS [BAMS ...], --bams BAMS [BAMS ...]
-                        list of paths to name-sorted bams for samples in input vcf, whitespace separated
+                        list of paths to BAMs for samples in input VCF, whitespace separated
 
 extended:
   -al AL_FILTER_THRESHOLD, --al-filter-threshold AL_FILTER_THRESHOLD
-                        threshhold for median of read alignment score per base of all relevant reads, below which a variant is flagged as **ALF** - default: 0.93
+                        threshhold for median of read alignment score per base of all relevant reads, below which a variant is flagged as ALF - default: 0.93
   -mc MIN_CLIP_QUALITY, --min-clip-quality MIN_CLIP_QUALITY
                         discard reads with mean base quality of aligned bases below this value, if they have soft-clipped bases - default: 35
   -mq MIN_MAPPING_QUALITY, --min-mapping-quality MIN_MAPPING_QUALITY
@@ -81,14 +83,15 @@ extended:
   -ms MAX_READ_SPAN, --max-read-span MAX_READ_SPAN
                         maximum +- position to use when detecting PCR duplicates - default: 6
   -pf POSITION_FRACTION, --position-fraction POSITION_FRACTION
-                        >90% of variant reads variant must occur within [fraction] of start/end to allow **HPF** flag - default: 0.15
+                        >90% of variant must occur within POSITION_FRACTION of start/end of reads to allow HPF flag - default: 0.15
 
 procedural:
   -m VCF:BAM [VCF:BAM ...], --name-mapping VCF:BAM [VCF:BAM ...]
-                        map VCF sample names to BAM sample names; useful if they differ
+                        map VCF sample names to BAM SM tags; useful if they differ
   -ji INPUT_JSON, --input-json INPUT_JSON
                         path to JSON of input parameters; overridden by arguments provided on command line
   -jo OUTPUT_JSON, --output-json OUTPUT_JSON
+                        log input arguments to JSON
 ```
 
 **N.B.** the above usage block indicates the call for the tool is `hairpin2` - this is correct for local/vm installs, but for farm usage, for the time being, it is `hairpin2-alpha`
