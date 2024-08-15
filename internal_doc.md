@@ -54,7 +54,7 @@ module load <version>
 
 ```
 usage: hairpin2 [-h] [-v] -i VCF_IN -o VCF_OUT -a ALIGNMENTS [ALIGNMENTS ...] -f {s,b,c} [-al AL_FILTER_THRESHOLD] [-mc MIN_CLIP_QUALITY] [-mq MIN_MAPPING_QUALITY]
-                [-mb MIN_BASE_QUALITY] [-ms MAX_READ_SPAN] [-pf POSITION_FRACTION] [-r CRAM_REFERENCE] [-m VCF:BAM [VCF:BAM ...]] [-ji INPUT_JSON] [-jo OUTPUT_JSON]
+                [-mb MIN_BASE_QUALITY] [-ms MAX_READ_SPAN] [-pf POSITION_FRACTION] [-r CRAM_REFERENCE] [-m VCF:aln [VCF:aln ...]] [-ji INPUT_JSON] [-jo OUTPUT_JSON]
 
 cruciform artefact flagging algorithm based on Ellis et al. 2020 (DOI: 10.1038/s41596-020-00437-6)
 
@@ -68,7 +68,7 @@ mandatory:
   -o VCF_OUT, --vcf-out VCF_OUT
                         path to write output VCF
   -a ALIGNMENTS [ALIGNMENTS ...], --alignments ALIGNMENTS [ALIGNMENTS ...]
-                        list of paths to S/B/CR/AMs (indicated by --format) for samples in input VCF, whitespace separated
+                        list of paths to (S/B/CR)AMs (indicated by --format) for samples in input VCF, whitespace separated - (s/b/cr)ai expected in same directories
   -f {s,b,c}, --format {s,b,c}
                         format of alignment files; s indicates SAM, b indicates BAM, and c indicates CRAM
 
@@ -89,10 +89,10 @@ extended:
 procedural:
   -r CRAM_REFERENCE, --cram-reference CRAM_REFERENCE
                         path to FASTA format CRAM reference, overrides $REF_PATH and UR tags - ignored if --format is not CRAM
-  -m VCF:BAM [VCF:BAM ...], --name-mapping VCF:BAM [VCF:BAM ...]
-                        map VCF sample names to BAM SM tags; useful if they differ
+  -m VCF:aln [VCF:aln ...], --name-mapping VCF:aln [VCF:aln ...]
+                        map VCF sample names to alignment SM tags; useful if they differ
   -ji INPUT_JSON, --input-json INPUT_JSON
-                        path to JSON of input parameters; overridden by arguments provided on command line
+                        path to JSON of input parameters, from which extended arguments will be loaded - overridden by arguments provided on command line
   -jo OUTPUT_JSON, --output-json OUTPUT_JSON
                         log input arguments to JSON
 ```
