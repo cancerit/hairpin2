@@ -7,7 +7,6 @@ import json
 from itertools import tee
 from functools import partial
 
-# CIGAR best retrieved from CG:B,I tag - implement in future
 def validate_read(
     vcf_record: pysam.VariantRecord,
     read: pysam.AlignedSegment,
@@ -115,7 +114,7 @@ def validate_read(
 
 def test_variant(
     vcf_rec: pysam.VariantRecord,
-    mutant_bams: dict[str, pysam.AlignmentFile],
+    mutant_alignments: dict[str, pysam.AlignmentFile],
     alt: str,
     al_thresh: float,
     max_span: int,
@@ -126,15 +125,15 @@ def test_variant(
     hp_filt = c.HPFilter()
     al_filt = c.ALFilter()
 
-    mut_reads: dict[str, list[pysam.AlignedSegment]] = {key: [] for key in mutant_bams}
-    mut_reads_log: dict[str, list[tuple]] = {key: [] for key in mutant_bams}
+    mut_reads: dict[str, list[pysam.AlignedSegment]] = {key: [] for key in mutant_alignments}
+    mut_reads_log: dict[str, list[tuple]] = {key: [] for key in mutant_alignments}
     mut_read_pos_f: list[int] = []
     mut_read_pos_r: list[int] = []
     mut_read_fracs_f: list[float] = []
     mut_read_fracs_r: list[float] = []
     aln_scores: list[float] = []
 
-    for mut_sample, bam in mutant_bams.items():
+    for mut_sample, bam in mutant_alignments.items():
         read_iter, test_iter = tee(bam.fetch(vcf_rec.chrom, vcf_rec.start, (vcf_rec.start + 1)))
         try:
             next(test_iter)
@@ -230,7 +229,7 @@ def test_variant(
 
 
 def test_record_per_alt(
-    bams: dict[str, pysam.AlignmentFile],
+    alignments: dict[str, pysam.AlignmentFile],
     vcf_rec: pysam.VariantRecord,
     variant_tester: c.FiltReturn,
 ) -> dict[str, c.Filters]:
@@ -241,10 +240,10 @@ def test_record_per_alt(
     if len(samples_w_mutants) == 0:
         raise c.NoMutants
 
-    bams_w_mutants = {k: v for k, v in bams.items() if k in samples_w_mutants}
+    alignments_w_mutants = {k: v for k, v in alignments.items() if k in samples_w_mutants}
     filt_d = {}
     for alt in vcf_rec.alts:
-        filt_d[alt] = variant_tester(vcf_rec, bams_w_mutants, alt)
+        filt_d[alt] = variant_tester(vcf_rec, alignments_w_mutants, alt)
     return filt_d
 
 
@@ -254,10 +253,11 @@ def main_cli() -> None:
     parser = argparse.ArgumentParser(prog="hairpin2", description='cruciform artefact flagging algorithm based on Ellis et al. 2020 (DOI: 10.1038/s41596-020-00437-6)')
     parser._optionals.title = 'info'
     parser.add_argument('-v', '--version', help='print version', action='version', version=c.VERSION)
-    req = parser.add_argument_group('basic')
-    req.add_argument('-i', '--vcf-in', help="path to input VCF")
-    req.add_argument('-o', '--vcf-out', help="path to write output VCF")
-    req.add_argument('-b', '--bams', help="list of paths to BAMs for samples in input VCF, whitespace separated", nargs='+')
+    req = parser.add_argument_group('mandatory')
+    req.add_argument('-i', '--vcf-in', help="path to input VCF", required=True)
+    req.add_argument('-o', '--vcf-out', help="path to write output VCF", required=True)
+    req.add_argument('-a', '--alignments', help="list of paths to S/B/CR/AMs (indicated by --format) for samples in input VCF, whitespace separated", nargs='+', required=True)
+    req.add_argument('-f', "--format", help="format of alignment files; s indicates SAM, b indicates BAM, and c indicates CRAM", choices=["s", "b", "c"], type=str, required=True)
     opt = parser.add_argument_group('extended')
     opt.add_argument('-al', '--al-filter-threshold', help='threshhold for median of read alignment score per base of all relevant reads, below which a variant is flagged as ALF - default: 0.93', type=float)
     opt.add_argument('-mc', '--min-clip-quality', help='discard reads with mean base quality of aligned bases below this value, if they have soft-clipped bases - default: 35', type=int)
@@ -266,6 +266,7 @@ def main_cli() -> None:
     opt.add_argument('-ms', '--max-read-span', help='maximum +- position to use when detecting PCR duplicates - default: 6', type=int)
     opt.add_argument('-pf', '--position-fraction', help='>90%% of variant must occur within POSITION_FRACTION of read edges to allow HPF flag - default: 0.15', type=float)
     proc = parser.add_argument_group('procedural')
+    proc.add_argument('-r', '--cram-reference', help="path to FASTA format CRAM reference, overrides $REF_PATH and UR tags - ignored if --format is not CRAM")
     proc.add_argument('-m', '--name-mapping', help='map VCF sample names to BAM SM tags; useful if they differ', metavar='VCF:BAM', nargs='+')
     proc.add_argument('-ji', '--input-json', help='path to JSON of input parameters; overridden by arguments provided on command line', type=str)
     proc.add_argument('-jo', '--output-json', help='log input arguments to JSON', type=str)
@@ -295,13 +296,6 @@ def main_cli() -> None:
     # test args are sensible, exit if not
     h.test_options(args)
 
-    if args.output_json:
-        try:
-            with open(args.output_json, "w") as output_json:
-                json.dump({k: vars(args)[k] for k in (vars(args).keys() - {'input_json', 'output_json'})}, output_json, indent="")
-        except Exception as e:
-            h.cleanup(msg='failed to write output JSON, reporting: {}'.format(e))
-
     primed_validate_read = partial(validate_read,
                                    min_mapqual=args.min_mapping_quality,
                                    min_clipqual=args.min_clip_quality,
@@ -313,53 +307,60 @@ def main_cli() -> None:
         vcf_in_handle = pysam.VariantFile(args.vcf_in)
     except Exception as e:
         h.cleanup(msg='failed to open VCF input, reporting: {}'.format(e))
-
     sample_names = list(vcf_in_handle.header.samples)  # type:ignore
     if len(set(sample_names)) != len(sample_names):
         h.cleanup(msg='duplicate sample names in VCF')
     sample_names: set[str] = set(sample_names)
-    vcf_sample_to_bam_file_map: dict[str, pysam.AlignmentFile] = {}
-    for path in args.bams:
+
+    vcf_sample_to_alignment_map: dict[str, pysam.AlignmentFile] = {}
+    match args.format:
+        case "s":
+            mode = "r"
+        case "b":
+            mode = "rb"
+        case "c":
+            mode = "rc"
+    for path in args.alignments:
         try:
-            bam = pysam.AlignmentFile(path, 'rb')
+            alignment = pysam.AlignmentFile(path, mode, reference_filename=args.cram_reference if args.cram_reference and args.format == "c" else None)
         except Exception as e:
-            h.cleanup(msg='failed to read BAM at {}, reporting: {}'.format(path, e))
+            h.cleanup(msg='failed to read alignment file at {}, reporting: {}'.format(path, e))
         # grab the sample name from first SM field
         # in header field RG
         # this may cause problems?
         # check with Peter
-        bam_sample_name = bam.header.to_dict()['RG'][0]['SM']  # type:ignore
-        vcf_sample_to_bam_file_map[bam_sample_name] = bam  # type:ignore
+        alignment_sample_name = alignment.header.to_dict()['RG'][0]['SM']
+        vcf_sample_to_alignment_map[alignment_sample_name] = alignment
     if args.name_mapping:
-        if len(args.name_mapping) > len(args.bams):
-            h.cleanup(msg="more name mappings than BAMs provided")
+        if len(args.name_mapping) > len(args.alignments):
+            h.cleanup(msg="more name mappings than alignments provided")
         vcf_map_names = []
-        bam_map_names = []
+        alignment_map_names = []
         for pair in args.name_mapping:
             kv_split = pair.split(':')  # VCF:BAM
             if len(kv_split) != 2:
                 h.cleanup(msg='name mapping misformatted, more than two elements in map string {}'.format(pair))
             vcf_map_names.append(kv_split[0])
-            bam_map_names.append(kv_split[1])
+            alignment_map_names.append(kv_split[1])
         if h.has_duplicates(vcf_map_names):
             h.cleanup(msg='duplicate VCF sample names provided to name mapping flag')
         if not set(vcf_map_names) <= sample_names:
             h.cleanup(msg="VCF sample names provided to name mapping flag are not equal to, or a subset of, VCF sample names as retrieved from VCF")
-        if h.has_duplicates(bam_map_names):
-            h.cleanup(msg='duplicate BAM sample names provided to name mapping flag')
-        if h.lists_not_equal(bam_map_names, vcf_sample_to_bam_file_map.keys()):  # type:ignore
-            h.cleanup(msg='BAM sample names provided to name mapping flag do not match BAM SM tags')
-        vcf_sample_to_bam_file_map = {vcf_map_names[bam_map_names.index(k)]: v for k, v in vcf_sample_to_bam_file_map.items()}
+        if h.has_duplicates(alignment_map_names):
+            h.cleanup(msg='duplicate aligment sample names provided to name mapping flag')
+        if h.lists_not_equal(alignment_map_names, vcf_sample_to_alignment_map.keys()):
+            h.cleanup(msg='alignment sample names provided to name mapping flag do not match alignment SM tags')
+        vcf_sample_to_alignment_map = {vcf_map_names[alignment_map_names.index(k)]: v for k, v in vcf_sample_to_alignment_map.items()}
     else:
-        if not vcf_sample_to_bam_file_map.keys() <= sample_names:
-            h.cleanup(msg='BAM SM tags do not match VCF sample names: {}'.format(vcf_sample_to_bam_file_map.keys() - sample_names))
-    if sample_names != vcf_sample_to_bam_file_map.keys():
-        logging.info("BAMs not provided for all VCF samples; {} will be ignored".format(sample_names - vcf_sample_to_bam_file_map.keys()))
+        if not vcf_sample_to_alignment_map.keys() <= sample_names:
+            h.cleanup(msg='BAM SM tags do not match VCF sample names: {}'.format(vcf_sample_to_alignment_map.keys() - sample_names))
+    if sample_names != vcf_sample_to_alignment_map.keys():
+        logging.info("alignments not provided for all VCF samples; {} will be ignored".format(sample_names - vcf_sample_to_alignment_map.keys()))
 
     # init output
     out_head = vcf_in_handle.header  # type:ignore
-    out_head.add_line("##FILTER=<ID=ALF,Description=\"Median alignment score of reads reporting variant less than {}, using samples {}\">".format(args.al_filter_threshold, ', '.join(vcf_sample_to_bam_file_map.keys())))
-    out_head.add_line("##FILTER=<ID=HPF,Description=\"Variant arises from hairpin artefact, using samples {}\">".format(', '.join(vcf_sample_to_bam_file_map.keys())))
+    out_head.add_line("##FILTER=<ID=ALF,Description=\"Median alignment score of reads reporting variant less than {}, using samples {}\">".format(args.al_filter_threshold, ', '.join(vcf_sample_to_alignment_map.keys())))
+    out_head.add_line("##FILTER=<ID=HPF,Description=\"Variant arises from hairpin artefact, using samples {}\">".format(', '.join(vcf_sample_to_alignment_map.keys())))
     out_head.add_line("##INFO=<ID=HPF,Number=1,Type=String,Description=\"alt|code for each alt indicating hairpin filter decision code\">")
     out_head.add_line("##INFO=<ID=ALF,Number=1,Type=String,Description=\"alt|code|score for each alt indicating AL filter conditions\">")
 
@@ -368,10 +369,18 @@ def main_cli() -> None:
     except Exception as e:
         h.cleanup(msg='failed to open VCF output, reporting: {}'.format(e))
 
+    # write args once all verified
+    if args.output_json:
+        try:
+            with open(args.output_json, "w") as output_json:
+                json.dump({k: vars(args)[k] for k in (vars(args).keys() - {'input_json', 'output_json'})}, output_json, indent="")
+        except Exception as e:
+            h.cleanup(msg='failed to write output JSON, reporting: {}'.format(e))
+
     for record in vcf_in_handle.fetch():  # type:ignore
         try:
             filter_d: dict[str, c.Filters] = test_record_per_alt(
-                bams=vcf_sample_to_bam_file_map,
+                alignments=vcf_sample_to_alignment_map,
                 vcf_rec=record,
                 variant_tester=primed_variant_tester
             )
