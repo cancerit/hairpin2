@@ -32,7 +32,7 @@ hairpin -h
 
 ### ASSUMPTIONS
 
-`hairpin2` is designed for paired data where BAM records have the **MC** tag. If this tag is not present in your data, it can be added using `samtools fixmate` or `biobambam2 bamsormadup`. The tool expects data specifically in the VCF and BAM formats; support for a wider variety of formats could be implemented if desired. No further assumptions are made – other BAM tags and VCF fields are used, however they are mandatory per the format specification.
+`hairpin2` is designed for paired data where BAM records have the **MC** tag. If this tag is not present in your data, it can be added using `samtools fixmate` or `biobambam2 bamsormadup`. The tool expects data specifically in the VCF and BAM formats; support for a wider variety of formats could be implemented if desired. No further assumptions are made – other BAM tags and VCF fields are used, however they are mandatory per the format specifications.
 
 
 ### USAGE
