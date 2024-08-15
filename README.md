@@ -7,8 +7,8 @@ For paired data, given a VCF, and BAM files for the samples of that VCF, return 
 
 ### DEPENDENCIES
 
-* Python >= 3.10 (required)
-* pysam >= 0.22.1 (installed automatically during install process) - tested with 0.22.1 only
+* Python >= 3.10 - required
+* pysam >= 0.22.1 - installed automatically during install process (tested with 0.22.1 only)
 
 ### INSTALLATION
 
