@@ -38,8 +38,8 @@ hairpin -h
 ### USAGE
 
 ```
-usage: hairpin2 [-h] [-v] [-i VCF_IN] [-o VCF_OUT] [-b BAMS [BAMS ...]] [-al AL_FILTER_THRESHOLD] [-mc MIN_CLIP_QUALITY] [-mq MIN_MAPPING_QUALITY] [-mb MIN_BASE_QUALITY]
-                [-ms MAX_READ_SPAN] [-pf POSITION_FRACTION] [-m VCF:BAM [VCF:BAM ...]] [-ji INPUT_JSON] [-jo OUTPUT_JSON]
+usage: hairpin2 [-h] [-v] -i VCF_IN -o VCF_OUT -a ALIGNMENTS [ALIGNMENTS ...] -f {s,b,c} [-al AL_FILTER_THRESHOLD] [-mc MIN_CLIP_QUALITY] [-mq MIN_MAPPING_QUALITY]
+                [-mb MIN_BASE_QUALITY] [-ms MAX_READ_SPAN] [-pf POSITION_FRACTION] [-r CRAM_REFERENCE] [-m VCF:BAM [VCF:BAM ...]] [-ji INPUT_JSON] [-jo OUTPUT_JSON]
 
 cruciform artefact flagging algorithm based on Ellis et al. 2020 (DOI: 10.1038/s41596-020-00437-6)
 
@@ -47,13 +47,15 @@ info:
   -h, --help            show this help message and exit
   -v, --version         print version
 
-basic:
+mandatory:
   -i VCF_IN, --vcf-in VCF_IN
                         path to input VCF
   -o VCF_OUT, --vcf-out VCF_OUT
                         path to write output VCF
-  -b BAMS [BAMS ...], --bams BAMS [BAMS ...]
-                        list of paths to BAMs for samples in input VCF, whitespace separated
+  -a ALIGNMENTS [ALIGNMENTS ...], --alignments ALIGNMENTS [ALIGNMENTS ...]
+                        list of paths to S/B/CR/AMs (indicated by --format) for samples in input VCF, whitespace separated
+  -f {s,b,c}, --format {s,b,c}
+                        format of alignment files; s indicates SAM, b indicates BAM, and c indicates CRAM
 
 extended:
   -al AL_FILTER_THRESHOLD, --al-filter-threshold AL_FILTER_THRESHOLD
@@ -70,6 +72,8 @@ extended:
                         >90% of variant must occur within POSITION_FRACTION of read edges to allow HPF flag - default: 0.15
 
 procedural:
+  -r CRAM_REFERENCE, --cram-reference CRAM_REFERENCE
+                        path to FASTA format CRAM reference, overrides $REF_PATH and UR tags - ignored if --format is not CRAM
   -m VCF:BAM [VCF:BAM ...], --name-mapping VCF:BAM [VCF:BAM ...]
                         map VCF sample names to BAM SM tags; useful if they differ
   -ji INPUT_JSON, --input-json INPUT_JSON
