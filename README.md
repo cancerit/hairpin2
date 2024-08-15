@@ -1,6 +1,6 @@
 # hairpin2
 
-`hairpin2` - CLI implementation of the hairpin detection and flagging algorithm concieved by [Ellis et al, 2020](https://www.nature.com/articles/s41596-020-00437-6). Implemented by Peter Campbell and Alex Byrne.
+`hairpin2` - CLI implementation of the hairpin detection algorithm concieved by [Ellis et al, 2020](https://www.nature.com/articles/s41596-020-00437-6). 
 
 For paired data, given a VCF, and BAM files for the samples of that VCF, return a VCF with variants flagged with **HPF** if they are suspected cruciform artefacts, and **ALF** if they exhibit a lower median alignment score than a specified threshold. The **ALF** filter indicates poor signal-to-noise, and provides additional confidence in the **HPF** filter - cruciform artefacts usually cause a marked decrease in alignment score. The **ALF** flag also may appear on variants without **HPF**, often indicating other artefacts associated with poor signal-to-noise.
 
