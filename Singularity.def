@@ -5,7 +5,7 @@ From: python:3.12-slim
 . hairpin/
 
 %post
-pip install hairpin/
+pip install --root-user-action ignore hairpin/
 
 %test
 	LOC=$(which hairpin2)

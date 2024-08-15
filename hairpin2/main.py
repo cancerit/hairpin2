@@ -264,9 +264,9 @@ def main_cli() -> None:
     opt.add_argument('-mq', '--min-mapping-quality', help='discard reads with mapping quality below this value - default: 11', type=int)
     opt.add_argument('-mb', '--min-base-quality', help='discard reads with base quality at variant position below this value - default: 25', type=int )
     opt.add_argument('-ms', '--max-read-span', help='maximum +- position to use when detecting PCR duplicates - default: 6', type=int)
-    opt.add_argument('-pf', '--position-fraction', help='>90%% of variant reads variant must occur within [POSITION_FRACTION] of start/end to allow HPF flag - default: 0.15', type=float)
+    opt.add_argument('-pf', '--position-fraction', help='>90%% of variant reads variant must occur within POSITION_FRACTION of start/end to allow HPF flag - default: 0.15', type=float)
     proc = parser.add_argument_group('procedural')
-    proc.add_argument('-m', '--name-mapping', help='map VCF sample names to BAM sample names; useful if they differ', metavar='VCF:BAM', nargs='+')
+    proc.add_argument('-m', '--name-mapping', help='map VCF sample names to BAM SM tags; useful if they differ', metavar='VCF:BAM', nargs='+')
     proc.add_argument('-ji', '--input-json', help='path to JSON of input parameters; overridden by arguments provided on command line', type=str)
     proc.add_argument('-jo', '--output-json', help='log input arguments to JSON', type=str)
 
