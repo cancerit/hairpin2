@@ -98,13 +98,12 @@ The tool tests records in a VCF file and applies the `HPF` and `ALF` filter flag
 > **2** – passed/failed on filter threshold (`ALF` only)  
 > **3** – insufficient appropriate reads to support calling flag – this covers a lot of possiblities, if more granularity is desired, please request it  
 > **4** – no samples have non 0,0 genotype for the record  
-  
 
 The basic procedure of this implementation is as follows:  
 >   For each record in the VCF, test every alt for that record by:  
 >   1. retrieving reads from samples exhibiting the mutations
 >   2. testing each read for validity for use in hairpin testing (i.e. base quality, do they express the correct alt, and so on)
 >   3. performing statistical analysis on aggregates of the position of the mutation relative to the start and end of the aligned portion of the reads
->   4. on the results of the statistical analysis, pass or fail the record for the filters `ALF` and `HPF`, and log a code and relevant info to the `INFO` field indicating the reason for the decision
+>   4. on the results of the statistical analysis, pass or fail the record for the filters `ALF` and `HPF`, and log a code and relevant info to the `INFO` field indicating the reason for the decision  
 
 The code has been written with the intention of clarity and extensibility – further understanding may be achieved by reading `hairpin2/main.py`.
