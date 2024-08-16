@@ -6,6 +6,14 @@ For paired data, given a VCF, and BAM files for the samples of that VCF, return 
 
 `hairpin2` has been designed to replace `AdditionalBamStatistics`, which forms a key part of the the LCM processing pipelines known as "Mathijs' Scripts" and "Tim Butler's scripts" (there may also be other names and other pipelines which incoroprate this tool). 
 
+Improvements and differences to the original `AdditionalBamStatistics` implementation include:
+- No more ambiguous/cryptic/unfixable errors – the tool should work on all appropriate data, and if it is unable to produce the expected output it will clearly inform the user (but see N.B. at end of this section)
+- Transparency – reasoning for flagging decisions logged in VCF
+- Single tool centrally maintained and versioned – for reproducibility/citing/distribution
+- Significant speedup (on testing data at least) – 50s runtime on 542-variant caveman VCF
+- The module adds **filter flags**, `HPF` and `ALF`, to a VCF. It **does not** output into separate files containing passed and failed positions
+
+####TOFIX
 > Mathjis LCM filters includes the following steps:
 > 1. Preselect: Filters the CaVEMan calls for “PASS” && “CLPM=0” && “ASMD>=140”
 > 2. Hairpin Filtering
@@ -19,13 +27,6 @@ For paired data, given a VCF, and BAM files for the samples of that VCF, return 
 > - filtering  
 >
 > The `hairpin2` module replaces the “additionalBAMStatistics” and most of the “filtering” code. So [one may still need] to run the preselect and fragment based filter.  
-
-Improvements and differences to the original `AdditionalBamStatistics` implementation include:
-- No more ambiguous/cryptic/unfixable errors – the tool should work on all appropriate data, and if it is unable to produce the expected output it will clearly inform the user (but see N.B. at end of this section)
-- Transparency – reasoning for flagging decisions logged in VCF
-- Single tool centrally maintained and versioned – for reproducibility/citing/distribution
-- Significant speedup (on testing data at least) – 50s runtime on 542-variant caveman VCF
-- The module adds **filter flags**, `HPF` and `ALF`, to a VCF. It **does not** output into separate files containing passed and failed positions
 
 With regard to prefiltering – this is not performed by this module, as the filtering is not relevant to hairpin detection and should be performed separately. Filtering can be performed using the `vcfilter` or `bcftools` modules.  
 
