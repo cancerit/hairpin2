@@ -32,14 +32,14 @@ hairpin -h
 
 ### ASSUMPTIONS
 
-`hairpin2` is designed for paired data where BAM records have the **MC** tag. If this tag is not present in your data, it can be added using `samtools fixmate` or `biobambam2 bamsormadup`. The tool expects data specifically in the VCF and BAM formats; support for a wider variety of formats could be implemented if desired. No further assumptions are made – other BAM tags and VCF fields are used, however they are mandatory per the format specifications.
+`hairpin2` is designed for paired data where alignment records have the `MC` tag and the complete CIGAR string is present in the `CIGAR` field (rather than the `CG:B,I` tag). If the `MC` tag is not present in your data, it can be added using `samtools fixmate` or `biobambam2 bamsormadup`. No further assumptions are made – other alignment tags and VCF fields are used, however they are mandatory per the relevant format specifications.
 
 
 ### USAGE
 
 ```
-usage: hairpin2 [-h] [-v] [-i VCF_IN] [-o VCF_OUT] [-b BAMS [BAMS ...]] [-al AL_FILTER_THRESHOLD] [-mc MIN_CLIP_QUALITY] [-mq MIN_MAPPING_QUALITY] [-mb MIN_BASE_QUALITY]
-                [-ms MAX_READ_SPAN] [-pf POSITION_FRACTION] [-m VCF:BAM [VCF:BAM ...]] [-ji INPUT_JSON] [-jo OUTPUT_JSON]
+usage: hairpin2 [-h] [-v] -i VCF_IN -o VCF_OUT -a ALIGNMENTS [ALIGNMENTS ...] -f {s,b,c} [-al AL_FILTER_THRESHOLD] [-mc MIN_CLIP_QUALITY] [-mq MIN_MAPPING_QUALITY]
+                [-mb MIN_BASE_QUALITY] [-ms MAX_READ_SPAN] [-pf POSITION_FRACTION] [-r CRAM_REFERENCE] [-m VCF:aln [VCF:aln ...]] [-ji INPUT_JSON] [-jo OUTPUT_JSON]
 
 cruciform artefact flagging algorithm based on Ellis et al. 2020 (DOI: 10.1038/s41596-020-00437-6)
 
@@ -47,13 +47,15 @@ info:
   -h, --help            show this help message and exit
   -v, --version         print version
 
-basic:
+mandatory:
   -i VCF_IN, --vcf-in VCF_IN
                         path to input VCF
   -o VCF_OUT, --vcf-out VCF_OUT
                         path to write output VCF
-  -b BAMS [BAMS ...], --bams BAMS [BAMS ...]
-                        list of paths to BAMs for samples in input VCF, whitespace separated
+  -a ALIGNMENTS [ALIGNMENTS ...], --alignments ALIGNMENTS [ALIGNMENTS ...]
+                        list of paths to (S/B/CR)AMs (indicated by --format) for samples in input VCF, whitespace separated - (s/b/cr)ai expected in same directories
+  -f {s,b,c}, --format {s,b,c}
+                        format of alignment files; s indicates SAM, b indicates BAM, and c indicates CRAM
 
 extended:
   -al AL_FILTER_THRESHOLD, --al-filter-threshold AL_FILTER_THRESHOLD
@@ -70,10 +72,12 @@ extended:
                         >90% of variant must occur within POSITION_FRACTION of read edges to allow HPF flag - default: 0.15
 
 procedural:
-  -m VCF:BAM [VCF:BAM ...], --name-mapping VCF:BAM [VCF:BAM ...]
-                        map VCF sample names to BAM SM tags; useful if they differ
+  -r CRAM_REFERENCE, --cram-reference CRAM_REFERENCE
+                        path to FASTA format CRAM reference, overrides $REF_PATH and UR tags - ignored if --format is not CRAM
+  -m VCF:aln [VCF:aln ...], --name-mapping VCF:aln [VCF:aln ...]
+                        map VCF sample names to alignment SM tags; useful if they differ
   -ji INPUT_JSON, --input-json INPUT_JSON
-                        path to JSON of input parameters; overridden by arguments provided on command line
+                        path to JSON of input parameters, from which extended arguments will be loaded - overridden by arguments provided on command line
   -jo OUTPUT_JSON, --output-json OUTPUT_JSON
                         log input arguments to JSON
 ```
