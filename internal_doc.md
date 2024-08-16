@@ -22,16 +22,16 @@ However, this incarnation is not a total replacement for Mathijs' Scripts at thi
 > The `hairpin2` module replaces the “additionalBAMStatistics” and most of the “filtering” code. So [one may still need] to run the preselect and fragment based filter.  
 
 Since the versions available of "Mathijs' Scripts" are many and varied, we cannot account for all differences/changes, but in general:
-- No more ambiguous/cryptic/unfixable errors - the tool should work on all appropriate data, and if it is unable to produce the expected output it will clearly inform the user (but see N.B. at end of this section)
-- Transparency - reasoning for flagging decisions logged in VCF
-- Single tool centrally maintained and versioned - for reproducibility/citing/distribution
+- No more ambiguous/cryptic/unfixable errors – the tool should work on all appropriate data, and if it is unable to produce the expected output it will clearly inform the user (but see N.B. at end of this section)
+- Transparency – reasoning for flagging decisions logged in VCF
+- Single tool centrally maintained and versioned – for reproducibility/citing/distribution
 - Significant speedup (on testing data at least) – 50s runtime on 542-variant caveman VCF
 - The module adds **filter flags**, `HPF` and `ALF`, to a VCF. It **does not** output into separate files containing passed and failed positions
 - The module **does not** prefilter, or perform fragment filtering  
 
-With regard to prefiltering - this is not performed by this module, as the filtering is not relevant to hairpin detection and should be performed separately. Filtering can be performed using the `vcfilter` or `bcftools` modules.  
+With regard to prefiltering – this is not performed by this module, as the filtering is not relevant to hairpin detection and should be performed separately. Filtering can be performed using the `vcfilter` or `bcftools` modules.  
 
-**N.B.** this program is currently in an alpha/testing phase - it is available on the farm, but is likely to change, or have new features added, rapidly, per user responses. **It also may be broken in some way; if so please get in touch**. It is not currently publicly available - it will be made public as soon as it is out of this alpha phase.
+**N.B.** this program is currently in an alpha/testing phase – it is available on the farm, but is likely to change, or have new features added, rapidly, per user responses. **It also may be broken in some way; if so please get in touch**. It is not currently publicly available – it will be made public as soon as it is out of this alpha phase.
 
 
 ### MODULE ACCESS
@@ -42,7 +42,7 @@ For farm22 use, available as a module.
 module avail hairpin2
 module load <version>
 ```
-**N.B. do not confuse with the module `hairpin` - this is `hairpin2`**
+**N.B. do not confuse with the module `hairpin` – this is `hairpin2`**
 
 
 ### ASSUMPTIONS
@@ -97,12 +97,12 @@ procedural:
                         log input arguments to JSON
 ```
 
-**N.B.** the above usage block indicates the call for the tool is `hairpin2` - this is correct for local/vm installs, but for farm usage, for the time being, it is `hairpin2-alpha`
+**N.B.** the above usage block indicates the call for the tool is `hairpin2` – this is correct for local/vm installs, but for farm usage, for the time being, it is `hairpin2-alpha`
 
 Parameters are hopefully mostly clear from the helptext, but some warrant further explanation:
 
 - `--al-filter-threshold` – the default value of 0.93 was arrived at by trial and error – since different aligners/platforms calculate alignment score differently, you may want to modify this value appropriately.  
-- `--max-read-span`  – long homopolymer tracts can cause stuttering, where a PCR duplicate will have, for example, an additional A in a tract of As. These reads will align a base or two earlier on the reference genome than they should. As a result pcr duplicate flag machinery fails and they are not flagged as duplicates. `MAX_READ_SPAN` is then the maximum +- position to use when detecting PCR duplicates.  
+- `--max-read-span` – long homopolymer tracts can cause stuttering, where a PCR duplicate will have, for example, an additional A in a tract of As. These reads will align a base or two earlier on the reference genome than they should. As a result pcr duplicate flag machinery fails and they are not flagged as duplicates. `MAX_READ_SPAN` is then the maximum +- position to use when detecting PCR duplicates.  
 - `--position-fraction` – cruciform artefacts usually contain segments that do not align to the reference genome, resulting in the segment being soft-clipped. The subsequent aligned portion will then contain false variants, which arise from the artefact. These false variants appear with anomalous regularity at alignment boundaries – unlike true variants. If, for a given variant, more than 90% of the variant bases are within `POSITION_FRACTION` of read edges, allow for calling `HPF` flag.
 
 
