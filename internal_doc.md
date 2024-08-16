@@ -12,6 +12,7 @@ Improvements and differences to the original `AdditionalBamStatistics` implement
 - Single tool centrally maintained and versioned – for reproducibility/citing/distribution
 - Significant speedup (on testing data at least) – 50s runtime on 542-variant caveman VCF
 - The module adds **filter flags**, `HPF` and `ALF`, to a VCF. It **does not** output into separate files containing passed and failed positions
+- The `ALF` flag supersedes the `ASRD` info field
 
 ####TOFIX
 > Mathjis LCM filters includes the following steps:
@@ -100,7 +101,7 @@ procedural:
 
 Parameters are hopefully mostly clear from the helptext, but some warrant further explanation:
 
-- `--al-filter-threshold` – the default value of 0.93 was arrived at by trial and error – since different aligners/platforms calculate alignment score differently, you may want to modify this value appropriately.  
+- `--al-filter-threshold` – the default value of 0.93 was arrived at by trial and error – since different aligners/platforms calculate alignment score differently, you may want to modify this value appropriately. In "Mathijs' Scripts", the default was set at 0.87 for filtering on `ASRD`.  
 - `--max-read-span` – long homopolymer tracts can cause stuttering, where a PCR duplicate will have, for example, an additional A in a tract of As. These reads will align a base or two earlier on the reference genome than they should. As a result pcr duplicate flag machinery fails and they are not flagged as duplicates. `MAX_READ_SPAN` is then the maximum +- position to use when detecting PCR duplicates.  
 - `--position-fraction` – cruciform artefacts usually contain segments that do not align to the reference genome, resulting in the segment being soft-clipped. The subsequent aligned portion will then contain false variants, which arise from the artefact. These false variants appear with anomalous regularity at alignment boundaries – unlike true variants. If, for a given variant, more than 90% of the variant bases are within `POSITION_FRACTION` of read edges, allow for calling `HPF` flag.
 
