@@ -57,7 +57,7 @@ mandatory:
 
 extended:
   -al AL_FILTER_THRESHOLD, --al-filter-threshold AL_FILTER_THRESHOLD
-                        threshhold for median of read alignment score per base of all relevant reads, below which a variant is flagged as ALF - default: 0.93
+                        threshold for median of read alignment score per base of all relevant reads, below which a variant is flagged as ALF - default: 0.93
   -mc MIN_CLIP_QUALITY, --min-clip-quality MIN_CLIP_QUALITY
                         discard reads with mean base quality of aligned bases below this value, if they have soft-clipped bases - default: 35
   -mq MIN_MAPPING_QUALITY, --min-mapping-quality MIN_MAPPING_QUALITY
