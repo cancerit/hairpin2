@@ -259,7 +259,7 @@ def main_cli() -> None:
     req.add_argument('-a', '--alignments', help="list of paths to (S/B/CR)AMs (indicated by --format) for samples in input VCF, whitespace separated - (s/b/cr)ai expected in same directories", nargs='+', required=True)
     req.add_argument('-f', "--format", help="format of alignment files; s indicates SAM, b indicates BAM, and c indicates CRAM", choices=["s", "b", "c"], type=str, required=True)
     opt = parser.add_argument_group('extended')
-    opt.add_argument('-al', '--al-filter-threshold', help='threshhold for median of read alignment score per base of all relevant reads, below which a variant is flagged as ALF - default: 0.93', type=float)
+    opt.add_argument('-al', '--al-filter-threshold', help='threshold for median of read alignment score per base of all relevant reads, below which a variant is flagged as ALF - default: 0.93', type=float)
     opt.add_argument('-mc', '--min-clip-quality', help='discard reads with mean base quality of aligned bases below this value, if they have soft-clipped bases - default: 35', type=int)
     opt.add_argument('-mq', '--min-mapping-quality', help='discard reads with mapping quality below this value - default: 11', type=int)
     opt.add_argument('-mb', '--min-base-quality', help='discard reads with base quality at variant position below this value - default: 25', type=int )
