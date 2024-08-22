@@ -5,6 +5,7 @@ dist/
 __pycache__/
 .helix/
 build/
+test_data_creation/
 *.txt
 *.sif
 *.json

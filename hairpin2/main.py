@@ -8,12 +8,14 @@ from itertools import tee
 from functools import partial
 
 def validate_read(
-    vcf_record: pysam.VariantRecord,
     read: pysam.AlignedSegment,
+    vcf_start: int,
+    vcf_stop: int,
+    vcf_rlen: int,
+    alt: str,
     min_mapqual: int,
     min_clipqual: int,
     min_basequal: int,
-    alt: str
 ) -> int:
     read_flag = c.ValidatorFlags.CLEAR.value
 
@@ -42,11 +44,11 @@ def validate_read(
             read_flag |= c.ValidatorFlags.CLIPQUAL.value
         # First, check for sub
         try:
-            mut_pos, mut_op = r2s.ref2querypos(read, vcf_record.start) # VCF 1-INDEXED, alignments 0-INDEXED (vcf_record.start = 0-indexed mutation position)
+            mut_pos, mut_op = r2s.ref2querypos(read, vcf_start) # VCF 1-INDEXED, alignments 0-INDEXED (vcf_start = 0-indexed mutation position)
         except IndexError:
             read_flag |= c.ValidatorFlags.NOT_ALIGNED.value
         else:
-            if vcf_record.rlen == len(alt) == 1:
+            if vcf_rlen == len(alt) == 1:
                 if (mut_op not in [c.Ops.MATCH.value, c.Ops.DIFF.value]):
                     read_flag |= c.ValidatorFlags.BAD_OP.value
                 if read.query_sequence[mut_pos] != alt:  # type: ignore
@@ -54,13 +56,13 @@ def validate_read(
                 if read.query_qualities[mut_pos] < min_basequal:  # type: ignore
                         read_flag |= c.ValidatorFlags.BASEQUAL.value
             # Second, check whether length of read can accommodate size of indel
-            elif (mut_pos + vcf_record.rlen > read.query_length or
+            elif (mut_pos + vcf_rlen > read.query_length or
                   mut_pos + len(alt) > read.query_length):
                 read_flag |= c.ValidatorFlags.SHORT.value
             else:
                 if len(alt) == 1:  # DEL
                     try:
-                        mut_rng = list(map(lambda x: r2s.ref2querypos(read, x), range(vcf_record.start, vcf_record.stop)))
+                        mut_rng = list(map(lambda x: r2s.ref2querypos(read, x), range(vcf_start, vcf_stop)))
                     except IndexError:
                         read_flag |= c.ValidatorFlags.NOT_ALIGNED.value
                     else:
@@ -68,9 +70,9 @@ def validate_read(
                             mut_rng[-1][1] != c.Ops.MATCH.value or
                             any(x[1] != c.Ops.DEL.value for x in mut_rng[1:-2])):
                             read_flag |= c.ValidatorFlags.BAD_OP.value
-                elif vcf_record.rlen == 1:  # INS
+                elif vcf_rlen == 1:  # INS
                     try:
-                        mut_rng = list(map(lambda x: r2s.ref2querypos(read, x), range(vcf_record.start, (vcf_record.start + len(alt)))))
+                        mut_rng = list(map(lambda x: r2s.ref2querypos(read, x), range(vcf_start, (vcf_start + len(alt)))))
                     except IndexError:
                         read_flag |= c.ValidatorFlags.NOT_ALIGNED.value
                     else:
@@ -81,7 +83,7 @@ def validate_read(
                         if read.query_sequence[mut_pos:len(alt)] != alt:  # type: ignore
                             read_flag |= c.ValidatorFlags.NOT_ALT.value
                 else:  # COMPLEX
-                    max_rng = range(vcf_record.start, vcf_record.stop) if (vcf_record.start + vcf_record.rlen) > (vcf_record.start + len(alt)) else range(vcf_record.start, (vcf_record.start + len(alt)))
+                    max_rng = range(vcf_start, vcf_stop) if (vcf_start + vcf_rlen) > (vcf_start + len(alt)) else range(vcf_start, (vcf_start + len(alt)))
                     try:
                         mut_rng = list(map(lambda x: r2s.ref2querypos(read, x), max_rng))
                     except IndexError:
@@ -107,7 +109,7 @@ def validate_read(
                 else:
                     if pair_end >= read.next_reference_start:  # type:ignore
                         pair_end = read.next_reference_start - 1
-                if not (pair_start <= vcf_record.start <= pair_end):  # type:ignore
+                if not (pair_start <= vcf_start <= pair_end):  # type:ignore
                     read_flag |= c.ValidatorFlags.OVERLAP.value
     return read_flag
 
@@ -143,7 +145,7 @@ def test_variant(
         read = None
         for read in read_iter: # type: ignore
             read_flag = c.ValidatorFlags.CLEAR.value
-            read_flag = read_validator(vcf_record=vcf_rec, read=read, alt=alt)
+            read_flag = read_validator(read=read, alt=alt, vcf_start=vcf_rec.start, vcf_stop=vcf_rec.stop, vcf_rlen=vcf_rec.rlen)
 
             if read_flag == c.ValidatorFlags.CLEAR.value:
                 mut_reads[mut_sample].append(read)
