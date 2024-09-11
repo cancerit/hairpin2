@@ -2,10 +2,10 @@ Bootstrap: docker
 From: python:3.12-slim
 
 %files
-. hairpin/
+. hairpin2/
 
 %post
-pip install --root-user-action ignore hairpin/
+pip install --root-user-action ignore hairpin2/
 
 %test
 	LOC=$(which hairpin2)
