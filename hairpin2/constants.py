@@ -15,7 +15,7 @@ Ops = IntEnum('Ops',
             ['MATCH', 'INS', 'DEL', 'SKIP', 'SOFT', 'HARD', 'PAD', 'EQUAL', 'DIFF', 'BACK'],
             start = 0)
 ValidatorFlags = Flag('ReadFlags',
-            ['CLEAR', 'FLAG', 'MAPQUAL', 'READ_FIELDS_MISSING', 'NOT_ALIGNED', 'BAD_OP', 'NOT_ALT', 'BASEQUAL', 'SHORT', 'CLIPQUAL', 'MATE_MISSING_FIELDS', 'OVERLAP'],
+            ['CLEAR', 'FLAG', 'MAPQUAL', 'READ_FIELDS_MISSING', 'NOT_ALIGNED', 'BAD_OP', 'NOT_ALT', 'BASEQUAL', 'SHORT', 'CLIPQUAL', 'NO_OVERLAP'],
             start=0)
 
 class NoAlts(ValueError):

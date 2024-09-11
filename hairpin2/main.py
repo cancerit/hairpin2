@@ -19,7 +19,7 @@ def validate_read(
 ) -> int:
     read_flag = c.ValidatorFlags.CLEAR.value
 
-    if not (read.flag & 0x2) or read.flag & 0xE00:
+    if not (read.flag & 0x2) or read.flag & 0xE00:  # move flag codes to constants
         read_flag |= c.ValidatorFlags.FLAG.value
 
     if read.mapping_quality < min_mapqual:
@@ -95,22 +95,21 @@ def validate_read(
                         if read.query_sequence[mut_pos:len(alt)] != alt:  # type: ignore
                             read_flag |= c.ValidatorFlags.NOT_ALT.value
 
-                # n.b. nothing done if complex read
         if read_flag == c.ValidatorFlags.CLEAR.value:
-            # "next", through an unfortunate quirk of history, means "mate", so this is reliable (pulls RNEXT)
-            mate_end = r2s.ref_end_via_cigar(mate_cig, read.next_reference_start)  # type:ignore
             if not (read.flag & 0x40):
                 # this looks like it should be checked for indexing snags
                 pair_start = read.reference_start
                 pair_end = read.reference_end
                 if read.flag & 0x10:
-                    if pair_start <= mate_end:
+                    # "next", through an unfortunate quirk of history, means "mate", so this is reliable (pulls RNEXT)
+                    mate_end = r2s.ref_end_via_cigar(mate_cig, read.next_reference_start)  # type:ignore
+                    if read.reference_start <= mate_end:
                         pair_start = mate_end + 1
                 else:
-                    if pair_end >= read.next_reference_start:  # type:ignore
+                    if read.reference_end >= read.next_reference_start:  # type:ignore
                         pair_end = read.next_reference_start - 1
                 if not (pair_start <= vcf_start <= pair_end):  # type:ignore
-                    read_flag |= c.ValidatorFlags.OVERLAP.value
+                    read_flag |= c.ValidatorFlags.NO_OVERLAP.value
     return read_flag
 
 
@@ -380,6 +379,7 @@ def main_cli() -> None:
             h.cleanup(msg='failed to write output JSON, reporting: {}'.format(e))
 
     for record in vcf_in_handle.fetch():  # type:ignore
+        # need to test pysam's vcf record validation - e.g. what if start is after end
         try:
             filter_d: dict[str, c.Filters] = test_record_per_alt(
                 alignments=vcf_sample_to_alignment_map,
