@@ -1,5 +1,6 @@
 import pysam
 from hairpin2 import ref2seq as r2s, constants as c, helpers as h
+import hairpin2
 from statistics import mean, median, stdev
 import argparse
 import logging
@@ -253,7 +254,7 @@ def main_cli() -> None:
 
     parser = argparse.ArgumentParser(prog="hairpin2", description='cruciform artefact flagging algorithm based on Ellis et al. 2020 (DOI: 10.1038/s41596-020-00437-6)')
     parser._optionals.title = 'info'
-    parser.add_argument('-v', '--version', help='print version', action='version', version=c.VERSION)
+    parser.add_argument('-v', '--version', help='print version', action='version', version=hairpin2.__version__)
     req = parser.add_argument_group('mandatory')
     req.add_argument('-i', '--vcf-in', help="path to input VCF", required=True)
     req.add_argument('-o', '--vcf-out', help="path to write output VCF", required=True)

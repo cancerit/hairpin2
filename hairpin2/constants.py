@@ -2,7 +2,6 @@ from enum import IntEnum, Flag
 from typing import Callable
 import dataclasses as d
 
-VERSION = '0.0.2a'
 EXIT_SUCCESS = 0
 EXIT_FAILURE = 1
 
