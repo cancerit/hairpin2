@@ -1,5 +1,7 @@
 data*
 .env/
+venv/
+.venv/
 dist/
 *.egg-info/
 __pycache__/
