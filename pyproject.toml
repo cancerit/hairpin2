@@ -1,17 +1,22 @@
-[tool.setuptools]
-packages = ["hairpin2"]
-
-[build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
-
-[project]
+[tool.poetry]
 name = "hairpin2"
 version = "0.0.2a"
-requires-python = ">= 3.10"
-dependencies = [
-    'pysam >= 0.22.1'
-]
+description = "CLI implementation of the hairpin detection algorithm concieved by Ellis et al, 2020."
+authors = ["Alex Byrne <ab63@sanger.ac.uk>"]
+license = "AGPL3"
+readme = "README.md"
 
-[project.scripts]
+[tool.poetry.dependencies]
+python = "^3.10"
+pysam = "^0.22"
+
+[tool.poetry.plugins."console_scripts"]
 hairpin2 = "hairpin2.main:main_cli"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.3"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
