@@ -21,8 +21,8 @@ include:
 
 .specific-variables:
   variables:
-    UNIT_TEST_MOUNT_POINT: /opt/tests
-    RUN_SCRIPT_MOUNT_POINT: /tmp/run.sh
+    UNIT_TEST_MOUNT_POINT: /hairpin2
+    RUN_SCRIPT_MOUNT_POINT: /hairpin2/docker_run_unit_tests.sh
     # We need to set this to 1 to enable BuildKit as the Dockerfile uses BuildKit features to speed up the build
     DOCKER_BUILDKIT: 1
     PRE_FETCH_BASE_IMAGE: python:3.12-slim
@@ -55,7 +55,7 @@ unit-test:
     - echo "Unit test against CANDIDATE_IMAGE='${CANDIDATE_IMAGE:?not-set-in-before_script}'"
     - docker pull "${CANDIDATE_IMAGE}"
     # Test image against unit tests - it requires env vars
-    - docker run -e TEST_DIR="${UNIT_TEST_MOUNT_POINT}" -v "${PWD}/tests:${UNIT_TEST_MOUNT_POINT}:ro" -v "${PWD}/scripts/docker_run_unit_tests.sh:${RUN_SCRIPT_MOUNT_POINT}:ro" --rm "${CANDIDATE_IMAGE}" ${RUN_SCRIPT_MOUNT_POINT}
+    - docker run -e TEST_DIR="${UNIT_TEST_MOUNT_POINT}" -v "${PWD}:${UNIT_TEST_MOUNT_POINT}:ro" -v "${PWD}/docker_run_unit_tests.sh:${RUN_SCRIPT_MOUNT_POINT}:ro" --rm "${CANDIDATE_IMAGE}" ${RUN_SCRIPT_MOUNT_POINT}
     - echo "*** [SCRIPT] END ***"
 
 publish-develop:
