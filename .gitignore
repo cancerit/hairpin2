@@ -11,3 +11,4 @@ test_data_creation/
 *.txt
 *.sif
 *.json
+poetry.lock
