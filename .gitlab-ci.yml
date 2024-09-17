@@ -55,7 +55,7 @@ unit-test:
     - echo "Unit test against CANDIDATE_IMAGE='${CANDIDATE_IMAGE:?not-set-in-before_script}'"
     - docker pull "${CANDIDATE_IMAGE}"
     # Test image against unit tests - it requires env vars
-    - docker run -e TEST_DIR="${UNIT_TEST_MOUNT_POINT}" -v "${PWD}:${UNIT_TEST_MOUNT_POINT}:ro" -v "${PWD}/docker_run_unit_tests.sh:${RUN_SCRIPT_MOUNT_POINT}:ro" --rm "${CANDIDATE_IMAGE}" ${RUN_SCRIPT_MOUNT_POINT}
+    - docker run --entrypoint "bash" -e TEST_DIR="${UNIT_TEST_MOUNT_POINT}" -v "${PWD}:${UNIT_TEST_MOUNT_POINT}:ro" -v "${PWD}/docker_run_unit_tests.sh:${RUN_SCRIPT_MOUNT_POINT}:ro" --rm "${CANDIDATE_IMAGE}" ${RUN_SCRIPT_MOUNT_POINT}
     - echo "*** [SCRIPT] END ***"
 
 publish-develop:
