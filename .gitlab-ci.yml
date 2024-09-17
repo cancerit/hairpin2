@@ -59,8 +59,8 @@ unit-test:
       -e TEST_DIR="${UNIT_TEST_MOUNT_POINT}" \
       -v "${PWD}:${UNIT_TEST_MOUNT_POINT}:ro" \
       -v "${PWD}/docker_run_unit_tests.sh:${RUN_SCRIPT_MOUNT_POINT}:ro" \
-      --rm \
-      "${CANDIDATE_IMAGE}" bash "${RUN_SCRIPT_MOUNT_POINT}"
+      --rm "${CANDIDATE_IMAGE}" \
+      bash "${RUN_SCRIPT_MOUNT_POINT}"
     - echo "*** [SCRIPT] END ***"
 
 publish-develop:
