@@ -13,7 +13,6 @@ pysam = "^0.22"
 [tool.poetry.plugins."console_scripts"]
 hairpin2 = "hairpin2.main:main_cli"
 
-
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"
 
