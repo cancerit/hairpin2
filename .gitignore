@@ -12,3 +12,4 @@ test_data_creation/
 *.sif
 *.json
 poetry.lock
+.coverage

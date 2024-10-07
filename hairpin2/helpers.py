@@ -57,9 +57,10 @@ def lists_not_equal(
 
 
 def print_flag(
-    print_enum: Flag
+    print_enum: Flag,
+    hex: bool = False
 ) -> None:
-    print([':'.join([str(e), hex(e.value)]) for e in print_enum])
+    print([':'.join([str(e), hex(e.value) if hex else bin(e.value)]) for e in print_enum])
 
 
 def print_enum(

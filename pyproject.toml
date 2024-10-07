@@ -15,6 +15,9 @@ hairpin2 = "hairpin2.main:main_cli"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"
+pytest-cov = "^5.0.0"
+faker-biology = "^0.6.4"
+factory-boy = "^3.3.1"
 
 [build-system]
 requires = ["poetry-core"]

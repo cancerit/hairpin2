@@ -27,6 +27,7 @@ import logging
 import json
 from itertools import tee
 from functools import partial
+from typing import Literal
 
 
 def validate_read(
@@ -34,23 +35,20 @@ def validate_read(
     vcf_start: int,
     vcf_stop: int,
     vcf_rlen: int,
-    alt: str,
+    alt: Literal['A', 'C', 'G', 'T', 'N', '*'],
+    mut_type: Literal['S', 'D', 'I'],
     min_mapqual: int,
     min_clipqual: int,
     min_basequal: int,
 ) -> int:
+    # write checks for alt and mut type!
     read_flag = c.ValidatorFlags.CLEAR.value
-
-    if not (read.flag & 0x2) or read.flag & 0xE00:  # move flag codes to constants
-        read_flag |= c.ValidatorFlags.FLAG.value
-
-    if read.mapping_quality < min_mapqual:
-        read_flag |= c.ValidatorFlags.MAPQUAL.value
 
     try:
         mate_cig = read.get_tag('MC')
     except KeyError:
         mate_cig = None
+
     if any(x is None for x in
             [read.reference_start,
                 read.reference_end,
@@ -59,94 +57,74 @@ def validate_read(
                 read.query_alignment_qualities,
                 read.cigarstring,
                 read.cigartuples,
+                read.flag,
+                read.mapping_quality,
                 mate_cig]):
         read_flag |= c.ValidatorFlags.READ_FIELDS_MISSING.value
     else:
+        if not (read.flag & 0x2) or read.flag & 0xE00:
+            read_flag |= c.ValidatorFlags.FLAG.value
+
+        if read.mapping_quality < min_mapqual:
+            read_flag |= c.ValidatorFlags.MAPQUAL.value
+
         if ('S' in read.cigarstring and  # type: ignore
                 mean(read.query_alignment_qualities) < min_clipqual):  # type: ignore
             read_flag |= c.ValidatorFlags.CLIPQUAL.value
         # First, check for sub
-        try:
-            # VCF 1-INDEXED, alignments 0-INDEXED
-            # (vcf_start = 0-indexed mutation position)
-            mut_pos, mut_op = r2s.ref2querypos(read, vcf_start)
-        except IndexError:
-            read_flag |= c.ValidatorFlags.NOT_ALIGNED.value
-        else:
-            if vcf_rlen == len(alt) == 1:
-                if (mut_op not in [c.Ops.MATCH.value, c.Ops.DIFF.value]):
-                    read_flag |= c.ValidatorFlags.BAD_OP.value
-                if read.query_sequence[mut_pos] != alt:  # type: ignore
-                    read_flag |= c.ValidatorFlags.NOT_ALT.value
-                if read.query_qualities[mut_pos] < min_basequal:  # type: ignore
-                    read_flag |= c.ValidatorFlags.BASEQUAL.value
-            # Second, check whether length of read can accommodate size of indel
-            elif (mut_pos + vcf_rlen > read.query_length or
-                  mut_pos + len(alt) > read.query_length):
-                read_flag |= c.ValidatorFlags.SHORT.value
+        if mut_type == 'S':
+            try:
+                # VCF 1-INDEXED, alignments 0-INDEXED
+                # (vcf_start = 0-indexed mutation position)
+                mut_pos, mut_op = r2s.ref2querypos(read, vcf_start)
+            except IndexError:
+                read_flag |= c.ValidatorFlags.NOT_ALIGNED.value
             else:
-                if len(alt) == 1:  # DEL
-                    try:
-                        mut_rng = list(map(lambda x: r2s.ref2querypos(read, x),
-                                           range(vcf_start, vcf_stop)))
-                    except IndexError:
-                        read_flag |= c.ValidatorFlags.NOT_ALIGNED.value
-                    else:
-                        if (mut_rng[0][1] != c.Ops.MATCH.value or
-                            mut_rng[-1][1] != c.Ops.MATCH.value or
-                            any(x[1] != c.Ops.DEL.value for x in
-                                mut_rng[1:-2])):
-                            read_flag |= c.ValidatorFlags.BAD_OP.value
-                elif vcf_rlen == 1:  # INS
-                    try:
-                        mut_rng = list(map(lambda x: r2s.ref2querypos(read, x),
-                                           range(vcf_start,
-                                                 (vcf_start + len(alt)))))
-                    except IndexError:
-                        read_flag |= c.ValidatorFlags.NOT_ALIGNED.value
-                    else:
-                        if (mut_rng[0][1] != c.Ops.MATCH.value or
-                            mut_rng[-1][1] != c.Ops.MATCH.value or
-                                any(x[1] != c.Ops.INS.value for x in
-                                    mut_rng[1:-2])):
-                            read_flag |= c.ValidatorFlags.BAD_OP.value
-                        if read.query_sequence[mut_pos:len(alt)] != alt:  # type: ignore
-                            read_flag |= c.ValidatorFlags.NOT_ALT.value
-                else:  # COMPLEX
-                    max_rng = (range(vcf_start, vcf_stop)
-                               if (vcf_start + vcf_rlen) >
-                               (vcf_start + len(alt))
-                               else range(vcf_start, (vcf_start + len(alt))))
-                    try:
-                        mut_rng = list(map(
-                                lambda x: r2s.ref2querypos(read, x), max_rng))
-                    except IndexError:
-                        read_flag |= c.ValidatorFlags.NOT_ALIGNED.value
-                    else:
-                        if (mut_rng[0][1] != c.Ops.MATCH.value or
-                                mut_rng[-1][1] != c.Ops.MATCH.value):
-                            read_flag |= c.ValidatorFlags.BAD_OP.value
-                        if read.query_sequence[mut_pos:len(alt)] != alt:  # type: ignore
-                            read_flag |= c.ValidatorFlags.NOT_ALT.value
-
-        if read_flag == c.ValidatorFlags.CLEAR.value:
-            if not (read.flag & 0x40):
-                # this looks like it should be checked for indexing snags
-                pair_start = read.reference_start
-                pair_end = read.reference_end
-                if read.flag & 0x10:
-                    # through an unfortunate quirk of history
-                    # "next" means "mate"
-                    # so this is reliable (pulls RNEXT)
-                    mate_end = r2s.ref_end_via_cigar(mate_cig,
-                                                     read.next_reference_start)  # type:ignore
-                    if read.reference_start <= mate_end:
-                        pair_start = mate_end + 1
+                if vcf_rlen == len(alt) == 1:
+                    # checking bad_op superfluous
+                    # if it aligns then
+                    # either match or mismatch
+                    if read.query_sequence[mut_pos] != alt:  # type: ignore
+                        read_flag |= c.ValidatorFlags.NOT_ALT.value
+                    if read.query_qualities[mut_pos] < min_basequal:  # type: ignore
+                        read_flag |= c.ValidatorFlags.BASEQUAL.value
+        elif mut_type == 'D':  # DEL - doesn't check for matches before and after...
+            mut_alns = [q for q, r in read.get_aligned_pairs() if r in range(vcf_start, vcf_stop)]
+            if any([x is not None for x in mut_alns]):
+                read_flag |= c.ValidatorFlags.BAD_OP.value
+        elif mut_type == 'I':  # INS
+            try:
+                first_pos, _ = r2s.ref2querypos(read, vcf_start)
+            except IndexError:
+                read_flag |= c.ValidatorFlags.NOT_ALIGNED.value
+            else:
+                if first_pos + len(alt) > read.query_length:
+                    read_flag |= c.ValidatorFlags.SHORT.value
                 else:
-                    if read.reference_end >= read.next_reference_start:  # type:ignore
-                        pair_end = read.next_reference_start - 1
-                if not (pair_start <= vcf_start <= pair_end):  # type:ignore
-                    read_flag |= c.ValidatorFlags.NO_OVERLAP.value
+                    # MUST TEST
+                    mut_alns = [(q, r) for q, r in read.get_aligned_pairs() if q in range(first_pos + 1, first_pos + vcf_rlen)]
+                    if any([r is not None for _, r in mut_alns]):
+                        read_flag |= c.ValidatorFlags.BAD_OP.value
+                    if read.query_sequence[first_pos:len(alt)] != alt:
+                        read_flag |= c.ValidatorFlags.NOT_ALT.value
+
+        if read_flag == c.ValidatorFlags.CLEAR.value and not (read.flag & 0x40):
+            # check for indexing snags
+            pair_start = read.reference_start
+            pair_end = read.reference_end
+            if read.flag & 0x10:
+                # through an unfortunate quirk of history
+                # "next" means "mate"
+                # so this is reliable
+                mate_end = r2s.ref_end_via_cigar(mate_cig,
+                                                 read.next_reference_start)  # type:ignore
+                if read.reference_start <= mate_end:
+                    pair_start = mate_end + 1
+            else:
+                if read.reference_end >= read.next_reference_start:  # type:ignore
+                    pair_end = read.next_reference_start - 1
+            if not (pair_start <= vcf_start <= pair_end):  # type:ignore
+                read_flag |= c.ValidatorFlags.NO_OVERLAP.value
     return read_flag
 
 
@@ -154,6 +132,7 @@ def test_variant(
     vcf_rec: pysam.VariantRecord,
     mutant_alignments: dict[str, pysam.AlignmentFile],
     alt: str,
+    mut_type: str,
     al_thresh: float,
     max_span: int,
     position_fraction_thresh: float,
@@ -187,7 +166,8 @@ def test_variant(
                                        alt=alt,
                                        vcf_start=vcf_rec.start,
                                        vcf_stop=vcf_rec.stop,
-                                       vcf_rlen=vcf_rec.rlen)
+                                       vcf_rlen=vcf_rec.rlen,
+                                       mut_type=mut_type)
 
             if read_flag == c.ValidatorFlags.CLEAR.value:
                 mut_reads[mut_sample].append(read)
@@ -324,7 +304,17 @@ def test_record_per_alt(
                             if k in samples_w_mutants}
     filt_d = {}
     for alt in vcf_rec.alts:
-        filt_d[alt] = variant_tester(vcf_rec, alignments_w_mutants, alt)
+        if vcf_rec.rlen == len(alt) and set(alt).issubset(set(['A', 'C', 'T', 'G', 'N', '*'])):
+            mut_type = 'S'
+        elif len(alt) < vcf_rec.rlen or alt == '.':  # DEL - DOES NOT SUPPORT <DEL> TYPE IDS
+            mut_type = 'D'
+        elif vcf_rec.rlen == 1 and set(alt).issubset(set(['A', 'C', 'T', 'G', 'N', '*'])):  # INS - DOES NOT SUPPORT <INS> TYPE IDS
+            mut_type = 'I'
+        else:
+            ## ERROR
+            logging.warning('could not type mutation POS={} REF={} ALT={}, skipping alt'.format(vcf_rec.pos, vcf_rec.ref, alt))
+            continue
+        filt_d[alt] = variant_tester(vcf_rec, alignments_w_mutants, alt, mut_type)
     return filt_d
 
 
