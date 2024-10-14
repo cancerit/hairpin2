@@ -12,7 +12,7 @@ USER ubuntu
 WORKDIR /home/ubuntu
 
 # Install the hairpin package
-RUN pip install hairpin2/
+RUN pip install /hairpin2
 
 # Define a test script to check the installation of hairpin
 RUN LOC=$(which hairpin2) \
