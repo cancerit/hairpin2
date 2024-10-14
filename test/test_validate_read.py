@@ -34,6 +34,7 @@ random.seed(2501)
 
 
 # smoke test validate_read
+# ----
 class ExtendedBioProvider(Bioseq):
     def quality_string(self, length):
         if length < 1:
@@ -130,6 +131,7 @@ def test_smoke(test_read):
                               min_clipqual=35,
                               min_basequal=25)
     print(format(vflag, '010b'))
+# ----
 
 
 # BASIS PATH TESTING

@@ -12,7 +12,7 @@ USER ubuntu
 WORKDIR /home/ubuntu
 
 # Install the hairpin package
-RUN pip install /hairpin2
+RUN pip install --no-warn-script-location /hairpin2
 
 ENV PATH=$PATH:/home/ubuntu/.local/bin
 
