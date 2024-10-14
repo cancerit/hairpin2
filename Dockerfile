@@ -6,8 +6,13 @@ WORKDIR /hairpin2
 # Copy the current working directory contents into the container
 COPY . /hairpin2
 
+RUN adduser --disabled-password --gecos '' ubuntu && chsh -s /bin/bash && mkdir -p /home/ubuntu
+
+USER ubuntu
+WORKDIR /home/ubuntu
+
 # Install the hairpin package
-RUN pip install --root-user-action ignore /hairpin2/
+RUN pip install hairpin2/
 
 # Define a test script to check the installation of hairpin
 RUN LOC=$(which hairpin2) \
