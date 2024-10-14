@@ -14,6 +14,8 @@ WORKDIR /home/ubuntu
 # Install the hairpin package
 RUN pip install /hairpin2
 
+ENV PATH=$PATH:/home/ubuntu/.local/bin
+
 # Define a test script to check the installation of hairpin
 RUN LOC=$(which hairpin2) \
     && if [ -z "$LOC" ]; then \
