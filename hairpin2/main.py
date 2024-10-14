@@ -34,14 +34,18 @@ def validate_read(
     read: pysam.AlignedSegment,
     vcf_start: int,
     vcf_stop: int,
-    vcf_rlen: int,
-    alt: Literal['A', 'C', 'G', 'T', 'N', '*'],
+    alt: str,
     mut_type: Literal['S', 'D', 'I'],
     min_mapqual: int,
     min_clipqual: int,
     min_basequal: int,
 ) -> int:
-    # write checks for alt and mut type!
+    sup_char_alt = ['A', 'C', 'G', 'T', 'N', '*', '.']
+    if any([b not in sup_char_alt for b in alt]):
+        raise ValueError('unsupported character in alt: {} - supports {}'.format(alt, ', '.join(sup_char_alt)))
+    if mut_type not in ['S', 'D', 'I']:
+        raise ValueError('unsupported mut_type: {} - supports \'S\' (SUB) \'D\' (DEL) \'I\' (INS)'.format(mut_type))
+
     read_flag = c.ValidatorFlags.CLEAR.value
 
     try:
@@ -50,15 +54,12 @@ def validate_read(
         mate_cig = None
 
     if any(x is None for x in
-            [read.reference_start,
-                read.reference_end,
+            [read.reference_end,
                 read.query_sequence,
                 read.query_qualities,
                 read.query_alignment_qualities,
                 read.cigarstring,
                 read.cigartuples,
-                read.flag,
-                read.mapping_quality,
                 mate_cig]):
         read_flag |= c.ValidatorFlags.READ_FIELDS_MISSING.value
     else:
@@ -71,60 +72,48 @@ def validate_read(
         if ('S' in read.cigarstring and  # type: ignore
                 mean(read.query_alignment_qualities) < min_clipqual):  # type: ignore
             read_flag |= c.ValidatorFlags.CLIPQUAL.value
-        # First, check for sub
-        if mut_type == 'S':
+
+        if mut_type == 'S':  # SUB
             try:
-                # VCF 1-INDEXED, alignments 0-INDEXED
-                # (vcf_start = 0-indexed mutation position)
                 mut_pos, mut_op = r2s.ref2querypos(read, vcf_start)
             except IndexError:
                 read_flag |= c.ValidatorFlags.NOT_ALIGNED.value
             else:
-                if vcf_rlen == len(alt) == 1:
-                    # checking bad_op superfluous
-                    # if it aligns then
-                    # either match or mismatch
-                    if read.query_sequence[mut_pos] != alt:  # type: ignore
-                        read_flag |= c.ValidatorFlags.NOT_ALT.value
-                    if read.query_qualities[mut_pos] < min_basequal:  # type: ignore
-                        read_flag |= c.ValidatorFlags.BASEQUAL.value
+                if read.query_sequence[mut_pos:mut_pos + len(alt)] != alt:  # type: ignore
+                    read_flag |= c.ValidatorFlags.NOT_ALT.value
+                if any([bq < min_basequal for bq in read.query_qualities[mut_pos:mut_pos + len(alt)]]):  # type: ignore
+                    read_flag |= c.ValidatorFlags.BASEQUAL.value
         elif mut_type == 'D':  # DEL - doesn't check for matches before and after...
+            # this could error if read doesn't cover region (as could all)
             mut_alns = [q for q, r in read.get_aligned_pairs() if r in range(vcf_start, vcf_stop)]
             if any([x is not None for x in mut_alns]):
                 read_flag |= c.ValidatorFlags.BAD_OP.value
         elif mut_type == 'I':  # INS
             try:
-                first_pos, _ = r2s.ref2querypos(read, vcf_start)
+                prior_pos, _ = r2s.ref2querypos(read, vcf_start)
             except IndexError:
                 read_flag |= c.ValidatorFlags.NOT_ALIGNED.value
             else:
-                if first_pos + len(alt) > read.query_length:
+                if prior_pos + len(alt) > read.query_length:
                     read_flag |= c.ValidatorFlags.SHORT.value
                 else:
-                    # MUST TEST
-                    mut_alns = [(q, r) for q, r in read.get_aligned_pairs() if q in range(first_pos + 1, first_pos + vcf_rlen)]
+                    mut_alns = [(q, r) for q, r in read.get_aligned_pairs() if q in range(prior_pos + 1, prior_pos + len(alt) + 1)]
                     if any([r is not None for _, r in mut_alns]):
                         read_flag |= c.ValidatorFlags.BAD_OP.value
-                    if read.query_sequence[first_pos:len(alt)] != alt:
+                    if read.query_sequence[prior_pos + 1:prior_pos + len(alt) + 1] != alt:
                         read_flag |= c.ValidatorFlags.NOT_ALT.value
 
         if read_flag == c.ValidatorFlags.CLEAR.value and not (read.flag & 0x40):
-            # check for indexing snags
-            pair_start = read.reference_start
-            pair_end = read.reference_end
-            if read.flag & 0x10:
-                # through an unfortunate quirk of history
-                # "next" means "mate"
-                # so this is reliable
-                mate_end = r2s.ref_end_via_cigar(mate_cig,
-                                                 read.next_reference_start)  # type:ignore
-                if read.reference_start <= mate_end:
-                    pair_start = mate_end + 1
-            else:
-                if read.reference_end >= read.next_reference_start:  # type:ignore
-                    pair_end = read.next_reference_start - 1
-            if not (pair_start <= vcf_start <= pair_end):  # type:ignore
-                read_flag |= c.ValidatorFlags.NO_OVERLAP.value
+            read_range = range(read.reference_start,
+                               read.reference_end)
+            mate_range = range(read.next_reference_start,
+                               r2s.ref_end_via_cigar(mate_cig,
+                                                     read.next_reference_start)
+                               )
+            ref_overlap = set(read_range).intersection(mate_range)
+            if vcf_start in ref_overlap:
+                read_flag |= c.ValidatorFlags.OVERLAP.value
+
     return read_flag
 
 
@@ -166,7 +155,6 @@ def test_variant(
                                        alt=alt,
                                        vcf_start=vcf_rec.start,
                                        vcf_stop=vcf_rec.stop,
-                                       vcf_rlen=vcf_rec.rlen,
                                        mut_type=mut_type)
 
             if read_flag == c.ValidatorFlags.CLEAR.value:

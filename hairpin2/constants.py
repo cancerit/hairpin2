@@ -62,7 +62,7 @@ ValidatorFlags = Flag('ReadFlags',
                           'BASEQUAL',
                           'SHORT',
                           'CLIPQUAL',
-                          'NO_OVERLAP'],
+                          'OVERLAP'],
                       start=0)
 
 

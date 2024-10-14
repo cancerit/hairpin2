@@ -48,7 +48,7 @@ class ExtendedBioProvider(Bioseq):
         opchars_noclip = 'MIDNP=XB'
         bound = 200 if length > 200 else length
         cig_op_lengths = []
-        while(bound > 0):
+        while (bound > 0):
             oplen = random.randint(1, bound)
             cig_op_lengths.append(random.randint(1, oplen))
             cig_sum = sum(cig_op_lengths)
@@ -107,216 +107,243 @@ class ReadFactory(factory.Factory):
     mc = factory.LazyAttribute(lambda _: fake.cigar_string(length=random.randint(50, 200)))
 
 
-# @pytest.mark.parametrize("test_read", [ReadFactory().segment for _ in range(100)])
-# def test_smoke(test_read):
-#     mut_pos = random.randint(1, len(test_read.query_sequence) - 1)
-#     start = test_read.reference_start + mut_pos
-#     alt = test_read.query_sequence[mut_pos:mut_pos + random.randint(1, 3)]  # n.b. func does not fail with no alt
-#     stop = start + len(alt)
-#     vflag = hp2.validate_read(test_read, vcf_start=start, vcf_stop=stop, vcf_rlen=stop - start, alt=alt, min_mapqual=11, min_clipqual=35, min_basequal=25)  # need to verify I'm actually getting the positions right so it's not just all "not aligned" (print flags)
-#     print(format(vflag, '010b'))
+@pytest.mark.parametrize("test_read", [ReadFactory().segment for _ in range(1000)])
+def test_smoke(test_read):
+    mut_pos = random.randint(1, len(test_read.query_sequence) - 1)
+    start = test_read.reference_start + mut_pos
+    alt = random.choices([test_read.query_sequence[mut_pos:mut_pos + random.randint(1, 3)], '.'], cum_weights=[66, 100])[0]
+    if alt == '.':
+        mut_type_str = 'D'
+        stop = start + random.randint(1, 3)
+    elif len(alt) == 1:
+        mut_type_str = random.choice(['S', 'I'])
+        stop = start + 1
+    else:
+        mut_type_str = random.choice(['S', 'I'])
+        stop = start + 1 if mut_type_str == 'I' else start + len(alt)
+    vflag = hp2.validate_read(test_read,
+                              vcf_start=start,
+                              vcf_stop=stop,
+                              alt=alt,
+                              mut_type=mut_type_str,
+                              min_mapqual=11,
+                              min_clipqual=35,
+                              min_basequal=25)
+    print(format(vflag, '010b'))
 
 
-# INDEL TESTING
+# BASIS PATH TESTING
+# test every node and edge at least once
+# N.B.
+# pysam guards against:
+# quality and seq length mismatch
+# reference id is none
+# ----
+# perfect read pair:
 r = pysam.AlignedSegment()
 r.query_name = 'read1'
 r.query_sequence = 'CTGDAAAACC'
 r.query_qualities = pysam.qualitystring_to_array('AAAAAAAAAA')
-r.flag = 0x2
+r.flag = 0x43
 r.reference_id = 0
 r.reference_start = 95
-r.next_reference_start = 105
+r.next_reference_start = 95
 r.mapping_quality = 20
-r.cigarstring = '4M3D3M'
-r.set_tag('MC', '4M3D3M')
+r.cigarstring = '10M'
+r.set_tag('MC', '10M')
 
-def test_indel():
-    vrf = hp2.validate_read(read=r,
+
+def test_path_unsupported_alt():
+    with pytest.raises(ValueError):
+        hp2.validate_read(read=r,
+                          vcf_start=99,
+                          vcf_stop=100,
+                          alt='8',
+                          mut_type='S',
+                          min_mapqual=11,
+                          min_clipqual=35,
+                          min_basequal=25)
+
+
+def test_path_unsupported_mut_type():
+    with pytest.raises(ValueError):
+        hp2.validate_read(read=r,
+                          vcf_start=99,
+                          vcf_stop=100,
+                          alt='A',
+                          mut_type='8',
+                          min_mapqual=11,
+                          min_clipqual=35,
+                          min_basequal=25)
+
+
+def test_path_missing_mc():
+    rc = copy.deepcopy(r)
+    rc.set_tag('MC', None)
+    assert hp2.validate_read(read=rc,
                              vcf_start=99,
-                             vcf_stop=102,
-                             vcf_rlen=3,
+                             vcf_stop=100,
+                             alt='A',
+                             mut_type='S',
+                             min_mapqual=11,
+                             min_clipqual=35,
+                             min_basequal=25) == c.ValidatorFlags.READ_FIELDS_MISSING.value
+
+
+def test_path_missing_field():
+    rc = copy.deepcopy(r)
+    rc.cigarstring = None
+    assert hp2.validate_read(read=rc,
+                             vcf_start=99,
+                             vcf_stop=100,
+                             alt='A',
+                             mut_type='S',
+                             min_mapqual=11,
+                             min_clipqual=35,
+                             min_basequal=25) == c.ValidatorFlags.READ_FIELDS_MISSING.value
+
+
+def test_path_set_flag_mapqual_clipqual():
+    rc = copy.deepcopy(r)
+    rc.flag = 0x200
+    rc.cigarstring = '1S9M'
+    assert hp2.validate_read(read=rc,
+                             vcf_start=99,
+                             vcf_stop=100,
+                             alt='A',
+                             mut_type='S',
+                             min_mapqual=30,
+                             min_clipqual=40,
+                             min_basequal=25) == (c.ValidatorFlags.FLAG.value | c.ValidatorFlags.MAPQUAL.value | c.ValidatorFlags.CLIPQUAL.value)
+
+
+def test_path_sub_not_aligned():
+    assert hp2.validate_read(read=r,
+                             vcf_start=200,
+                             vcf_stop=100,
+                             alt='A',
+                             mut_type='S',
+                             min_mapqual=11,
+                             min_clipqual=35,
+                             min_basequal=25) == c.ValidatorFlags.NOT_ALIGNED.value
+
+
+def test_path_bad_sub():
+    assert hp2.validate_read(read=r,
+                             vcf_start=99,
+                             vcf_stop=100,
+                             alt='T',
+                             mut_type='S',
+                             min_mapqual=11,
+                             min_clipqual=35,
+                             min_basequal=50) == (c.ValidatorFlags.NOT_ALT.value | c.ValidatorFlags.BASEQUAL.value)
+
+
+def test_path_good_sub():
+    assert hp2.validate_read(read=r,
+                             vcf_start=99,
+                             vcf_stop=100,
+                             alt='A',
+                             mut_type='S',
+                             min_mapqual=11,
+                             min_clipqual=35,
+                             min_basequal=25) == c.ValidatorFlags.CLEAR.value
+
+
+# checks cigar ops
+def test_path_del_bad_op():
+    assert hp2.validate_read(read=r,
+                             vcf_start=99,
+                             vcf_stop=100,
                              alt='.',
                              mut_type='D',
                              min_mapqual=11,
                              min_clipqual=35,
-                             min_basequal=25)
+                             min_basequal=25) == c.ValidatorFlags.BAD_OP.value
 
 
-# pysam guards against:
-# quality and seq length mismatch
-# flag not set
-# reference id is none
-# r = pysam.AlignedSegment()
-# r.query_name = 'read1'
-# r.query_sequence = 'CTGDAAAACC'
-# r.query_qualities = pysam.qualitystring_to_array('AAAAAAAAAA')
-# r.flag = 0x2
-# r.reference_id = 0
-# r.reference_start = 95
-# r.next_reference_start = 105
-# r.mapping_quality = 20
-# r.cigarstring = '10M'
-# r.set_tag('MC', '10M')
+# 2bp del
+def test_path_good_del():
+    rc = copy.deepcopy(r)
+    rc.cigarstring = '4M2D6M'
+    assert hp2.validate_read(read=rc,
+                             vcf_start=99,
+                             vcf_stop=101,
+                             alt='.',
+                             mut_type='D',
+                             min_mapqual=11,
+                             min_clipqual=35,
+                             min_basequal=25) == c.ValidatorFlags.CLEAR.value
 
 
-# BASIS PATH TESTING
-# test every statement at least once
-######
-
-# def test_set_flag():
-#     rc = copy.deepcopy(r)
-#     rc.flag = 0x10
-#     assert hp2.validate_read(read=rc,
-#                              vcf_start=99,
-#                              vcf_stop=100,
-#                              vcf_rlen=1,
-#                              alt='A',
-#                              min_mapqual=11,
-#                              min_clipqual=35,
-#                              min_basequal=25) == c.ValidatorFlags.FLAG.value
+def test_path_ins_not_aligned():
+    assert hp2.validate_read(read=r,
+                             vcf_start=200,
+                             vcf_stop=100,
+                             alt='A',
+                             mut_type='I',
+                             min_mapqual=11,
+                             min_clipqual=35,
+                             min_basequal=25) == c.ValidatorFlags.NOT_ALIGNED.value
 
 
-# def test_set_mapqual():
-#     assert hp2.validate_read(read=r,
-#                              vcf_start=99,
-#                              vcf_stop=100,
-#                              vcf_rlen=1,
-#                              alt='A',
-#                              min_mapqual=30,
-#                              min_clipqual=35,
-#                              min_basequal=25) == c.ValidatorFlags.MAPQUAL.value
+def test_path_ins_short():
+    assert hp2.validate_read(read=r,
+                             vcf_start=99,
+                             vcf_stop=100,
+                             alt='ATTTTTTTTTTTTTT',
+                             mut_type='I',
+                             min_mapqual=11,
+                             min_clipqual=35,
+                             min_basequal=25) == c.ValidatorFlags.SHORT.value
 
 
-# def test_missing_mc():
-#     rc = copy.deepcopy(r)
-#     rc.set_tag('MC', None)
-#     assert hp2.validate_read(read=rc,
-#                              vcf_start=99,
-#                              vcf_stop=100,
-#                              vcf_rlen=1,
-#                              alt='A',
-#                              min_mapqual=11,
-#                              min_clipqual=35,
-#                              min_basequal=25) == c.ValidatorFlags.READ_FIELDS_MISSING.value
+def test_path_bad_ins():
+    assert hp2.validate_read(read=r,
+                             vcf_start=99,
+                             vcf_stop=100,
+                             alt='AC',
+                             mut_type='I',
+                             min_mapqual=11,
+                             min_clipqual=35,
+                             min_basequal=25) == (c.ValidatorFlags.BAD_OP.value | c.ValidatorFlags.NOT_ALT.value)
 
 
-# def test_set_missing_fields():
-#     rc = copy.deepcopy(r)
-#     rc.cigarstring = None
-#     rc.cigartuples = None
-#     assert hp2.validate_read(read=rc,
-#                              vcf_start=99,
-#                              vcf_stop=100,
-#                              vcf_rlen=1,
-#                              alt='A',
-#                              min_mapqual=11,
-#                              min_clipqual=35,
-#                              min_basequal=25) == c.ValidatorFlags.READ_FIELDS_MISSING.value
+def test_path_good_ins():
+    rc = copy.deepcopy(r)
+    rc.cigarstring = '5M2I3M'
+    assert hp2.validate_read(read=rc,
+                             vcf_start=99,
+                             vcf_stop=100,
+                             alt='AA',
+                             mut_type='I',
+                             min_mapqual=11,
+                             min_clipqual=35,
+                             min_basequal=25) == c.ValidatorFlags.CLEAR.value
 
 
-# def test_set_clipqual():
-#     rc = copy.deepcopy(r)
-#     rc.cigarstring = '1S9M'
-#     assert hp2.validate_read(read=rc,
-#                              vcf_start=99,
-#                              vcf_stop=100,
-#                              vcf_rlen=1,
-#                              alt='A',
-#                              min_mapqual=11,
-#                              min_clipqual=40,
-#                              min_basequal=25) == c.ValidatorFlags.CLIPQUAL.value
+def test_path_overlap():
+    rc = copy.deepcopy(r)
+    rc.flag = 0x83
+    assert hp2.validate_read(read=rc,
+                             vcf_start=99,
+                             vcf_stop=100,
+                             alt='A',
+                             mut_type='S',
+                             min_mapqual=11,
+                             min_clipqual=35,
+                             min_basequal=25) == c.ValidatorFlags.OVERLAP.value
 
 
-# def test_not_aligned_first():
-#     assert hp2.validate_read(read=r,
-#                              vcf_start=200,
-#                              vcf_stop=100,
-#                              vcf_rlen=1,
-#                              alt='A',
-#                              min_mapqual=11,
-#                              min_clipqual=35,
-#                              min_basequal=25) == c.ValidatorFlags.NOT_ALIGNED.value
-
-
-# def test_bad_sub():
-#     assert hp2.validate_read(read=r,
-#                              vcf_start=99,
-#                              vcf_stop=100,
-#                              vcf_rlen=1,
-#                              alt='T',
-#                              min_mapqual=11,
-#                              min_clipqual=35,
-#                              min_basequal=50) == (c.ValidatorFlags.NOT_ALT.value | c.ValidatorFlags.BASEQUAL.value)
-
-
-# def test_good_sub():
-#     assert hp2.validate_read(read=r,
-#                              vcf_start=99,
-#                              vcf_stop=100,
-#                              vcf_rlen=1,
-#                              alt='A',
-#                              min_mapqual=11,
-#                              min_clipqual=35,
-#                              min_basequal=25) == c.ValidatorFlags.CLEAR.value
-
-
-# def test_basequal():
-#     assert hp2.validate_read(read=r,
-#                              vcf_start=99,
-#                              vcf_stop=100,
-#                              vcf_rlen=1,
-#                              alt='A',
-#                              min_mapqual=11,
-#                              min_clipqual=35,
-#                              min_basequal=40) == c.ValidatorFlags.BASEQUAL.value
-
-
-# def test_read_short():
-#     assert hp2.validate_read(read=r,
-#                              vcf_start=99,
-#                              vcf_stop=100,
-#                              vcf_rlen=1,
-#                              alt='ATTTTTTTTTTTTTT',
-#                              min_mapqual=11,
-#                              min_clipqual=35,
-#                              min_basequal=25) == c.ValidatorFlags.SHORT.value
-
-
-# def test_bad_op():
-#     rc = copy.deepcopy(r)
-#     rc.cigartuples = [(c.Ops.EQUAL.value, 10)]
-#     assert hp2.validate_read(read=rc,
-#                              vcf_start=99,
-#                              vcf_stop=100,
-#                              vcf_rlen=1,
-#                              alt='A',
-#                              min_mapqual=11,
-#                              min_clipqual=35,
-#                              min_basequal=25) == c.ValidatorFlags.BAD_OP.value
-
-
-# def test_no_overlap_0x10():
-#     rc = copy.deepcopy(r)
-#     rc.flag |= 0x10
-#     rc.set_tag('MC', '3M')
-#     assert hp2.validate_read(read=rc,
-#                              vcf_start=99,
-#                              vcf_stop=100,
-#                              vcf_rlen=1,
-#                              alt='A',
-#                              min_mapqual=11,
-#                              min_clipqual=35,
-#                              min_basequal=25) == c.ValidatorFlags.NO_OVERLAP.value
-
-
-# def test_no_overlap():
-#     rc = copy.deepcopy(r)
-#     rc.next_reference_start = 98
-#     assert hp2.validate_read(read=rc,
-#                              vcf_start=99,
-#                              vcf_stop=100,
-#                              vcf_rlen=1,
-#                              alt='A',
-#                              min_mapqual=11,
-#                              min_clipqual=35,
-#                              min_basequal=25) == c.ValidatorFlags.NO_OVERLAP.value
+def test_path_no_overlap():
+    rc = copy.deepcopy(r)
+    rc.flag = 0x83
+    rc.set_tag('MC', '3M')
+    assert hp2.validate_read(read=rc,
+                             vcf_start=99,
+                             vcf_stop=100,
+                             alt='A',
+                             mut_type='S',
+                             min_mapqual=11,
+                             min_clipqual=35,
+                             min_basequal=25) == c.ValidatorFlags.CLEAR.value
