@@ -118,20 +118,30 @@ def validate_read(
     return read_flag
 
 
+# detect PCR duplicates previously missed due to (hairpin) artefacts
 def get_hidden_PCRdup_indices(readpair_ends: list[list[int]], max_span: int):
     dup_idcs: list[int] = []
-    ends_sorted = sorted([(i, sorted(l)) for i, l in enumerate(readpair_ends)],
-                         key=lambda x: x[1])
-    testing_ends = [ends_sorted[0][1]]
-    for i in range(1, len(ends_sorted)):
+    read_ends_sorted: list[list[int]] = sorted([(i, sorted(l))
+                                                for i, l
+                                                in enumerate(readpair_ends)],
+                                               key=lambda x: x[1])
+    base_read_ends_list: list[list[int]] = [read_ends_sorted[0][1]]  # smallest first element. What was Peter's intention here?
+    for i in range(1, len(read_ends_sorted)):
+        comparison_read_ends = read_ends_sorted[i]
         max_diffs = []
-        for sublist in testing_ends:
-            max_diffs.append(max([abs(x - y) for x, y in zip(sublist, ends_sorted[i][1])]))
+        for sublist in base_read_ends_list:
+            max_diffs.append(max([abs(x - y)
+                                  for x, y
+                                  in zip(sublist, comparison_read_ends[1])]))
         if all([x <= max_span for x in max_diffs]):
-            testing_ends.append(ends_sorted[i][1])
-            dup_idcs.append(ends_sorted[i][0])
+            # dups
+            base_read_ends_list.append(comparison_read_ends[1])
+            dup_idcs.append(comparison_read_ends[0])
         else:
-            testing_ends = [ends_sorted[i][1]]
+            # read at i is not dup of reads in base_read_ends_list
+            # start again, test read at i
+            # against reads subsequent to i in ends_sorted
+            base_read_ends_list = [comparison_read_ends[1]]
     return dup_idcs
 
 
@@ -179,7 +189,6 @@ def test_variant(
                                                 read.next_reference_start)])  # type: ignore
             mut_reads_log[mut_sample].append((read.query_name, read_flag))
         del (read)
-        # detect PCR duplicates previously missed due to (hairpin) artefacts
         if len(mut_reads[mut_sample]) > 1:
             drop_idcs = get_hidden_PCRdup_indices(sample_readpair_ends, max_span=max_span)
             mut_reads[mut_sample] = [j
