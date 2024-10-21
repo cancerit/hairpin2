@@ -303,7 +303,7 @@ def test_record_per_alt(
         else:
             logging.warning('could not infer mutation type, POS={} REF={} ALT={}, skipping variant'.format(vcf_rec.pos, vcf_rec.ref, alt))
             continue
-        filt_d[alt] = variant_tester(vcf_rec.start, vcf_rec.stop, vcf_rec.alt, mut_type, region_reads_by_sample)
+        filt_d[alt] = variant_tester(vcf_rec.start, vcf_rec.stop, alt, mut_type, region_reads_by_sample)
     return filt_d
 
 
