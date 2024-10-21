@@ -139,8 +139,8 @@ def test_variant(
     vstart: int,
     vstop: int,
     alt: str,
-    region_reads_by_sample: dict[str, Iterable[pysam.AlignedSegment]],
     mut_type: str,
+    region_reads_by_sample: dict[str, Iterable[pysam.AlignedSegment]],
     al_thresh: float,
     max_span: int,
     position_fraction_thresh: float,
@@ -303,7 +303,7 @@ def test_record_per_alt(
         else:
             logging.warning('could not infer mutation type, POS={} REF={} ALT={}, skipping variant'.format(vcf_rec.pos, vcf_rec.ref, alt))
             continue
-        filt_d[alt] = variant_tester(vcf_rec, region_reads_by_sample, alt, mut_type)
+        filt_d[alt] = variant_tester(vcf_rec.start, vcf_rec.stop, vcf_rec.alt, mut_type, region_reads_by_sample)
     return filt_d
 
 
