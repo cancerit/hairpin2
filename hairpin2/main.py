@@ -28,6 +28,7 @@ import json
 from itertools import tee
 from functools import partial
 from typing import Literal
+from collections.abc import Iterable
 
 
 def validate_read(
@@ -117,10 +118,28 @@ def validate_read(
     return read_flag
 
 
+def get_hidden_PCRdup_indices(readpair_ends: list[list[int]], max_span: int):
+    dup_idcs: list[int] = []
+    ends_sorted = sorted([(i, sorted(l)) for i, l in enumerate(readpair_ends)],
+                         key=lambda x: x[1])
+    testing_ends = [ends_sorted[0][1]]
+    for i in range(1, len(ends_sorted)):
+        max_diffs = []
+        for sublist in testing_ends:
+            max_diffs.append(max([abs(x - y) for x, y in zip(sublist, ends_sorted[i][1])]))
+        if all([x <= max_span for x in max_diffs]):
+            testing_ends.append(ends_sorted[i][1])
+            dup_idcs.append(ends_sorted[i][0])
+        else:
+            testing_ends = [ends_sorted[i][1]]
+    return dup_idcs
+
+
 def test_variant(
-    vcf_rec: pysam.VariantRecord,
-    mutant_alignments: dict[str, pysam.AlignmentFile],
+    vstart: int,
+    vstop: int,
     alt: str,
+    region_reads_by_sample: dict[str, Iterable[pysam.AlignedSegment]],
     mut_type: str,
     al_thresh: float,
     max_span: int,
@@ -131,30 +150,22 @@ def test_variant(
     hp_filt = c.HPFilter()
     al_filt = c.ALFilter()
 
-    mut_reads: dict[str, list[pysam.AlignedSegment]] = {key: [] for key in mutant_alignments}
-    mut_reads_log: dict[str, list[tuple]] = {key: [] for key in mutant_alignments}
+    mut_reads: dict[str, list[pysam.AlignedSegment]] = {key: [] for key in region_reads_by_sample}
+    mut_reads_log: dict[str, list[tuple]] = {key: [] for key in region_reads_by_sample}
     mut_read_pos_f: list[int] = []
     mut_read_pos_r: list[int] = []
     mut_read_fracs_f: list[float] = []
     mut_read_fracs_r: list[float] = []
     aln_scores: list[float] = []
 
-    for mut_sample, alignment in mutant_alignments.items():
-        read_iter, test_iter = tee(alignment.fetch(vcf_rec.chrom,
-                                                   vcf_rec.start,
-                                                   (vcf_rec.start + 1)))
-        try:
-            next(test_iter)
-        except StopIteration:
-            continue
-        sample_readpair_ends = []
+    for mut_sample, read_iter in region_reads_by_sample.items():
+        sample_readpair_ends: list[list[int]] = []
         read = None
-        for read in read_iter:  # type: ignore
-            read_flag = c.ValidatorFlags.CLEAR.value
+        for read in read_iter:
             read_flag = read_validator(read=read,
                                        alt=alt,
-                                       vcf_start=vcf_rec.start,
-                                       vcf_stop=vcf_rec.stop,
+                                       vcf_start=vstart,
+                                       vcf_stop=vstop,
                                        mut_type=mut_type)
 
             if read_flag == c.ValidatorFlags.CLEAR.value:
@@ -167,39 +178,21 @@ def test_variant(
                                                 read.get_tag('MC'),
                                                 read.next_reference_start)])  # type: ignore
             mut_reads_log[mut_sample].append((read.query_name, read_flag))
-            del (read)
+        del (read)
+        # detect PCR duplicates previously missed due to (hairpin) artefacts
         if len(mut_reads[mut_sample]) > 1:
-            sample_readpair_ends_sorted: list[list[int]] = sorted(list(map(
-                                                        sorted,
-                                                        sample_readpair_ends)))
-            curr_ends = [sample_readpair_ends_sorted[0]]
-            drop_idx = []
-            for i in range(1, len(sample_readpair_ends_sorted)):
-                max_spans = map(lambda sublist:
-                                max(
-                                    [abs(x - y)
-                                        for x, y
-                                        in zip(sublist,
-                                               sample_readpair_ends_sorted[i])
-                                     ]
-                                ),
-                                curr_ends)
-                if all([x <= max_span for x in max_spans]):
-                    curr_ends.append(sample_readpair_ends_sorted[i])
-                    drop_idx.append(i)
-                else:
-                    curr_ends = [sample_readpair_ends_sorted[i]]
+            drop_idcs = get_hidden_PCRdup_indices(sample_readpair_ends, max_span=max_span)
             mut_reads[mut_sample] = [j
                                      for i, j
                                      in enumerate(mut_reads[mut_sample])
-                                     if i not in drop_idx]
+                                     if i not in drop_idcs]
     if all([len(x) == 0 for x in mut_reads.values()]):
         al_filt.code = c.FiltCodes.INSUFFICIENT_READS.value
         hp_filt.code = c.FiltCodes.INSUFFICIENT_READS.value
     else:
         for read_list in mut_reads.values():
             for read in read_list:
-                mut_pos, _ = r2s.ref2querypos(read, vcf_rec.start)
+                mut_pos, _ = r2s.ref2querypos(read, vstart)
                 if read.flag & 0x10:
                     # 1-based position where start, idx 1, is alignment end
                     read_idx_wrt_aln = read.query_alignment_end - mut_pos
@@ -286,10 +279,19 @@ def test_record_per_alt(
     if len(samples_w_mutants) == 0:
         raise c.NoMutants
 
-    alignments_w_mutants = {k: v
-                            for k, v
-                            in alignments.items()
-                            if k in samples_w_mutants}
+    region_reads_by_sample: dict[str, pysam.IteratorRow] = {}
+    for k, v in alignments.items():
+        if k in samples_w_mutants:
+            read_iter, test_iter = tee(v.fetch(vcf_rec.chrom,
+                                               vcf_rec.start,
+                                               (vcf_rec.start + 1)))
+            try:
+                next(test_iter)
+            except StopIteration:
+                continue
+            else:
+                region_reads_by_sample[k] = read_iter  # doesn't check for overwrite
+
     filt_d = {}
     for alt in vcf_rec.alts:
         if vcf_rec.rlen == len(alt) and set(alt).issubset(set(['A', 'C', 'T', 'G', 'N', '*'])):
@@ -299,10 +301,9 @@ def test_record_per_alt(
         elif vcf_rec.rlen == 1 and set(alt).issubset(set(['A', 'C', 'T', 'G', 'N', '*'])):  # INS - DOES NOT SUPPORT <INS> TYPE IDS
             mut_type = 'I'
         else:
-            ## ERROR
-            logging.warning('could not type mutation POS={} REF={} ALT={}, skipping alt'.format(vcf_rec.pos, vcf_rec.ref, alt))
+            logging.warning('could not infer mutation type, POS={} REF={} ALT={}, skipping variant'.format(vcf_rec.pos, vcf_rec.ref, alt))
             continue
-        filt_d[alt] = variant_tester(vcf_rec, alignments_w_mutants, alt, mut_type)
+        filt_d[alt] = variant_tester(vcf_rec, region_reads_by_sample, alt, mut_type)
     return filt_d
 
 

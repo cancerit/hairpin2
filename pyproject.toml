@@ -22,3 +22,10 @@ factory-boy = "^3.3.1"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+
+[tool.pytest.ini_options]
+markers = [
+  "dev: development tests",
+  "validate: scientific validation tests"
+]

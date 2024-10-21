@@ -13,3 +13,4 @@ test_data_creation/
 *.json
 poetry.lock
 .coverage
+test/sim-data/
