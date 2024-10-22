@@ -30,16 +30,16 @@ from typing import Literal
 from collections.abc import Iterable
 
 
-def validate_read_broad(
+def flag_read_broad(
     read: pysam.AlignedSegment,
     vcf_start: int,
     min_mapqual: int,
     min_clipqual: int,
 ) -> int:
-    read_flag = c.ValidatorFlags.CLEAR.value
+    invalid_flag = c.ValidatorFlags.CLEAR.value  # 0 - evaluates false
 
     try:
-        mate_cig = read.get_tag('MC')
+        mate_cig = str(read.get_tag('MC'))
     except KeyError:
         mate_cig = None
     if any(x is None for x in
@@ -50,32 +50,33 @@ def validate_read_broad(
                 read.cigarstring,
                 read.cigartuples,
                 mate_cig]):
-        read_flag |= c.ValidatorFlags.READ_FIELDS_MISSING.value
+        invalid_flag |= c.ValidatorFlags.READ_FIELDS_MISSING.value
     else:
         if not (read.flag & 0x2) or read.flag & 0xE00:
-            read_flag |= c.ValidatorFlags.FLAG.value
+            invalid_flag |= c.ValidatorFlags.FLAG.value
 
         if read.mapping_quality < min_mapqual:
-            read_flag |= c.ValidatorFlags.MAPQUAL.value
+            invalid_flag |= c.ValidatorFlags.MAPQUAL.value
 
-        if ('S' in read.cigarstring and
-                mean(read.query_alignment_qualities) < min_clipqual):
-            read_flag |= c.ValidatorFlags.CLIPQUAL.value
+        if ('S' in read.cigarstring and  # type: ignore - not detecting cigarstring can't be none
+                mean(read.query_alignment_qualities) < min_clipqual):  # type: ignore - legit type issue here with pysam but I can't fix it
+            invalid_flag |= c.ValidatorFlags.CLIPQUAL.value
 
-        if not read.flag & 0x40:
+        if (not (invalid_flag & c.ValidatorFlags.FLAG.value)
+            and not (read.flag & 0x40)):
             read_range = range(read.reference_start,
-                               read.reference_end)
+                               read.reference_end)  # type: ignore - can't be none
             mate_range = range(read.next_reference_start,
-                               r2s.ref_end_via_cigar(mate_cig,
+                               r2s.ref_end_via_cigar(mate_cig,  # type: ignore
                                                      read.next_reference_start))
             ref_overlap = set(read_range).intersection(mate_range)
             if vcf_start in ref_overlap:
-                read_flag |= c.ValidatorFlags.OVERLAP.value
+                invalid_flag |= c.ValidatorFlags.OVERLAP.value
 
-    return read_flag
+    return invalid_flag
 
 
-def validate_read_alt(
+def flag_read_alt(
     read: pysam.AlignedSegment,
     vcf_start: int,
     vcf_stop: int,
@@ -87,20 +88,20 @@ def validate_read_alt(
         raise ValueError(
             'unsupported mut_type: {} - supports \'S\' (SUB) \'D\' (DEL) \'I\' (INS)'.format(mut_type))
 
-    read_flag = c.ValidatorFlags.CLEAR.value
+    invalid_flag = c.ValidatorFlags.CLEAR.value
 
     if mut_type == 'S':  # SUB
         try:
-            mut_pos, mut_op = r2s.ref2querypos(read, vcf_start)
+            mut_pos, _ = r2s.ref2querypos(read, vcf_start)
         except IndexError:
-            read_flag |= c.ValidatorFlags.NOT_ALIGNED.value
+            invalid_flag |= c.ValidatorFlags.NOT_ALIGNED.value
         else:
-            if read.query_sequence[mut_pos:mut_pos + len(alt)] != alt:
-                read_flag |= c.ValidatorFlags.NOT_ALT.value
+            if read.query_sequence[mut_pos:mut_pos + len(alt)] != alt:  # type: ignore - can't be none
+                invalid_flag |= c.ValidatorFlags.NOT_ALT.value
             if any([bq < min_basequal
                     for bq
-                    in read.query_qualities[mut_pos:mut_pos + len(alt)]]):
-                read_flag |= c.ValidatorFlags.BASEQUAL.value
+                    in read.query_qualities[mut_pos:mut_pos + len(alt)]]):  # type: ignore - can't be none
+                invalid_flag |= c.ValidatorFlags.BASEQUAL.value
     # DEL - doesn't check for matches before and after...
     elif mut_type == 'D':
         # this could error if read doesn't cover region (as could all)
@@ -109,26 +110,26 @@ def validate_read_alt(
                     in read.get_aligned_pairs()
                     if r in range(vcf_start, vcf_stop)]
         if any([x is not None for x in mut_alns]):
-            read_flag |= c.ValidatorFlags.BAD_OP.value
+            invalid_flag |= c.ValidatorFlags.BAD_OP.value
     elif mut_type == 'I':  # INS
         try:
             prior_pos, _ = r2s.ref2querypos(read, vcf_start)
         except IndexError:
-            read_flag |= c.ValidatorFlags.NOT_ALIGNED.value
+            invalid_flag |= c.ValidatorFlags.NOT_ALIGNED.value
         else:
             if prior_pos + len(alt) > read.query_length:
-                read_flag |= c.ValidatorFlags.SHORT.value
+                invalid_flag |= c.ValidatorFlags.SHORT.value
             else:
                 mut_alns = [(q, r)
                             for q, r
                             in read.get_aligned_pairs()
                             if q in range(prior_pos + 1, prior_pos + len(alt) + 1)]
                 if any([r is not None for _, r in mut_alns]):
-                    read_flag |= c.ValidatorFlags.BAD_OP.value
-                if read.query_sequence[prior_pos + 1:prior_pos + len(alt) + 1] != alt:
-                    read_flag |= c.ValidatorFlags.NOT_ALT.value
+                    invalid_flag |= c.ValidatorFlags.BAD_OP.value
+                if read.query_sequence[prior_pos + 1:prior_pos + len(alt) + 1] != alt:  # type: ignore - can't be none
+                    invalid_flag |= c.ValidatorFlags.NOT_ALT.value
 
-    return read_flag
+    return invalid_flag
 
 
 # detect PCR duplicates previously missed due to (hairpin) artefacts
@@ -142,10 +143,10 @@ def validate_read_alt(
 # with more reads it's more likely they'll cluster as dupes right?
 def get_hidden_PCRdup_indices(readpair_ends: list[list[int]], max_span: int):
     dup_idcs: list[int] = []
-    read_ends_sorted: list[list[int]] = sorted([(i, sorted(l))
-                                                for i, l
-                                                in enumerate(readpair_ends)],
-                                               key=lambda x: x[1])
+    read_ends_sorted: list[tuple[int, list[int]]] = sorted([(i, sorted(l))
+                                                            for i, l
+                                                            in enumerate(readpair_ends)],
+                                                           key=lambda x: x[1])
     # smallest first element. What was Peter's intention here?
     base_read_ends_list: list[list[int]] = [read_ends_sorted[0][1]]
     for i in range(1, len(read_ends_sorted)):
@@ -174,7 +175,7 @@ def alt_filter_reads(
     mut_type: str,
     region_reads_by_sample: dict[str, Iterable[pysam.AlignedSegment]],
     max_span: int,
-    min_basequal: float
+    min_basequal: int
 ) -> list[pysam.AlignedSegment]:
     rrbs_filt: dict[str, list[pysam.AlignedSegment]] = {key: []
                                                         for key
@@ -184,18 +185,18 @@ def alt_filter_reads(
     for mut_sample, read_iter in region_reads_by_sample.items():
         sample_readpair_ends: list[list[int]] = []
         for read in read_iter:
-            if not validate_read_alt(read,
+            if not flag_read_alt(read,
                                      vstart,
                                      vstop,
                                      alt,
-                                     mut_type,
+                                     mut_type,  # type: ignore - type checkers annoying about literals
                                      min_basequal):
                 rrbs_filt[mut_sample].append(read)
                 next_ref_end = r2s.ref_end_via_cigar(
-                    read.get_tag('MC'),
+                    str(read.get_tag('MC')),
                     read.next_reference_start)
                 sample_readpair_ends.append([read.reference_start,
-                                             read.reference_end,
+                                             read.reference_end,  # type: ignore - won't be unbound within program
                                              read.next_reference_start,
                                              next_ref_end])
         if len(rrbs_filt[mut_sample]) > 1:
@@ -213,11 +214,11 @@ def test_variant_AL(
     al_thresh: float
 ) -> c.ALFilter:
     al_filt = c.ALFilter()
-    aln_scores: list[int] = []
+    aln_scores: list[float] = []
 
     for read in mut_reads:
         try:
-            aln_scores.append(read.get_tag('AS') / read.query_length)
+            aln_scores.append(int(read.get_tag('AS')) / read.query_length)
         except KeyError:
             pass
     if len(aln_scores) != 0:
@@ -233,12 +234,9 @@ def test_variant_AL(
 
 def test_variant_HP(
     vstart: int,
-    vstop: int,
-    alt: str,
-    mut_type: str,
     mut_reads: Iterable[pysam.AlignedSegment],
     position_fraction_thresh: float,
-) -> c.Filters:
+) -> c.HPFilter:
 
     hp_filt = c.HPFilter()
     mut_read_pos_f: list[int] = []
@@ -246,27 +244,21 @@ def test_variant_HP(
     mut_read_fracs_f: list[float] = []
     mut_read_fracs_r: list[float] = []
 
-    # if all([len(x) == 0 for x in mut_reads.values()]):
-    #     al_filt.code = c.FiltCodes.INSUFFICIENT_READS.value
-    #     hp_filt.code = c.FiltCodes.INSUFFICIENT_READS.value
-    # else:
-    for read_list in mut_reads.values():
-        for read in read_list:
-            mut_pos, _ = r2s.ref2querypos(read, vstart)
-            if read.flag & 0x10:
-                # 1-based position where start, idx 1, is alignment end
-                mut_idx_wrt_query_aln = read.query_alignment_end - mut_pos
-                mut_read_fracs_r.append(mut_idx_wrt_query_aln
-                                        / read.query_alignment_length)
-                mut_read_pos_r.append(mut_idx_wrt_query_aln)
-            else:
-                mut_idx_wrt_query_aln = mut_pos - read.query_alignment_start + 1
-                mut_read_fracs_f.append(mut_idx_wrt_query_aln
-                                        / read.query_alignment_length)
-                mut_read_pos_f.append(mut_idx_wrt_query_aln)
+    for read in mut_reads:
+        mut_pos, _ = r2s.ref2querypos(read, vstart)
+        if read.flag & 0x10:
+            # 1-based position where start, idx 1, is alignment end
+            mut_idx_wrt_query_aln = read.query_alignment_end - mut_pos
+            mut_read_fracs_r.append(mut_idx_wrt_query_aln
+                                    / read.query_alignment_length)
+            mut_read_pos_r.append(mut_idx_wrt_query_aln)
+        else:
+            mut_idx_wrt_query_aln = mut_pos - read.query_alignment_start + 1
+            mut_read_fracs_f.append(mut_idx_wrt_query_aln
+                                    / read.query_alignment_length)
+            mut_read_pos_f.append(mut_idx_wrt_query_aln)
     # hairpin conditions from Ellis et al.
     if len(mut_read_pos_f) > 1 and not len(mut_read_pos_r) > 1:
-        breakpoint()
         mad_f = max(mut_read_pos_f) - min(mut_read_pos_f)
         sd_f = stdev(mut_read_pos_f)
         if (
@@ -335,7 +327,7 @@ def test_record_per_alt(
     if len(samples_w_mutants) == 0:
         raise c.NoMutants
 
-    region_reads_by_sample: dict[str, pysam.IteratorRow] = {}
+    region_reads_by_sample: dict[str, Iterable[pysam.AlignedSegment]] = {}
     for k, v in alignments.items():
         if k in samples_w_mutants:
             read_iter, test_iter = tee(v.fetch(vcf_rec.chrom,
@@ -349,10 +341,10 @@ def test_record_per_alt(
                 broad_filtered_iter = (read
                                        for read
                                        in read_iter
-                                       if validate_read_broad(read,
-                                                              vcf_rec.start,
-                                                              min_mapqual=min_mapqual,
-                                                              min_clipqual=min_clipqual))
+                                       if not flag_read_broad(read,
+                                                                  vcf_rec.start,
+                                                                  min_mapqual=min_mapqual,
+                                                                  min_clipqual=min_clipqual))
                 # doesn't check for overwrite
                 region_reads_by_sample[k] = broad_filtered_iter
 
@@ -384,9 +376,6 @@ def test_record_per_alt(
             filt_d[alt] = c.Filters(test_variant_AL(alt_filt_reads,
                                                     al_thresh),
                                     test_variant_HP(vcf_rec.start,
-                                                    vcf_rec.stop,
-                                                    alt,
-                                                    mut_type,
                                                     alt_filt_reads,
                                                     position_fraction))
     return filt_d
@@ -516,7 +505,7 @@ def main_cli() -> None:
     for path in args.alignments:
         try:
             alignment = pysam.AlignmentFile(path,
-                                            mode,
+                                            mode,  # type: ignore - argparse ensures not unbound
                                             reference_filename=(args.cram_reference
                                                                 if args.cram_reference
                                                                 and args.format == "c"
@@ -526,8 +515,8 @@ def main_cli() -> None:
                 msg='failed to read alignment file at {}, reporting: {}'.format(path, e))
         # grab the sample name from first SM field
         # in header field RG
-        alignment_sample_name = alignment.header.to_dict()['RG'][0]['SM']
-        vcf_sample_to_alignment_map[alignment_sample_name] = alignment
+        alignment_sample_name = alignment.header.to_dict()['RG'][0]['SM']  # type: ignore - program ensures not unbound
+        vcf_sample_to_alignment_map[alignment_sample_name] = alignment  # type: ignore - program ensures not unbound
     if args.name_mapping:
         if len(args.name_mapping) > len(args.alignments):
             h.cleanup(msg="more name mappings than alignments provided")
@@ -550,7 +539,7 @@ def main_cli() -> None:
             h.cleanup(
                 msg='duplicate aligment sample names provided to name mapping flag')
         if h.lists_not_equal(alignment_map_names,
-                             vcf_sample_to_alignment_map.keys()):
+                             vcf_sample_to_alignment_map.keys()):  # type: ignore - dicts are stable
             h.cleanup(
                 msg='alignment sample names provided to name mapping flag do not match alignment SM tags')
         vcf_sample_to_alignment_map = {vcf_map_names[alignment_map_names.index(k)]: v
@@ -594,7 +583,7 @@ def main_cli() -> None:
         except Exception as e:
             h.cleanup(msg='failed to write output JSON, reporting: {}'.format(e))
 
-    for record in vcf_in_handle.fetch():
+    for record in vcf_in_handle.fetch():  # type: ignore - program ensures not unbound
         try:
             filter_d: dict[str, c.Filters] = test_record_per_alt(
                 vcf_sample_to_alignment_map,
