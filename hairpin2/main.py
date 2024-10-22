@@ -375,7 +375,8 @@ def test_record_per_alt(
                                                 alt,
                                                 mut_type,
                                                 region_reads_by_sample,
-                                                max_span)
+                                                max_span,
+                                                min_basequal)
         if len(alt_filt_reads) == 0:
             filt_d[alt] = c.Filters(c.ALFilter(code=c.FiltCodes.INSUFFICIENT_READS.value),
                                     c.HPFilter(code=c.FiltCodes.INSUFFICIENT_READS.value))
