@@ -601,7 +601,7 @@ def main_cli() -> None:
                 args.min_mapping_quality,
                 args.min_clip_quality,
                 args.min_base_quality,
-                args.max_read_spans,
+                args.max_read_span,
                 args.al_filter_threshold,
                 args.position_fraction
             )
