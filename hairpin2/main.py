@@ -26,34 +26,22 @@ import argparse
 import logging
 import json
 from itertools import tee
-from functools import partial
 from typing import Literal
 from collections.abc import Iterable
 
 
-def validate_read(
+def validate_read_broad(
     read: pysam.AlignedSegment,
     vcf_start: int,
-    vcf_stop: int,
-    alt: str,
-    mut_type: Literal['S', 'D', 'I'],
     min_mapqual: int,
     min_clipqual: int,
-    min_basequal: int,
 ) -> int:
-    sup_char_alt = ['A', 'C', 'G', 'T', 'N', '*', '.']
-    if any([b not in sup_char_alt for b in alt]):
-        raise ValueError('unsupported character in alt: {} - supports {}'.format(alt, ', '.join(sup_char_alt)))
-    if mut_type not in ['S', 'D', 'I']:
-        raise ValueError('unsupported mut_type: {} - supports \'S\' (SUB) \'D\' (DEL) \'I\' (INS)'.format(mut_type))
-
     read_flag = c.ValidatorFlags.CLEAR.value
 
     try:
         mate_cig = read.get_tag('MC')
     except KeyError:
         mate_cig = None
-
     if any(x is None for x in
             [read.reference_end,
                 read.query_sequence,
@@ -70,47 +58,16 @@ def validate_read(
         if read.mapping_quality < min_mapqual:
             read_flag |= c.ValidatorFlags.MAPQUAL.value
 
-        if ('S' in read.cigarstring and  # type: ignore
-                mean(read.query_alignment_qualities) < min_clipqual):  # type: ignore
+        if ('S' in read.cigarstring and
+                mean(read.query_alignment_qualities) < min_clipqual):
             read_flag |= c.ValidatorFlags.CLIPQUAL.value
 
-        if mut_type == 'S':  # SUB
-            try:
-                mut_pos, mut_op = r2s.ref2querypos(read, vcf_start)
-            except IndexError:
-                read_flag |= c.ValidatorFlags.NOT_ALIGNED.value
-            else:
-                if read.query_sequence[mut_pos:mut_pos + len(alt)] != alt:  # type: ignore
-                    read_flag |= c.ValidatorFlags.NOT_ALT.value
-                if any([bq < min_basequal for bq in read.query_qualities[mut_pos:mut_pos + len(alt)]]):  # type: ignore
-                    read_flag |= c.ValidatorFlags.BASEQUAL.value
-        elif mut_type == 'D':  # DEL - doesn't check for matches before and after...
-            # this could error if read doesn't cover region (as could all)
-            mut_alns = [q for q, r in read.get_aligned_pairs() if r in range(vcf_start, vcf_stop)]
-            if any([x is not None for x in mut_alns]):
-                read_flag |= c.ValidatorFlags.BAD_OP.value
-        elif mut_type == 'I':  # INS
-            try:
-                prior_pos, _ = r2s.ref2querypos(read, vcf_start)
-            except IndexError:
-                read_flag |= c.ValidatorFlags.NOT_ALIGNED.value
-            else:
-                if prior_pos + len(alt) > read.query_length:
-                    read_flag |= c.ValidatorFlags.SHORT.value
-                else:
-                    mut_alns = [(q, r) for q, r in read.get_aligned_pairs() if q in range(prior_pos + 1, prior_pos + len(alt) + 1)]
-                    if any([r is not None for _, r in mut_alns]):
-                        read_flag |= c.ValidatorFlags.BAD_OP.value
-                    if read.query_sequence[prior_pos + 1:prior_pos + len(alt) + 1] != alt:
-                        read_flag |= c.ValidatorFlags.NOT_ALT.value
-
-        if read_flag == c.ValidatorFlags.CLEAR.value and not (read.flag & 0x40):
+        if not read.flag & 0x40:
             read_range = range(read.reference_start,
                                read.reference_end)
             mate_range = range(read.next_reference_start,
                                r2s.ref_end_via_cigar(mate_cig,
-                                                     read.next_reference_start)
-                               )
+                                                     read.next_reference_start))
             ref_overlap = set(read_range).intersection(mate_range)
             if vcf_start in ref_overlap:
                 read_flag |= c.ValidatorFlags.OVERLAP.value
@@ -118,14 +75,79 @@ def validate_read(
     return read_flag
 
 
+def validate_read_alt(
+    read: pysam.AlignedSegment,
+    vcf_start: int,
+    vcf_stop: int,
+    alt: str,
+    mut_type: Literal['S', 'D', 'I'],
+    min_basequal: int
+) -> int:
+    if mut_type not in ['S', 'D', 'I']:
+        raise ValueError(
+            'unsupported mut_type: {} - supports \'S\' (SUB) \'D\' (DEL) \'I\' (INS)'.format(mut_type))
+
+    read_flag = c.ValidatorFlags.CLEAR.value
+
+    if mut_type == 'S':  # SUB
+        try:
+            mut_pos, mut_op = r2s.ref2querypos(read, vcf_start)
+        except IndexError:
+            read_flag |= c.ValidatorFlags.NOT_ALIGNED.value
+        else:
+            if read.query_sequence[mut_pos:mut_pos + len(alt)] != alt:
+                read_flag |= c.ValidatorFlags.NOT_ALT.value
+            if any([bq < min_basequal
+                    for bq
+                    in read.query_qualities[mut_pos:mut_pos + len(alt)]]):
+                read_flag |= c.ValidatorFlags.BASEQUAL.value
+    # DEL - doesn't check for matches before and after...
+    elif mut_type == 'D':
+        # this could error if read doesn't cover region (as could all)
+        mut_alns = [q
+                    for q, r
+                    in read.get_aligned_pairs()
+                    if r in range(vcf_start, vcf_stop)]
+        if any([x is not None for x in mut_alns]):
+            read_flag |= c.ValidatorFlags.BAD_OP.value
+    elif mut_type == 'I':  # INS
+        try:
+            prior_pos, _ = r2s.ref2querypos(read, vcf_start)
+        except IndexError:
+            read_flag |= c.ValidatorFlags.NOT_ALIGNED.value
+        else:
+            if prior_pos + len(alt) > read.query_length:
+                read_flag |= c.ValidatorFlags.SHORT.value
+            else:
+                mut_alns = [(q, r)
+                            for q, r
+                            in read.get_aligned_pairs()
+                            if q in range(prior_pos + 1, prior_pos + len(alt) + 1)]
+                if any([r is not None for _, r in mut_alns]):
+                    read_flag |= c.ValidatorFlags.BAD_OP.value
+                if read.query_sequence[prior_pos + 1:prior_pos + len(alt) + 1] != alt:
+                    read_flag |= c.ValidatorFlags.NOT_ALT.value
+
+    return read_flag
+
+
 # detect PCR duplicates previously missed due to (hairpin) artefacts
+# this implementation assumes that sorting on first element of each sublist
+# is appropriate, per Peter's initial implementation.
+# is an all against all comparison between all read lists more appropriate?
+# and between pairs of readlists, why is comparing sorted pairs most appropriate?
+# again, does all against all make more sense?
+# (if so, maybe two pointer comparison?)
+# it bothers me that it matters where in the chain this occurs
+# with more reads it's more likely they'll cluster as dupes right?
 def get_hidden_PCRdup_indices(readpair_ends: list[list[int]], max_span: int):
     dup_idcs: list[int] = []
     read_ends_sorted: list[list[int]] = sorted([(i, sorted(l))
                                                 for i, l
                                                 in enumerate(readpair_ends)],
                                                key=lambda x: x[1])
-    base_read_ends_list: list[list[int]] = [read_ends_sorted[0][1]]  # smallest first element. What was Peter's intention here?
+    # smallest first element. What was Peter's intention here?
+    base_read_ends_list: list[list[int]] = [read_ends_sorted[0][1]]
     for i in range(1, len(read_ends_sorted)):
         comparison_read_ends = read_ends_sorted[i]
         max_diffs = []
@@ -145,138 +167,163 @@ def get_hidden_PCRdup_indices(readpair_ends: list[list[int]], max_span: int):
     return dup_idcs
 
 
-def test_variant(
+def alt_filter_reads(
     vstart: int,
     vstop: int,
     alt: str,
     mut_type: str,
     region_reads_by_sample: dict[str, Iterable[pysam.AlignedSegment]],
-    al_thresh: float,
     max_span: int,
+    min_basequal: float
+) -> list[pysam.AlignedSegment]:
+    rrbs_filt: dict[str, list[pysam.AlignedSegment]] = {key: []
+                                                        for key
+                                                        in region_reads_by_sample}
+    filtered_reads: list[pysam.AlignedSegment] = []
+
+    for mut_sample, read_iter in region_reads_by_sample.items():
+        sample_readpair_ends: list[list[int]] = []
+        for read in read_iter:
+            if not validate_read_alt(read,
+                                     vstart,
+                                     vstop,
+                                     alt,
+                                     mut_type,
+                                     min_basequal):
+                rrbs_filt[mut_sample].append(read)
+                next_ref_end = r2s.ref_end_via_cigar(
+                    read.get_tag('MC'),
+                    read.next_reference_start)
+                sample_readpair_ends.append([read.reference_start,
+                                             read.reference_end,
+                                             read.next_reference_start,
+                                             next_ref_end])
+        if len(rrbs_filt[mut_sample]) > 1:
+            drop_idcs = get_hidden_PCRdup_indices(sample_readpair_ends,
+                                                  max_span=max_span)
+            filtered_reads = filtered_reads + [j
+                                               for i, j
+                                               in enumerate(rrbs_filt[mut_sample])
+                                               if i not in drop_idcs]
+    return filtered_reads
+
+
+def test_variant_AL(
+    mut_reads: Iterable[pysam.AlignedSegment],
+    al_thresh: float
+) -> c.ALFilter:
+    al_filt = c.ALFilter()
+    aln_scores: list[int] = []
+
+    for read in mut_reads:
+        try:
+            aln_scores.append(read.get_tag('AS') / read.query_length)
+        except KeyError:
+            pass
+    if len(aln_scores) != 0:
+        al_filt.avg_as = median(aln_scores)
+        al_filt.code = c.FiltCodes.ON_THRESHOLD.value
+        if al_filt.avg_as <= al_thresh:
+            al_filt.set()
+    else:
+        al_filt.code = c.FiltCodes.INSUFFICIENT_READS.value
+
+    return al_filt
+
+
+def test_variant_HP(
+    vstart: int,
+    vstop: int,
+    alt: str,
+    mut_type: str,
+    mut_reads: Iterable[pysam.AlignedSegment],
     position_fraction_thresh: float,
-    read_validator: c.FlagReturn,
 ) -> c.Filters:
 
     hp_filt = c.HPFilter()
-    al_filt = c.ALFilter()
-
-    mut_reads: dict[str, list[pysam.AlignedSegment]] = {key: [] for key in region_reads_by_sample}
-    mut_reads_log: dict[str, list[tuple]] = {key: [] for key in region_reads_by_sample}
     mut_read_pos_f: list[int] = []
     mut_read_pos_r: list[int] = []
     mut_read_fracs_f: list[float] = []
     mut_read_fracs_r: list[float] = []
-    aln_scores: list[float] = []
 
-    for mut_sample, read_iter in region_reads_by_sample.items():
-        sample_readpair_ends: list[list[int]] = []
-        read = None
-        for read in read_iter:
-            read_flag = read_validator(read=read,
-                                       alt=alt,
-                                       vcf_start=vstart,
-                                       vcf_stop=vstop,
-                                       mut_type=mut_type)
-
-            if read_flag == c.ValidatorFlags.CLEAR.value:
-                mut_reads[mut_sample].append(read)
-                sample_readpair_ends.append(
-                            [read.reference_start,
-                                read.reference_end,
-                                read.next_reference_start,
-                                r2s.ref_end_via_cigar(
-                                                read.get_tag('MC'),
-                                                read.next_reference_start)])  # type: ignore
-            mut_reads_log[mut_sample].append((read.query_name, read_flag))
-        del (read)
-        if len(mut_reads[mut_sample]) > 1:
-            drop_idcs = get_hidden_PCRdup_indices(sample_readpair_ends, max_span=max_span)
-            mut_reads[mut_sample] = [j
-                                     for i, j
-                                     in enumerate(mut_reads[mut_sample])
-                                     if i not in drop_idcs]
-    if all([len(x) == 0 for x in mut_reads.values()]):
-        al_filt.code = c.FiltCodes.INSUFFICIENT_READS.value
-        hp_filt.code = c.FiltCodes.INSUFFICIENT_READS.value
+    # if all([len(x) == 0 for x in mut_reads.values()]):
+    #     al_filt.code = c.FiltCodes.INSUFFICIENT_READS.value
+    #     hp_filt.code = c.FiltCodes.INSUFFICIENT_READS.value
+    # else:
+    for read_list in mut_reads.values():
+        for read in read_list:
+            mut_pos, _ = r2s.ref2querypos(read, vstart)
+            if read.flag & 0x10:
+                # 1-based position where start, idx 1, is alignment end
+                mut_idx_wrt_query_aln = read.query_alignment_end - mut_pos
+                mut_read_fracs_r.append(mut_idx_wrt_query_aln
+                                        / read.query_alignment_length)
+                mut_read_pos_r.append(mut_idx_wrt_query_aln)
+            else:
+                mut_idx_wrt_query_aln = mut_pos - read.query_alignment_start + 1
+                mut_read_fracs_f.append(mut_idx_wrt_query_aln
+                                        / read.query_alignment_length)
+                mut_read_pos_f.append(mut_idx_wrt_query_aln)
+    # hairpin conditions from Ellis et al.
+    if len(mut_read_pos_f) > 1 and not len(mut_read_pos_r) > 1:
+        breakpoint()
+        mad_f = max(mut_read_pos_f) - min(mut_read_pos_f)
+        sd_f = stdev(mut_read_pos_f)
+        if (
+            ((sum([x <= position_fraction_thresh
+                  for x
+                  in mut_read_fracs_f]) / len(mut_read_pos_f)) < 0.9) and
+            mad_f > 0 and
+                sd_f > 4):
+            hp_filt.code = c.FiltCodes.SIXTYAI.value  # 60A(i)
+        else:
+            hp_filt.code = c.FiltCodes.SIXTYAI.value
+            hp_filt.set()
+    elif len(mut_read_pos_r) > 1 and not len(mut_read_pos_f) > 1:
+        mad_r = max(mut_read_pos_r) - min(mut_read_pos_r)
+        sd_r = stdev(mut_read_pos_r)
+        if (
+            ((sum([x <= position_fraction_thresh
+                  for x
+                  in mut_read_fracs_r]) / len(mut_read_pos_r)) < 0.9) and
+            mad_r > 0 and
+                sd_r > 4):
+            hp_filt.code = c.FiltCodes.SIXTYAI.value
+        else:
+            hp_filt.code = c.FiltCodes.SIXTYAI.value
+            hp_filt.set()
+    elif len(mut_read_pos_f) > 1 and len(mut_read_pos_r) > 1:
+        mad_f = max(mut_read_pos_f) - min(mut_read_pos_f)
+        sd_f = stdev(mut_read_pos_f)
+        mad_r = max(mut_read_pos_r) - min(mut_read_pos_r)
+        sd_r = stdev(mut_read_pos_r)
+        frac_lt_thresh = (sum([x <= position_fraction_thresh
+                              for x
+                              in mut_read_fracs_f + mut_read_fracs_r]) /
+                          (len(mut_read_pos_f) + len(mut_read_pos_r)))
+        if (frac_lt_thresh < 0.9 or
+           (mad_f > 2 and mad_r > 2 and sd_f > 2 and sd_r > 2) or
+           (mad_f > 1 and sd_f > 10) or
+           (mad_r > 1 and sd_r > 10)):
+            hp_filt.code = c.FiltCodes.SIXTYBI.value  # 60B(i)
+        else:
+            hp_filt.code = c.FiltCodes.SIXTYBI.value
+            hp_filt.set()
     else:
-        for read_list in mut_reads.values():
-            for read in read_list:
-                mut_pos, _ = r2s.ref2querypos(read, vstart)
-                if read.flag & 0x10:
-                    # 1-based position where start, idx 1, is alignment end
-                    read_idx_wrt_aln = read.query_alignment_end - mut_pos
-                    mut_read_fracs_r.append(read_idx_wrt_aln
-                                            / read.query_alignment_length)
-                    mut_read_pos_r.append(read_idx_wrt_aln)
-                else:
-                    read_idx_wrt_aln = mut_pos - read.query_alignment_start + 1
-                    mut_read_fracs_f.append(read_idx_wrt_aln
-                                            / read.query_alignment_length)
-                    mut_read_pos_f.append(read_idx_wrt_aln)
-                try:
-                    aln_scores.append(read.get_tag('AS') / read.query_length)  # type:ignore
-                except KeyError:
-                    pass
-        if len(aln_scores) != 0:
-            al_filt.avg_as = median(aln_scores)
-            al_filt.code = c.FiltCodes.ON_THRESHOLD.value
-            if al_filt.avg_as <= al_thresh:
-                al_filt.set()
-        else:
-            al_filt.code = c.FiltCodes.INSUFFICIENT_READS.value
-        # hairpin conditions from Ellis et al.
-        if len(mut_read_pos_f) > 1 and not len(mut_read_pos_r) > 1:
-            mad_f = max(mut_read_pos_f) - min(mut_read_pos_f)
-            sd_f = stdev(mut_read_pos_f)
-            if (
-                ((sum([x <= position_fraction_thresh
-                      for x
-                      in mut_read_fracs_f]) / len(mut_read_pos_f)) < 0.9) and
-                mad_f > 0 and
-                    sd_f > 4):
-                hp_filt.code = c.FiltCodes.SIXTYAI.value  # 60A(i)
-            else:
-                hp_filt.code = c.FiltCodes.SIXTYAI.value
-                hp_filt.set()
-        elif len(mut_read_pos_r) > 1 and not len(mut_read_pos_f) > 1:
-            mad_r = max(mut_read_pos_r) - min(mut_read_pos_r)
-            sd_r = stdev(mut_read_pos_r)
-            if (
-                ((sum([x <= position_fraction_thresh
-                      for x
-                      in mut_read_fracs_r]) / len(mut_read_pos_r)) < 0.9) and
-                mad_r > 0 and
-                    sd_r > 4):
-                hp_filt.code = c.FiltCodes.SIXTYAI.value
-            else:
-                hp_filt.code = c.FiltCodes.SIXTYAI.value
-                hp_filt.set()
-        elif len(mut_read_pos_f) > 1 and len(mut_read_pos_r) > 1:
-            mad_f = max(mut_read_pos_f) - min(mut_read_pos_f)
-            sd_f = stdev(mut_read_pos_f)
-            mad_r = max(mut_read_pos_r) - min(mut_read_pos_r)
-            sd_r = stdev(mut_read_pos_r)
-            frac_lt_thresh = (sum([x <= position_fraction_thresh
-                                  for x
-                                  in mut_read_fracs_f + mut_read_fracs_r]) /
-                              (len(mut_read_pos_f) + len(mut_read_pos_r)))
-            if (frac_lt_thresh < 0.9 or
-               (mad_f > 2 and mad_r > 2 and sd_f > 2 and sd_r > 2) or
-               (mad_f > 1 and sd_f > 10) or
-               (mad_r > 1 and sd_r > 10)):
-                hp_filt.code = c.FiltCodes.SIXTYBI.value  # 60B(i)
-            else:
-                hp_filt.code = c.FiltCodes.SIXTYBI.value
-                hp_filt.set()
-        else:
-            hp_filt.code = c.FiltCodes.INSUFFICIENT_READS.value
-    return c.Filters(al_filt, hp_filt)
+        hp_filt.code = c.FiltCodes.INSUFFICIENT_READS.value
+
+    return hp_filt
 
 
 def test_record_per_alt(
     alignments: dict[str, pysam.AlignmentFile],
     vcf_rec: pysam.VariantRecord,
-    variant_tester: c.FiltReturn,
+    min_mapqual: int,
+    min_clipqual: int,
+    min_basequal: int,
+    max_span: int,
+    al_thresh: float,
+    position_fraction: float
 ) -> dict[str, c.Filters]:
 
     if vcf_rec.alts is None:
@@ -299,20 +346,48 @@ def test_record_per_alt(
             except StopIteration:
                 continue
             else:
-                region_reads_by_sample[k] = read_iter  # doesn't check for overwrite
+                broad_filtered_iter = (read
+                                       for read
+                                       in read_iter
+                                       if validate_read_broad(read,
+                                                              vcf_rec.start,
+                                                              min_mapqual=min_mapqual,
+                                                              min_clipqual=min_clipqual))
+                # doesn't check for overwrite
+                region_reads_by_sample[k] = broad_filtered_iter
 
     filt_d = {}
     for alt in vcf_rec.alts:
-        if vcf_rec.rlen == len(alt) and set(alt).issubset(set(['A', 'C', 'T', 'G', 'N', '*'])):
+        if (vcf_rec.rlen == len(alt)
+                and set(alt).issubset(set(['A', 'C', 'T', 'G', 'N', '*']))):
             mut_type = 'S'
         elif len(alt) < vcf_rec.rlen or alt == '.':  # DEL - DOES NOT SUPPORT <DEL> TYPE IDS
             mut_type = 'D'
-        elif vcf_rec.rlen == 1 and set(alt).issubset(set(['A', 'C', 'T', 'G', 'N', '*'])):  # INS - DOES NOT SUPPORT <INS> TYPE IDS
+        elif (vcf_rec.rlen == 1
+                and set(alt).issubset(set(['A', 'C', 'T', 'G', 'N', '*']))):  # INS - DOES NOT SUPPORT <INS> TYPE IDS
             mut_type = 'I'
         else:
-            logging.warning('could not infer mutation type, POS={} REF={} ALT={}, skipping variant'.format(vcf_rec.pos, vcf_rec.ref, alt))
+            logging.warning('could not infer mutation type, POS={} REF={} ALT={}, skipping variant'.format(
+                vcf_rec.pos, vcf_rec.ref, alt))
             continue
-        filt_d[alt] = variant_tester(vcf_rec.start, vcf_rec.stop, alt, mut_type, region_reads_by_sample)
+        alt_filt_reads: list = alt_filter_reads(vcf_rec.start,
+                                                vcf_rec.stop,
+                                                alt,
+                                                mut_type,
+                                                region_reads_by_sample,
+                                                max_span)
+        if len(alt_filt_reads) == 0:
+            filt_d[alt] = c.Filters(c.ALFilter(code=c.FiltCodes.INSUFFICIENT_READS.value),
+                                    c.HPFilter(code=c.FiltCodes.INSUFFICIENT_READS.value))
+        else:
+            filt_d[alt] = c.Filters(test_variant_AL(alt_filt_reads,
+                                                    al_thresh),
+                                    test_variant_HP(vcf_rec.start,
+                                                    vcf_rec.stop,
+                                                    alt,
+                                                    mut_type,
+                                                    alt_filt_reads,
+                                                    position_fraction))
     return filt_d
 
 
@@ -396,7 +471,8 @@ def main_cli() -> None:
 
     json_config: dict | None = None
     if args.input_json:
-        logging.info('args JSON provided, extended arguments will be loaded from JSON if not present on command line')
+        logging.info(
+            'args JSON provided, extended arguments will be loaded from JSON if not present on command line')
         try:
             with open(args.input_json, 'r') as f:
                 json_config = json.load(f)
@@ -415,17 +491,6 @@ def main_cli() -> None:
 
     # test args are sensible, exit if not
     h.test_options(args)
-
-    primed_validate_read = partial(validate_read,
-                                   min_mapqual=args.min_mapping_quality,
-                                   min_clipqual=args.min_clip_quality,
-                                   min_basequal=args.min_base_quality)
-
-    primed_variant_tester = partial(test_variant,
-                                    al_thresh=args.al_filter_threshold,
-                                    max_span=args.max_read_span,
-                                    position_fraction_thresh=args.position_fraction,
-                                    read_validator=primed_validate_read)
 
     try:
         vcf_in_handle = pysam.VariantFile(args.vcf_in)
@@ -456,7 +521,8 @@ def main_cli() -> None:
                                                                 and args.format == "c"
                                                                 else None))
         except Exception as e:
-            h.cleanup(msg='failed to read alignment file at {}, reporting: {}'.format(path, e))
+            h.cleanup(
+                msg='failed to read alignment file at {}, reporting: {}'.format(path, e))
         # grab the sample name from first SM field
         # in header field RG
         alignment_sample_name = alignment.header.to_dict()['RG'][0]['SM']
@@ -469,33 +535,44 @@ def main_cli() -> None:
         for pair in args.name_mapping:
             kv_split = pair.split(':')  # VCF:aln
             if len(kv_split) != 2:
-                h.cleanup(msg='name mapping misformatted, more than two elements in map string {}'.format(pair))
+                h.cleanup(
+                    msg='name mapping misformatted, more than two elements in map string {}'.format(pair))
             vcf_map_names.append(kv_split[0])
             alignment_map_names.append(kv_split[1])
         if h.has_duplicates(vcf_map_names):
-            h.cleanup(msg='duplicate VCF sample names provided to name mapping flag')
+            h.cleanup(
+                msg='duplicate VCF sample names provided to name mapping flag')
         if not set(vcf_map_names) <= sample_names:
-            h.cleanup(msg="VCF sample names provided to name mapping flag are not equal to, or a subset of, VCF sample names as retrieved from VCF")
+            h.cleanup(
+                msg="VCF sample names provided to name mapping flag are not equal to, or a subset of, VCF sample names as retrieved from VCF")
         if h.has_duplicates(alignment_map_names):
-            h.cleanup(msg='duplicate aligment sample names provided to name mapping flag')
+            h.cleanup(
+                msg='duplicate aligment sample names provided to name mapping flag')
         if h.lists_not_equal(alignment_map_names,
                              vcf_sample_to_alignment_map.keys()):
-            h.cleanup(msg='alignment sample names provided to name mapping flag do not match alignment SM tags')
+            h.cleanup(
+                msg='alignment sample names provided to name mapping flag do not match alignment SM tags')
         vcf_sample_to_alignment_map = {vcf_map_names[alignment_map_names.index(k)]: v
                                        for k, v
                                        in vcf_sample_to_alignment_map.items()}
     else:
         if not vcf_sample_to_alignment_map.keys() <= sample_names:
-            h.cleanup(msg='alignment SM tags do not match VCF sample names: {}'.format(vcf_sample_to_alignment_map.keys() - sample_names))
+            h.cleanup(msg='alignment SM tags do not match VCF sample names: {}'.format(
+                vcf_sample_to_alignment_map.keys() - sample_names))
     if sample_names != vcf_sample_to_alignment_map.keys():
-        logging.info("alignments not provided for all VCF samples; {} will be ignored".format(sample_names - vcf_sample_to_alignment_map.keys()))
+        logging.info("alignments not provided for all VCF samples; {} will be ignored".format(
+            sample_names - vcf_sample_to_alignment_map.keys()))
 
     # init output
     out_head = vcf_in_handle.header  # type:ignore
-    out_head.add_line("##FILTER=<ID=ALF,Description=\"Median alignment score of reads reporting variant less than {}, using samples {}\">".format(args.al_filter_threshold, ', '.join(vcf_sample_to_alignment_map.keys())))
-    out_head.add_line("##FILTER=<ID=HPF,Description=\"Variant arises from hairpin artefact, using samples {}\">".format(', '.join(vcf_sample_to_alignment_map.keys())))
-    out_head.add_line("##INFO=<ID=HPF,Number=1,Type=String,Description=\"alt|code for each alt indicating hairpin filter decision code\">")
-    out_head.add_line("##INFO=<ID=ALF,Number=1,Type=String,Description=\"alt|code|score for each alt indicating AL filter conditions\">")
+    out_head.add_line("##FILTER=<ID=ALF,Description=\"Median alignment score of reads reporting variant less than {}, using samples {}\">".format(
+        args.al_filter_threshold, ', '.join(vcf_sample_to_alignment_map.keys())))
+    out_head.add_line("##FILTER=<ID=HPF,Description=\"Variant arises from hairpin artefact, using samples {}\">".format(
+        ', '.join(vcf_sample_to_alignment_map.keys())))
+    out_head.add_line(
+        "##INFO=<ID=HPF,Number=1,Type=String,Description=\"alt|code for each alt indicating hairpin filter decision code\">")
+    out_head.add_line(
+        "##INFO=<ID=ALF,Number=1,Type=String,Description=\"alt|code|score for each alt indicating AL filter conditions\">")
 
     try:
         vcf_out_handle = pysam.VariantFile(args.vcf_out, 'w', header=out_head)
@@ -507,42 +584,47 @@ def main_cli() -> None:
         try:
             with open(args.output_json, "w") as output_json:
                 json.dump(
-                          {
-                           k: vars(args)[k]
-                           for k
-                           in (vars(args).keys() - {'input_json', 'output_json', 'format'})
-                           },
-                          output_json, indent="")
+                    {
+                        k: vars(args)[k]
+                        for k
+                        in (vars(args).keys() - {'input_json', 'output_json', 'format'})
+                    },
+                    output_json, indent="")
         except Exception as e:
             h.cleanup(msg='failed to write output JSON, reporting: {}'.format(e))
 
-    for record in vcf_in_handle.fetch():  # type:ignore
-        # need to test pysam's vcf record validation
-        # e.g. what if start is after end
+    for record in vcf_in_handle.fetch():
         try:
             filter_d: dict[str, c.Filters] = test_record_per_alt(
-                alignments=vcf_sample_to_alignment_map,
-                vcf_rec=record,
-                variant_tester=primed_variant_tester
+                vcf_sample_to_alignment_map,
+                record,
+                args.min_mapping_quality,
+                args.min_clip_quality,
+                args.min_base_quality,
+                args.max_read_spans,
+                args.al_filter_threshold,
+                args.position_fraction
             )
         except c.NoAlts:
-            logging.warning('{0: <7}:{1: >12} ¦ no alts for this record'.format(record.chrom, record.pos))
+            logging.warning('{0: <7}:{1: >12} ¦ no alts for this record'.format(
+                record.chrom, record.pos))
         except c.NoMutants:
-            logging.warning('{0: <7}:{1: >12} ¦ no samples exhibit record alts'.format(record.chrom, record.pos))
+            logging.warning('{0: <7}:{1: >12} ¦ no samples exhibit record alts'.format(
+                record.chrom, record.pos))
         else:
             for alt, filter_bundle in filter_d.items():
                 for filter in filter_bundle:
                     if filter.flag:
                         record.filter.add(filter.name)
                     record.info.update({filter.name: '|'.join(
-                                                      [alt] +
-                                                      [str(f)
-                                                          if type(f)
-                                                          is not float
-                                                          else str(round(f, 3))
-                                                          for f in filter
-                                                       ][2:]
-                                                    )})
+                        [alt] +
+                        [str(f)
+                         if type(f)
+                         is not float
+                         else str(round(f, 3))
+                         for f in filter
+                         ][2:]
+                    )})
 
             try:
                 vcf_out_handle.write(record)  # type:ignore

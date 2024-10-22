@@ -19,6 +19,7 @@
 
 
 from hairpin2 import main as hp2
+from hairpin2 import constants as c
 import pysam
 import pytest
 import copy
@@ -41,19 +42,6 @@ r.mapping_quality = 20
 r.cigarstring = '100M'
 r.set_tag('MC', '100M')
 
-# S1 needs 2 good reads to give True on if len(mut_reads...) > 1
-s1r1 = copy.deepcopy(r)
-s1r2 = copy.deepcopy(r)
-s1r3 = copy.deepcopy(r)
-# S2 needs a bad read to give a False on if read_flag == ... CLEAR
-# and len(mut_reads...)
-s2r1 = copy.deepcopy(r)
-s2r2 = copy.deepcopy(r)
-s2r2.flag = 0xE00
-iter1 = [s1r1, s1r2]
-iter2 = [s2r1, s2r2]
-readd = {'S1': iter1, 'S2': iter2}
-
 
 # max spans...
 ### 21/10/24 HERE: I separated out max spans to make testing easier
@@ -62,11 +50,19 @@ readd = {'S1': iter1, 'S2': iter2}
 ### maybe it's going back in but now I actually understand it
 ### perhaps do test suite without it, put it back and cover at the end.
 # don't forget to install updated main.py
+
+
+# use this test to test all initial loops, and other tests to test unique outcomes
+# e.g. read_flag != clear and so on
 @pytest.mark.validate
-def test_path_simple():
-    f = hp2.test_variant(
-        vstart=160,
-        vstop=161,
+def test_path_insufficient_reads():
+    expected = c.Filters(AL=c.ALFilter(code=3),
+                         HP=c.HPFilter(code=3))
+    readd = {'S1': []}
+    # using defaults where not otherwise noted
+    actual = hp2.test_variant(
+        vstart=166,
+        vstop=167,
         alt='A',
         region_reads_by_sample=readd,
         mut_type='S',
@@ -78,4 +74,88 @@ def test_path_simple():
                                min_clipqual=35,
                                min_basequal=25)
     )
-    breakpoint()
+    assert expected == actual
+
+
+# N.B. copy r to several reads
+# combine into dict[str, Iterable[pysam.AlignedSegment]]
+# where keys are samples
+# yank this to register
+@pytest.mark.validate
+def test_path_xxx():
+    pass
+
+
+@pytest.mark.validate
+def test_path_AL_true_code_2():
+    expected = c.ALFilter(flag=True, code=2, avg_as=0.5)
+    s1r1 = copy.deepcopy(r)  # no AS, cover except KeyError
+    s1r2 = copy.deepcopy(r)
+    s1r2.set_tag('AS', 50)  # low AS
+    readd = {'S1': [s1r1, s1r2]}
+    result = hp2.test_variant(
+        vstart=166,
+        vstop=167,
+        alt='A',
+        region_reads_by_sample=readd,
+        mut_type='S',
+        al_thresh=0.93,
+        max_span=-1,  # don't trigger PCR dedup
+        position_fraction_thresh=0.15,
+        read_validator=partial(hp2.validate_read,
+                               min_mapqual=11,
+                               min_clipqual=35,
+                               min_basequal=25)
+    )
+    assert expected == result.AL
+
+
+@pytest.mark.validate
+def test_path_AL_false_code_2_HP_false_code_3():
+    expected = c.Filters(c.ALFilter(flag=False, code=2, avg_as=0.99),
+                         c.HPFilter(code=3))
+    s1r1 = copy.deepcopy(r)
+    s1r1.set_tag('AS', 99)  # high AS
+    readd = {'S1': [s1r1]}
+    result = hp2.test_variant(
+        vstart=166,
+        vstop=167,
+        alt='A',
+        region_reads_by_sample=readd,
+        mut_type='S',
+        al_thresh=0.93,
+        max_span=-1,  # don't trigger PCR dedup
+        position_fraction_thresh=0.15,
+        read_validator=partial(hp2.validate_read,
+                               min_mapqual=11,
+                               min_clipqual=35,
+                               min_basequal=25)
+    )
+    assert expected == result
+
+
+@pytest.mark.validate
+def test_path_AL_false_code_3():
+    expected = c.ALFilter(code=3)
+    s1r1 = copy.deepcopy(r)
+    readd = {'S1': [s1r1]}
+    result = hp2.test_variant(
+        vstart=166,
+        vstop=167,
+        alt='A',
+        region_reads_by_sample=readd,
+        mut_type='S',
+        al_thresh=0.93,
+        max_span=-1,  # don't trigger PCR dedup
+        position_fraction_thresh=0.15,
+        read_validator=partial(hp2.validate_read,
+                               min_mapqual=11,
+                               min_clipqual=35,
+                               min_basequal=25)
+    )
+    assert expected == result.AL
+
+
+@pytest.mark.validate
+def test_path_HP_insufficient_reads():
+    s1r1 = copy.deepcopy(r)
