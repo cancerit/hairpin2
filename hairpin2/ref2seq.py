@@ -24,7 +24,7 @@ import pysam
 def ref2querypos(
             bam_record: pysam.AlignedSegment,
             ref_pos: int,
-) -> tuple[int, int | None]:
+) -> int:
     pos_aln = bam_record.get_aligned_pairs()
     query_pos = None
     for aln_pair in pos_aln:

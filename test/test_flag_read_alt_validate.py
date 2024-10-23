@@ -29,7 +29,7 @@ def test_path_unsupported_mut_type():
                       vcf_start=99,
                       vcf_stop=100,
                       alt='A',
-                      mut_type='8',
+                      mut_type='8',  # type: ignore
                       min_basequal=25)
 
 
@@ -70,7 +70,18 @@ def test_path_good_sub():
     assert expected == result
 
 
-# checks cigar ops
+@pytest.mark.validate
+def test_path_del_short():
+    expected = c.ValidatorFlags.SHORT.value
+    result = flag_read_alt(read=r,
+                           vcf_start=99,
+                           vcf_stop=110,
+                           alt='.',
+                           mut_type='D',
+                           min_basequal=25)
+    assert expected & result
+
+
 @pytest.mark.validate
 def test_path_del_bad_op():
     expected = c.ValidatorFlags.BAD_OP.value

@@ -121,11 +121,13 @@ def flag_read_alt(
                         invalid_flag |= c.ValidatorFlags.NOT_ALT.value
     # DEL - doesn't check for matches before and after...
     if mut_type == 'D':
-        # this could error if read doesn't cover region (as could all)
+        rng = list(range(vcf_start, vcf_stop))
         mut_alns = [q
                     for q, r
                     in read.get_aligned_pairs()
-                    if r in range(vcf_start, vcf_stop)]
+                    if r in rng]
+        if len(mut_alns) != len(rng):
+            invalid_flag |= c.ValidatorFlags.SHORT.value
         if any([x is not None for x in mut_alns]):
             invalid_flag |= c.ValidatorFlags.BAD_OP.value
 
@@ -296,9 +298,9 @@ def test_variant_HP(
             frac_lt_thresh = (sum(near_start_f + near_start_r)
                               / (len(near_start_f) + len(near_start_r)))
             if (frac_lt_thresh < 0.9 or
-                (range_f > 2 and range_r > 2 and sd_f > 2 and sd_r > 2) or
-                (range_f > 1 and sd_f > 10) or
-                    (range_r > 1 and sd_r > 10)):
+                (range_f > 2 and range_r > 2 and sd_f > 2 and sd_r > 2) or  # type: ignore
+                (range_f > 1 and sd_f > 10) or  # type: ignore
+                    (range_r > 1 and sd_r > 10)):  # type: ignore
                 hp_filt.code = c.FiltCodes.SIXTYBI.value  # 60B(i)
             else:
                 hp_filt.code = c.FiltCodes.SIXTYBI.value
@@ -606,7 +608,7 @@ def main_cli() -> None:
                 for filter in filter_bundle:
                     if filter.flag:
                         record.filter.add(filter.name)
-                    record.info.update({filter.name: '|'.join(
+                    record.info.update({filter.name: '|'.join(  # type: ignore
                         [alt] +
                         [str(f)
                          if type(f)
