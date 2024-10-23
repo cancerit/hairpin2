@@ -30,6 +30,10 @@ from typing import Literal
 from collections.abc import Iterable
 
 
+# N.B.
+# pysam guards against:
+# quality and seq length mismatch
+# reference id is none
 def flag_read_broad(
     read: pysam.AlignedSegment,
     vcf_start: int,
@@ -58,12 +62,12 @@ def flag_read_broad(
         if read.mapping_quality < min_mapqual:
             invalid_flag |= c.ValidatorFlags.MAPQUAL.value
 
-        if ('S' in read.cigarstring and  # type: ignore - not detecting cigarstring can't be none
+        if ('S' in read.cigarstring and  # type: ignore - program ensures can't be none
                 mean(read.query_alignment_qualities) < min_clipqual):  # type: ignore - legit type issue here with pysam but I can't fix it
             invalid_flag |= c.ValidatorFlags.CLIPQUAL.value
 
         if (not (invalid_flag & c.ValidatorFlags.FLAG.value)
-            and not (read.flag & 0x40)):
+                and not (read.flag & 0x40)):
             read_range = range(read.reference_start,
                                read.reference_end)  # type: ignore - can't be none
             mate_range = range(read.next_reference_start,
@@ -141,7 +145,10 @@ def flag_read_alt(
 # (if so, maybe two pointer comparison?)
 # it bothers me that it matters where in the chain this occurs
 # with more reads it's more likely they'll cluster as dupes right?
-def get_hidden_PCRdup_indices(readpair_ends: list[list[int]], max_span: int):
+def get_hidden_PCRdup_indices(
+    readpair_ends: list[list[int]],
+    max_span: int
+) -> list[int]:
     dup_idcs: list[int] = []
     read_ends_sorted: list[tuple[int, list[int]]] = sorted([(i, sorted(l))
                                                             for i, l
@@ -163,7 +170,7 @@ def get_hidden_PCRdup_indices(readpair_ends: list[list[int]], max_span: int):
         else:
             # read at i is not dup of reads in base_read_ends_list
             # start again, test read at i
-            # against reads subsequent to i in ends_sorted
+            # against reads subsequent from i in ends_sorted
             base_read_ends_list = [comparison_read_ends[1]]
     return dup_idcs
 
@@ -174,8 +181,8 @@ def alt_filter_reads(
     alt: str,
     mut_type: str,
     region_reads_by_sample: dict[str, Iterable[pysam.AlignedSegment]],
-    max_span: int,
-    min_basequal: int
+    max_span: int = 6,
+    min_basequal: int = 25
 ) -> list[pysam.AlignedSegment]:
     rrbs_filt: dict[str, list[pysam.AlignedSegment]] = {key: []
                                                         for key
@@ -186,11 +193,11 @@ def alt_filter_reads(
         sample_readpair_ends: list[list[int]] = []
         for read in read_iter:
             if not flag_read_alt(read,
-                                     vstart,
-                                     vstop,
-                                     alt,
-                                     mut_type,  # type: ignore - type checkers annoying about literals
-                                     min_basequal):
+                                 vstart,
+                                 vstop,
+                                 alt,
+                                 mut_type,  # type: ignore - type checkers annoying about literals
+                                 min_basequal):
                 rrbs_filt[mut_sample].append(read)
                 next_ref_end = r2s.ref_end_via_cigar(
                     str(read.get_tag('MC')),
@@ -211,7 +218,7 @@ def alt_filter_reads(
 
 def test_variant_AL(
     mut_reads: Iterable[pysam.AlignedSegment],
-    al_thresh: float
+    al_thresh: float = 0.93
 ) -> c.ALFilter:
     al_filt = c.ALFilter()
     aln_scores: list[float] = []
@@ -232,77 +239,74 @@ def test_variant_AL(
     return al_filt
 
 
+# per Peter's implementation
+# can set hairpin for mutations nowhere near alignment start
+# expose more ellis conditions as parameters?
 def test_variant_HP(
     vstart: int,
     mut_reads: Iterable[pysam.AlignedSegment],
-    position_fraction_thresh: float,
+    position_fraction_thresh: float = 0.15
 ) -> c.HPFilter:
 
     hp_filt = c.HPFilter()
-    mut_read_pos_f: list[int] = []
-    mut_read_pos_r: list[int] = []
-    mut_read_fracs_f: list[float] = []
-    mut_read_fracs_r: list[float] = []
+    # *l*engths of *a*lignment starts *to* *m*utant query positions
+    la2ms_f: list[int] = []
+    la2ms_r: list[int] = []
+    near_start_f: list[bool] = []
+    near_start_r: list[bool] = []
 
     for read in mut_reads:
-        mut_pos, _ = r2s.ref2querypos(read, vstart)
+        mut_qpos, _ = r2s.ref2querypos(read, vstart)
         if read.flag & 0x10:
-            # 1-based position where start, idx 1, is alignment end
-            mut_idx_wrt_query_aln = read.query_alignment_end - mut_pos
-            mut_read_fracs_r.append(mut_idx_wrt_query_aln
-                                    / read.query_alignment_length)
-            mut_read_pos_r.append(mut_idx_wrt_query_aln)
+            # +1 to include last base in length
+            la2m = read.query_alignment_end - mut_qpos + 1
+            near_start_r.append(((la2m / read.query_alignment_length)
+                                 <= position_fraction_thresh))
+            la2ms_r.append(la2m)
         else:
-            mut_idx_wrt_query_aln = mut_pos - read.query_alignment_start + 1
-            mut_read_fracs_f.append(mut_idx_wrt_query_aln
-                                    / read.query_alignment_length)
-            mut_read_pos_f.append(mut_idx_wrt_query_aln)
-    # hairpin conditions from Ellis et al.
-    if len(mut_read_pos_f) > 1 and not len(mut_read_pos_r) > 1:
-        mad_f = max(mut_read_pos_f) - min(mut_read_pos_f)
-        sd_f = stdev(mut_read_pos_f)
-        if (
-            ((sum([x <= position_fraction_thresh
-                  for x
-                  in mut_read_fracs_f]) / len(mut_read_pos_f)) < 0.9) and
-            mad_f > 0 and
-                sd_f > 4):
-            hp_filt.code = c.FiltCodes.SIXTYAI.value  # 60A(i)
-        else:
-            hp_filt.code = c.FiltCodes.SIXTYAI.value
-            hp_filt.set()
-    elif len(mut_read_pos_r) > 1 and not len(mut_read_pos_f) > 1:
-        mad_r = max(mut_read_pos_r) - min(mut_read_pos_r)
-        sd_r = stdev(mut_read_pos_r)
-        if (
-            ((sum([x <= position_fraction_thresh
-                  for x
-                  in mut_read_fracs_r]) / len(mut_read_pos_r)) < 0.9) and
-            mad_r > 0 and
-                sd_r > 4):
-            hp_filt.code = c.FiltCodes.SIXTYAI.value
-        else:
-            hp_filt.code = c.FiltCodes.SIXTYAI.value
-            hp_filt.set()
-    elif len(mut_read_pos_f) > 1 and len(mut_read_pos_r) > 1:
-        mad_f = max(mut_read_pos_f) - min(mut_read_pos_f)
-        sd_f = stdev(mut_read_pos_f)
-        mad_r = max(mut_read_pos_r) - min(mut_read_pos_r)
-        sd_r = stdev(mut_read_pos_r)
-        frac_lt_thresh = (sum([x <= position_fraction_thresh
-                              for x
-                              in mut_read_fracs_f + mut_read_fracs_r]) /
-                          (len(mut_read_pos_f) + len(mut_read_pos_r)))
-        if (frac_lt_thresh < 0.9 or
-           (mad_f > 2 and mad_r > 2 and sd_f > 2 and sd_r > 2) or
-           (mad_f > 1 and sd_f > 10) or
-           (mad_r > 1 and sd_r > 10)):
-            hp_filt.code = c.FiltCodes.SIXTYBI.value  # 60B(i)
-        else:
-            hp_filt.code = c.FiltCodes.SIXTYBI.value
-            hp_filt.set()
-    else:
+            la2m = mut_qpos - read.query_alignment_start + 1
+            near_start_f.append(((la2m / read.query_alignment_length)
+                                 <= position_fraction_thresh))
+            la2ms_f.append(la2m)
+
+    # hairpin conditions from Ellis et al. 2020, Nature Protocols
+    # sometimes reported as 2021
+    if len(la2ms_f) < 2 and len(la2ms_r) < 2:
         hp_filt.code = c.FiltCodes.INSUFFICIENT_READS.value
+    else:
+        if len(la2ms_f) > 1:
+            range_f = max(la2ms_f) - min(la2ms_f)
+            sd_f = stdev(la2ms_f)
+            if len(la2ms_r) < 2:
+                if (((sum(near_start_f) / len(near_start_f)) < 0.9) and
+                    range_f > 0 and
+                        sd_f > 4):
+                    hp_filt.code = c.FiltCodes.SIXTYAI.value  # 60A(i)
+                else:
+                    hp_filt.code = c.FiltCodes.SIXTYAI.value
+                    hp_filt.set()
+        if len(la2ms_r) > 1:
+            range_r = max(la2ms_r) - min(la2ms_r)
+            sd_r = stdev(la2ms_r)
+            if len(la2ms_f) < 2:
+                if (((sum(near_start_r) / len(near_start_r)) < 0.9) and
+                    range_r > 0 and
+                        sd_r > 4):
+                    hp_filt.code = c.FiltCodes.SIXTYAI.value
+                else:
+                    hp_filt.code = c.FiltCodes.SIXTYAI.value
+                    hp_filt.set()
+        if len(la2ms_f) > 1 and len(la2ms_r) > 1:
+            frac_lt_thresh = (sum(near_start_f + near_start_r)
+                              / (len(near_start_f) + len(near_start_r)))
+            if (frac_lt_thresh < 0.9 or
+                (range_f > 2 and range_r > 2 and sd_f > 2 and sd_r > 2) or
+                (range_f > 1 and sd_f > 10) or
+                    (range_r > 1 and sd_r > 10)):
+                hp_filt.code = c.FiltCodes.SIXTYBI.value  # 60B(i)
+            else:
+                hp_filt.code = c.FiltCodes.SIXTYBI.value
+                hp_filt.set()
 
     return hp_filt
 
@@ -342,9 +346,9 @@ def test_record_per_alt(
                                        for read
                                        in read_iter
                                        if not flag_read_broad(read,
-                                                                  vcf_rec.start,
-                                                                  min_mapqual=min_mapqual,
-                                                                  min_clipqual=min_clipqual))
+                                                              vcf_rec.start,
+                                                              min_mapqual,
+                                                              min_clipqual))
                 # doesn't check for overwrite
                 region_reads_by_sample[k] = broad_filtered_iter
 
