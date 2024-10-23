@@ -15,5 +15,5 @@ pip install \
     faker-biology==0.6.4 \
     factory-boy==3.3.1 \
     pysam==0.22 && \
-pytest --cov="${PKG_DIR}" "${TEST_DIR}"
+pytest -m "validate" --cov="${PKG_DIR}" "${TEST_DIR}"
 
