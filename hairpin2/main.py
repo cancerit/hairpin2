@@ -94,20 +94,33 @@ def flag_read_alt(
 
     invalid_flag = c.ValidatorFlags.CLEAR.value
 
-    if mut_type == 'S':  # SUB
+    if mut_type in ['S', 'I']:
         try:
-            mut_pos, _ = r2s.ref2querypos(read, vcf_start)
+            mut_pos = r2s.ref2querypos(read, vcf_start)
         except IndexError:
             invalid_flag |= c.ValidatorFlags.NOT_ALIGNED.value
         else:
-            if read.query_sequence[mut_pos:mut_pos + len(alt)] != alt:  # type: ignore - can't be none
-                invalid_flag |= c.ValidatorFlags.NOT_ALT.value
-            if any([bq < min_basequal
-                    for bq
-                    in read.query_qualities[mut_pos:mut_pos + len(alt)]]):  # type: ignore - can't be none
-                invalid_flag |= c.ValidatorFlags.BASEQUAL.value
+            if mut_type == 'S':  # SUB
+                if read.query_sequence[mut_pos:mut_pos + len(alt)] != alt:  # type: ignore - can't be none
+                    invalid_flag |= c.ValidatorFlags.NOT_ALT.value
+                if any([bq < min_basequal
+                        for bq
+                        in read.query_qualities[mut_pos:mut_pos + len(alt)]]):  # type: ignore - can't be none
+                    invalid_flag |= c.ValidatorFlags.BASEQUAL.value
+            if mut_type == 'I':  # INS - mut_pos is position immediately before insertion
+                if mut_pos + len(alt) > read.query_length:
+                    invalid_flag |= c.ValidatorFlags.SHORT.value
+                else:
+                    mut_alns = [(q, r)
+                                for q, r
+                                in read.get_aligned_pairs()
+                                if q in range(mut_pos + 1, mut_pos + len(alt) + 1)]
+                    if any([r is not None for _, r in mut_alns]):
+                        invalid_flag |= c.ValidatorFlags.BAD_OP.value
+                    if read.query_sequence[mut_pos + 1:mut_pos + len(alt) + 1] != alt:  # type: ignore - can't be none
+                        invalid_flag |= c.ValidatorFlags.NOT_ALT.value
     # DEL - doesn't check for matches before and after...
-    elif mut_type == 'D':
+    if mut_type == 'D':
         # this could error if read doesn't cover region (as could all)
         mut_alns = [q
                     for q, r
@@ -115,23 +128,6 @@ def flag_read_alt(
                     if r in range(vcf_start, vcf_stop)]
         if any([x is not None for x in mut_alns]):
             invalid_flag |= c.ValidatorFlags.BAD_OP.value
-    elif mut_type == 'I':  # INS
-        try:
-            prior_pos, _ = r2s.ref2querypos(read, vcf_start)
-        except IndexError:
-            invalid_flag |= c.ValidatorFlags.NOT_ALIGNED.value
-        else:
-            if prior_pos + len(alt) > read.query_length:
-                invalid_flag |= c.ValidatorFlags.SHORT.value
-            else:
-                mut_alns = [(q, r)
-                            for q, r
-                            in read.get_aligned_pairs()
-                            if q in range(prior_pos + 1, prior_pos + len(alt) + 1)]
-                if any([r is not None for _, r in mut_alns]):
-                    invalid_flag |= c.ValidatorFlags.BAD_OP.value
-                if read.query_sequence[prior_pos + 1:prior_pos + len(alt) + 1] != alt:  # type: ignore - can't be none
-                    invalid_flag |= c.ValidatorFlags.NOT_ALT.value
 
     return invalid_flag
 
@@ -256,7 +252,7 @@ def test_variant_HP(
     near_start_r: list[bool] = []
 
     for read in mut_reads:
-        mut_qpos, _ = r2s.ref2querypos(read, vstart)
+        mut_qpos = r2s.ref2querypos(read, vstart)
         if read.flag & 0x10:
             # +1 to include last base in length
             la2m = read.query_alignment_end - mut_qpos + 1
