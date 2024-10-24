@@ -309,7 +309,7 @@ def is_variant_HP(
     return hp_filt
 
 
-def test_record_per_alt(
+def test_record_all_alts(
     alignments: dict[str, pysam.AlignmentFile],
     vcf_rec: pysam.VariantRecord,
     min_mapqual: int,
@@ -587,7 +587,7 @@ def main_cli() -> None:
 
     for record in vcf_in_handle.fetch():  # type: ignore - program ensures not unbound
         try:
-            filter_d: dict[str, c.Filters] = test_record_per_alt(
+            filter_d: dict[str, c.Filters] = test_record_all_alts(
                 vcf_sample_to_alignment_map,
                 record,
                 args.min_mapping_quality,
@@ -609,13 +609,8 @@ def main_cli() -> None:
                     if filter.flag:
                         record.filter.add(filter.name)
                     record.info.update({filter.name: '|'.join(  # type: ignore
-                        [alt] +
-                        [str(f)
-                         if type(f)
-                         is not float
-                         else str(round(f, 3))
-                         for f in filter
-                         ][2:]
+                        [alt, int(filter.flag), str(filter.code)] +
+                        ([filter.avg_as] if filter.name == 'ALF' else [])
                     )})
 
             try:
