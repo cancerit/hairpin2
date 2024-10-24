@@ -389,7 +389,7 @@ def main_cli() -> None:
                         datefmt='%I:%M:%S')
 
     parser = argparse.ArgumentParser(prog="hairpin2",
-                                     description='cruciform artefact flagging algorithm based on Ellis et al. 2020 (DOI: 10.1038/s41596-020-00437-6)')
+                                     description='cruciform artefact flagging algorithm based on Ellis et al. 2020 (DOI: 10.1038/s41596-020-00437-6). See README for further explanation of parameters.')
     parser._optionals.title = 'info'
     parser.add_argument('-v',
                         '--version',
@@ -486,9 +486,9 @@ def main_cli() -> None:
                 (0 <= args.min_clip_quality <= 93),
                 (0 <= args.min_mapping_quality <= 60),
                 (0 <= args.min_base_quality <= 93),
-                (0 <= args.position_fraction <= 1)
+                (0 <= args.position_fraction <= 1),
                 (args.max_read_span >= -1)]):
-        h.cleanup(msg='extended arg out range, check helptext for ranges')
+        h.cleanup(msg='extended arg out of range, check helptext for ranges')
 
     try:
         vcf_in_handle = pysam.VariantFile(args.vcf_in)

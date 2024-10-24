@@ -43,10 +43,15 @@ hairpin -h
 ### USAGE
 
 ```
-usage: hairpin2 [-h] [-v] -i VCF_IN -o VCF_OUT -a ALIGNMENTS [ALIGNMENTS ...] -f {s,b,c} [-al AL_FILTER_THRESHOLD] [-mc MIN_CLIP_QUALITY] [-mq MIN_MAPPING_QUALITY]
-                [-mb MIN_BASE_QUALITY] [-ms MAX_READ_SPAN] [-pf POSITION_FRACTION] [-r CRAM_REFERENCE] [-m VCF:aln [VCF:aln ...]] [-ji INPUT_JSON] [-jo OUTPUT_JSON]
+usage: hairpin2 [-h] [-v] -i VCF_IN -o VCF_OUT -a ALIGNMENTS [ALIGNMENTS ...]
+                -f {s,b,c} [-al AL_FILTER_THRESHOLD] [-mc MIN_CLIP_QUALITY]
+                [-mq MIN_MAPPING_QUALITY] [-mb MIN_BASE_QUALITY]
+                [-ms MAX_READ_SPAN] [-pf POSITION_FRACTION]
+                [-r CRAM_REFERENCE] [-m VCF:aln [VCF:aln ...]]
+                [-ji INPUT_JSON] [-jo OUTPUT_JSON]
 
-cruciform artefact flagging algorithm based on Ellis et al. 2020 (DOI: 10.1038/s41596-020-00437-6)
+cruciform artefact flagging algorithm based on Ellis et al. 2020 (DOI:
+10.1038/s41596-020-00437-6). See README for further explanation of parameters.
 
 info:
   -h, --help            show this help message and exit
@@ -58,31 +63,49 @@ mandatory:
   -o VCF_OUT, --vcf-out VCF_OUT
                         path to write output VCF
   -a ALIGNMENTS [ALIGNMENTS ...], --alignments ALIGNMENTS [ALIGNMENTS ...]
-                        list of paths to (S/B/CR)AMs (indicated by --format) for samples in input VCF, whitespace separated - (s/b/cr)ai expected in same directories
+                        list of paths to (S/B/CR)AMs (indicated by --format)
+                        for samples in input VCF, whitespace separated -
+                        (s/b/cr)ai expected in same directories
   -f {s,b,c}, --format {s,b,c}
-                        format of alignment files; s indicates SAM, b indicates BAM, and c indicates CRAM
+                        format of alignment files; s indicates SAM, b
+                        indicates BAM, and c indicates CRAM
 
 extended:
   -al AL_FILTER_THRESHOLD, --al-filter-threshold AL_FILTER_THRESHOLD
-                        threshold for median of read alignment score per base of all relevant reads, below which a variant is flagged as ALF - default: 0.93
+                        threshold for median of read alignment score per base
+                        of all relevant reads, below which a variant is
+                        flagged as ALF - default: 0.93, range: 0-
   -mc MIN_CLIP_QUALITY, --min-clip-quality MIN_CLIP_QUALITY
-                        discard reads with mean base quality of aligned bases below this value, if they have soft-clipped bases - default: 35
+                        discard reads with mean base quality of aligned bases
+                        below this value, if they have soft-clipped bases -
+                        default: 35, range: 0-93
   -mq MIN_MAPPING_QUALITY, --min-mapping-quality MIN_MAPPING_QUALITY
-                        discard reads with mapping quality below this value - default: 11
+                        discard reads with mapping quality below this value -
+                        default: 11, range: 0-60
   -mb MIN_BASE_QUALITY, --min-base-quality MIN_BASE_QUALITY
-                        discard reads with base quality at variant position below this value - default: 25
+                        discard reads with base quality at variant position
+                        below this value - default: 25, range: 0-93
   -ms MAX_READ_SPAN, --max-read-span MAX_READ_SPAN
-                        maximum +- position to use when detecting PCR duplicates - default: 6
+                        maximum +- position to use when detecting PCR
+                        duplicates. -1 will disable duplicate detection -
+                        default: 6, range: -1-
   -pf POSITION_FRACTION, --position-fraction POSITION_FRACTION
-                        >90% of variant must occur within POSITION_FRACTION of read edges to allow HPF flag - default: 0.15
+                        >90% of variant must occur within POSITION_FRACTION of
+                        read edges to allow HPF flag - default: 0.15, range:
+                        0-1
 
 procedural:
   -r CRAM_REFERENCE, --cram-reference CRAM_REFERENCE
-                        path to FASTA format CRAM reference, overrides $REF_PATH and UR tags - ignored if --format is not CRAM
+                        path to FASTA format CRAM reference, overrides
+                        $REF_PATH and UR tags - ignored if --format is not
+                        CRAM
   -m VCF:aln [VCF:aln ...], --name-mapping VCF:aln [VCF:aln ...]
-                        map VCF sample names to alignment SM tags; useful if they differ
+                        map VCF sample names to alignment SM tags; useful if
+                        they differ
   -ji INPUT_JSON, --input-json INPUT_JSON
-                        path to JSON of input parameters, from which extended arguments will be loaded - overridden by arguments provided on command line
+                        path to JSON of input parameters, from which extended
+                        arguments will be loaded - overridden by arguments
+                        provided on command line
   -jo OUTPUT_JSON, --output-json OUTPUT_JSON
                         log input arguments to JSON
 ```
