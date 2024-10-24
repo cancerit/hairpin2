@@ -1,25 +1,74 @@
+# hairpin2
+#
+# Copyright (C) 2024 Genome Research Ltd.
+#
+# Author: Alex Byrne <ab63@sanger.ac.uk>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
 from enum import IntEnum, Flag
 from typing import Callable
 import dataclasses as d
 
-VERSION = '0.0.2a'
 EXIT_SUCCESS = 0
 EXIT_FAILURE = 1
 
-DEFAULTS: dict[str, int | float] = dict((('al_filter_threshold', 0.93), ('min_clip_quality', 35), ('min_mapping_quality', 11), ('min_base_quality', 25), ('max_read_span', 6), ('position_fraction', 0.15)))
+DEFAULTS: dict[str, int | float] = dict((('al_filter_threshold', 0.93),
+                                         ('min_clip_quality', 35),
+                                         ('min_mapping_quality', 11),
+                                         ('min_base_quality', 25),
+                                         ('max_read_span', 6),
+                                         ('position_fraction', 0.15)))
 
 FiltCodes = IntEnum('FiltCodes',
-            ['SIXTYAI', 'SIXTYBI', 'ON_THRESHOLD', 'INSUFFICIENT_READS', 'NO_MUTANTS'],
-            start=0)
+                    ['SIXTYAI',
+                     'SIXTYBI',
+                     'ON_THRESHOLD',
+                     'INSUFFICIENT_READS',
+                     'NO_MUTANTS'],
+                    start=0)
 Ops = IntEnum('Ops',
-            ['MATCH', 'INS', 'DEL', 'SKIP', 'SOFT', 'HARD', 'PAD', 'EQUAL', 'DIFF', 'BACK'],
-            start = 0)
+              ['MATCH',
+               'INS',
+               'DEL',
+               'SKIP',
+               'SOFT',
+               'HARD',
+               'PAD',
+               'EQUAL',
+               'DIFF',
+               'BACK'],
+              start=0)
 ValidatorFlags = Flag('ReadFlags',
-            ['CLEAR', 'FLAG', 'MAPQUAL', 'READ_FIELDS_MISSING', 'NOT_ALIGNED', 'BAD_OP', 'NOT_ALT', 'BASEQUAL', 'SHORT', 'CLIPQUAL', 'MATE_MISSING_FIELDS', 'OVERLAP'],
-            start=0)
+                      ['CLEAR',
+                       'FLAG',
+                       'MAPQUAL',
+                       'READ_FIELDS_MISSING',
+                       'NOT_ALIGNED',
+                       'BAD_OP',
+                       'NOT_ALT',
+                       'BASEQUAL',
+                       'SHORT',
+                       'CLIPQUAL',
+                       'OVERLAP'],
+                      start=0)
+
 
 class NoAlts(ValueError):
     pass
+
 
 class NoMutants(ValueError):
     pass
@@ -42,10 +91,12 @@ class FilterData:
 class HPFilter(FilterData):
     name: str = d.field(default='HPF')
 
+
 @d.dataclass
 class ALFilter(FilterData):
     name: str = d.field(default='ALF')
     avg_as: float | None = None
+
 
 @d.dataclass
 class Filters:
@@ -70,4 +121,3 @@ class Filters:
 
 FiltReturn = Callable[..., Filters]
 FlagReturn = Callable[..., int]
-

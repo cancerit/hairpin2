@@ -1,10 +1,17 @@
 data*
 .env/
+venv/
+.venv/
 dist/
 *.egg-info/
 __pycache__/
 .helix/
 build/
+test_data_creation/
 *.txt
 *.sif
 *.json
+poetry.lock
+.coverage
+test/sim-data/
+test/old_*
