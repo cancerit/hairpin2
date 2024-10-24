@@ -4,7 +4,9 @@
 
 `hairpin2` is designed to flag variants as possible cruciform artefacts. It operates on a VCF file containing one or more samples, and alignment files for all samples to be tested.
 
-Given a VCF, and BAM files for the samples of that VCF, return a VCF with variants flagged with `HPF` if they are suspected cruciform artefacts, and `ALF` if relevant reads have lower median alignment score per base than a specified threshold. The `ALF` filter indicates poor signal-to-noise, and provides additional confidence in the `HPF` filter – cruciform artefacts usually cause a marked decrease in alignment score. The `ALF` flag also may appear on variants without `HPF`, often indicating other artefacts associated with poor signal-to-noise.
+Given a VCF, and BAM files for the samples of that VCF, return a VCF with variants flagged with `HPF` if they are suspected cruciform artefacts, and `ALF` if relevant reads have lower median alignment score per base than a specified threshold.
+
+The `ALF` filter indicates poor signal-to-noise, and provides additional confidence in the `HPF` filter – cruciform artefacts usually cause a marked decrease in alignment score. The `ALF` flag also may appear on variants without `HPF`, often indicating other artefacts associated with poor signal-to-noise.
 
 
 ### DEPENDENCIES
