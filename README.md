@@ -116,3 +116,27 @@ The code has been written with the intention of clarity and extensibility – fu
 ### TESTING
 
 A test suite has been provided to prove the validity of the algorithm. To run these tests run `pytest -m "validate"` from within the install directory. `hairpin2` must have been installed from that same directory, and be availble on path. The tests can be found in the `test` directory. They are simple, and, upon having read them, it should be very easy to add your own further tests should you want to confirm any behaviour.
+
+
+### LICENCE
+
+```
+# hairpin2
+#
+# Copyright (C) 2024 Genome Research Ltd.
+#
+# Author: Alex Byrne <ab63@sanger.ac.uk>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+```
