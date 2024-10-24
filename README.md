@@ -11,7 +11,7 @@ For paired data, given a VCF, and BAM files for the samples of that VCF, return 
 
 * Python >= 3.10 – required
 * pysam >= 0.22.1 – installed automatically during install process (tested with 0.22.1 only)
-* pytest - optional, only necessary to run tests
+* pytest >= 0.8.2.2 - optional, only necessary to run tests
 
 ### INSTALLATION
 
