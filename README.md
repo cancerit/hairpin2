@@ -4,7 +4,7 @@
 
 `hairpin2` is designed to flag variants as possible cruciform artefacts. It operates on a VCF file containing one or more samples, and alignment files for all samples to be tested.
 
-For paired data, given a VCF, and BAM files for the samples of that VCF, return a VCF with variants flagged with `HPF` if they are suspected cruciform artefacts, and `ALF` if relevant reads have lower median alignment score per base than a specified threshold. The `ALF` filter indicates poor signal-to-noise, and provides additional confidence in the `HPF` filter – cruciform artefacts usually cause a marked decrease in alignment score. The `ALF` flag also may appear on variants without `HPF`, often indicating other artefacts associated with poor signal-to-noise.
+Given a VCF, and BAM files for the samples of that VCF, return a VCF with variants flagged with `HPF` if they are suspected cruciform artefacts, and `ALF` if relevant reads have lower median alignment score per base than a specified threshold. The `ALF` filter indicates poor signal-to-noise, and provides additional confidence in the `HPF` filter – cruciform artefacts usually cause a marked decrease in alignment score. The `ALF` flag also may appear on variants without `HPF`, often indicating other artefacts associated with poor signal-to-noise.
 
 
 ### DEPENDENCIES
@@ -95,7 +95,7 @@ Parameters are hopefully mostly clear from the helptext, but some warrant furthe
 
 ### DETAILS
 
-The tool tests records in a VCF file and applies the `HPF` and `ALF` filter flags as appropriate. Reasoning for decisions is recorded in the INFO field of the VCF records, in the form `HPF=<alt>|<code>` and `ALF=<alt>|<code>|<median AS score>`. The codes are as follows:  
+The tool tests records in a VCF file and applies the `HPF` and `ALF` filter flags as appropriate. Reasoning for decisions is recorded in the INFO field of the VCF records, in the form `HPF=<alt>|<True/False>|<code>` and `ALF=<alt>|<True/False>|<code>|<median AS score>`. The codes are as follows:  
 
 > **0** – passed/failed on condition 60A(i) of Ellis et al. (`HPF` only)  
 > **1** – passed/failed on condition 60B(i) of Ellis et al. (`HPF` only)  

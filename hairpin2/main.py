@@ -419,27 +419,27 @@ def main_cli() -> None:
     opt = parser.add_argument_group('extended')
     opt.add_argument('-al',
                      '--al-filter-threshold',
-                     help='threshold for median of read alignment score per base of all relevant reads, below which a variant is flagged as ALF - default: 0.93',
+                     help='threshold for median of read alignment score per base of all relevant reads, below which a variant is flagged as ALF - default: 0.93, range: 0-',
                      type=float)
     opt.add_argument('-mc',
                      '--min-clip-quality',
-                     help='discard reads with mean base quality of aligned bases below this value, if they have soft-clipped bases - default: 35',
+                     help='discard reads with mean base quality of aligned bases below this value, if they have soft-clipped bases - default: 35, range: 0-93',
                      type=int)
     opt.add_argument('-mq',
                      '--min-mapping-quality',
-                     help='discard reads with mapping quality below this value - default: 11',
+                     help='discard reads with mapping quality below this value - default: 11, range: 0-60',
                      type=int)
     opt.add_argument('-mb',
                      '--min-base-quality',
-                     help='discard reads with base quality at variant position below this value - default: 25',
+                     help='discard reads with base quality at variant position below this value - default: 25, range: 0-93',
                      type=int)
     opt.add_argument('-ms',
                      '--max-read-span',
-                     help='maximum +- position to use when detecting PCR duplicates - default: 6',
+                     help='maximum +- position to use when detecting PCR duplicates. -1 will disable duplicate detection - default: 6, range: -1-',
                      type=int)
     opt.add_argument('-pf',
                      '--position-fraction',
-                     help='>90%% of variant must occur within POSITION_FRACTION of read edges to allow HPF flag - default: 0.15',
+                     help='>90%% of variant must occur within POSITION_FRACTION of read edges to allow HPF flag - default: 0.15, range: 0-1',
                      type=float)
     proc = parser.add_argument_group('procedural')
     proc.add_argument('-r',
@@ -482,7 +482,13 @@ def main_cli() -> None:
                 setattr(args, k, c.DEFAULTS[k])
 
     # test args are sensible, exit if not
-    h.test_options(args)
+    if not any([(args.al_filter_threshold >= 0),
+                (0 <= args.min_clip_quality <= 93),
+                (0 <= args.min_mapping_quality <= 60),
+                (0 <= args.min_base_quality <= 93),
+                (0 <= args.position_fraction <= 1)
+                (args.max_read_span >= -1)]):
+        h.cleanup(msg='extended arg out range, check helptext for ranges')
 
     try:
         vcf_in_handle = pysam.VariantFile(args.vcf_in)
@@ -608,11 +614,10 @@ def main_cli() -> None:
                 for filter in filter_bundle:
                     if filter.flag:
                         record.filter.add(filter.name)
-                    record.info.update({filter.name: '|'.join(  # type: ignore
-                        [alt, int(filter.flag), str(filter.code)] +
-                        ([filter.avg_as] if filter.name == 'ALF' else [])
+                    record.info.update({filter.name: '|'.join(  # type: ignore - unclear what pysam wants
+                        [alt, str(int(filter.flag)), str(filter.code)] +
+                        ([str(filter.avg_as)] if filter.name == 'ALF' else [])
                     )})
-
             try:
                 vcf_out_handle.write(record)  # type:ignore
             except Exception as e:

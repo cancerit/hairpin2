@@ -32,17 +32,6 @@ def cleanup(code: int = c.EXIT_FAILURE, msg: None | str = None) -> None:
     sys.exit(code)
 
 
-def test_options(args):
-    if not (0 < args.min_clip_quality < 93):
-        cleanup(msg='invalid --min-clip-quality; range 0-93')
-    if not (0 < args.min_mapping_quality < 60):
-        cleanup(msg='invalid --min-mapping-quality; range 0-60')
-    if not (0 < args.min_base_quality < 93):
-        cleanup(msg='invalid --min-base-quality; range 0-93')
-    if not (0 < args.position_fraction < 1):
-        cleanup(msg='invalid --position-fraction; range 0-1')
-
-
 def has_duplicates(
     l: list
 ) -> bool:
@@ -58,12 +47,15 @@ def lists_not_equal(
 
 def print_flag(
     print_enum: Flag,
-    hex: bool = False
 ) -> None:
-    print([':'.join([str(e), hex(e.value) if hex else bin(e.value)]) for e in print_enum])
+    pl = []
+    for e in print_enum:
+        vs = '-'.join([str(int(e.value)), str(hex(e.value)), str(bin(e.value))])
+        pl.append(': '.join([str(e), vs]))
+    print(pl)
 
 
 def print_enum(
     print_enum: IntEnum
 ) -> None:
-    print([e for e in print_enum])
+    print([e for e in print_enum])  # type: ignore - iterating works fine

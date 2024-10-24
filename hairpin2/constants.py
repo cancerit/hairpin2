@@ -51,7 +51,7 @@ Ops = IntEnum('Ops',
                'DIFF',
                'BACK'],
               start=0)
-ValidatorFlags = Flag('ReadFlags',
+ValidatorFlags = Flag('ValidatorFlags',
                       ['CLEAR',
                        'FLAG',
                        'MAPQUAL',
