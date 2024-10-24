@@ -1,6 +1,7 @@
 from hairpin2.main import flag_read_alt
 from hairpin2 import constants as c
 import pysam
+from pysam.libcalignedsegment import SAM_FLAGS as s
 import copy
 import pytest
 
@@ -13,7 +14,7 @@ r = pysam.AlignedSegment()
 r.query_name = 'read1'
 r.query_sequence = 'CTGDAAAACC'
 r.query_qualities = pysam.qualitystring_to_array('AAAAAAAAAA')
-r.flag = 0x43
+r.flag = s.FPAIRED | s.FPROPER_PAIR | s.FREAD1  # 0x43
 r.reference_id = 0
 r.reference_start = 95
 r.next_reference_start = 95

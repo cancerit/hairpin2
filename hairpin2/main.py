@@ -214,7 +214,7 @@ def alt_filter_reads(
     return filtered_reads
 
 
-def test_variant_AL(
+def is_variant_AL(
     mut_reads: Iterable[pysam.AlignedSegment],
     al_thresh: float = 0.93
 ) -> c.ALFilter:
@@ -240,7 +240,7 @@ def test_variant_AL(
 # per Peter's implementation
 # can set hairpin for mutations nowhere near alignment start
 # expose more ellis conditions as parameters?
-def test_variant_HP(
+def is_variant_HP(
     vstart: int,
     mut_reads: Iterable[pysam.AlignedSegment],
     position_fraction_thresh: float = 0.15
@@ -375,11 +375,11 @@ def test_record_per_alt(
             filt_d[alt] = c.Filters(c.ALFilter(code=c.FiltCodes.INSUFFICIENT_READS.value),
                                     c.HPFilter(code=c.FiltCodes.INSUFFICIENT_READS.value))
         else:
-            filt_d[alt] = c.Filters(test_variant_AL(alt_filt_reads,
-                                                    al_thresh),
-                                    test_variant_HP(vcf_rec.start,
-                                                    alt_filt_reads,
-                                                    position_fraction))
+            filt_d[alt] = c.Filters(is_variant_AL(alt_filt_reads,
+                                                  al_thresh),
+                                    is_variant_HP(vcf_rec.start,
+                                                  alt_filt_reads,
+                                                  position_fraction))
     return filt_d
 
 
