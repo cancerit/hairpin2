@@ -117,7 +117,7 @@ The code has been written with the intention of clarity and extensibility – fu
 
 ### TESTING
 
-A test suite has been provided to prove the validity of the algorithm. To run these tests run `pytest -m "validate"` from within the install directory. `hairpin2` must have been installed from that same directory, and be availble on path. The tests can be found in the `test` directory. They are simple, and, upon having read them, it should be very easy to add your own further tests should you want to confirm any behaviour.
+A test suite has been provided to prove the validity of the algorithm. To run these tests run `pytest -m "validate"` from within the install directory. `hairpin2` must have been installed from that same directory, and be available on path. The tests can be found in the `test` directory. They are simple, and, once you have read them, it should be very easy to add your own further tests should you want to confirm any behaviour.
 
 
 ### LICENCE
