@@ -30,7 +30,14 @@ DEFAULTS: dict[str, int | float] = dict((('al_filter_threshold', 0.93),
                                          ('min_mapping_quality', 11),
                                          ('min_base_quality', 25),
                                          ('max_read_span', 6),
-                                         ('position_fraction', 0.15)))
+                                         ('edge_definition', 0.15),
+                                         ('edge_fraction', 0.9),
+                                         ('min_MAD_one_strand', 0),
+                                         ('min_sd_one_strand', 4),
+                                         ('min_MAD_both_strand_weak', 2),
+                                         ('min_sd_both_strand_strong', 2),
+                                         ('min_MAD_both_strand_strong', 1),
+                                         ('min_sd_both_strand_strong', 10)))
 
 FiltCodes = IntEnum('FiltCodes',
                     ['SIXTYAI',

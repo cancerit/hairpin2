@@ -101,7 +101,8 @@ def flag_read_alt(
             invalid_flag |= c.ValidatorFlags.NOT_ALIGNED.value
         else:
             if mut_type == 'S':  # SUB
-                if read.query_sequence[mut_pos:mut_pos + len(alt)] != alt:  # type: ignore - can't be none
+                # type: ignore - can't be none
+                if read.query_sequence[mut_pos:mut_pos + len(alt)] != alt:
                     invalid_flag |= c.ValidatorFlags.NOT_ALT.value
                 if any([bq < min_basequal
                         for bq
@@ -117,7 +118,8 @@ def flag_read_alt(
                                 if q in range(mut_pos + 1, mut_pos + len(alt) + 1)]
                     if any([r is not None for _, r in mut_alns]):
                         invalid_flag |= c.ValidatorFlags.BAD_OP.value
-                    if read.query_sequence[mut_pos + 1:mut_pos + len(alt) + 1] != alt:  # type: ignore - can't be none
+                    # type: ignore - can't be none
+                    if read.query_sequence[mut_pos + 1:mut_pos + len(alt) + 1] != alt:
                         invalid_flag |= c.ValidatorFlags.NOT_ALT.value
     # DEL - doesn't check for matches before and after...
     if mut_type == 'D':
@@ -243,7 +245,15 @@ def is_variant_AL(
 def is_variant_HP(
     vstart: int,
     mut_reads: Iterable[pysam.AlignedSegment],
-    position_fraction_thresh: float = 0.15
+    edge_definition: float = 0.15,
+    edge_clustering_threshold: float = 0.9,
+    min_MAD_one_strand: int = 0,  # exclusive (and subsequent)
+    min_sd_one_strand: float = 4,
+    min_MAD_both_strand_weak: int = 2,
+    min_sd_both_strand_weak: float = 2,
+    min_MAD_both_strand_strong: int = 1,
+    min_sd_both_strand_strong: float = 10,
+    min_reads: int = 1  # inclusive
 ) -> c.HPFilter:
 
     hp_filt = c.HPFilter()
@@ -259,48 +269,50 @@ def is_variant_HP(
             # +1 to include last base in length
             la2m = read.query_alignment_end - mut_qpos + 1
             near_start_r.append(((la2m / read.query_alignment_length)
-                                 <= position_fraction_thresh))
+                                 <= edge_definition))
             la2ms_r.append(la2m)
         else:
             la2m = mut_qpos - read.query_alignment_start + 1
             near_start_f.append(((la2m / read.query_alignment_length)
-                                 <= position_fraction_thresh))
+                                 <= edge_definition))
             la2ms_f.append(la2m)
 
     # hairpin conditions from Ellis et al. 2020, Nature Protocols
     # sometimes reported as 2021
-    if len(la2ms_f) < 2 and len(la2ms_r) < 2:
+    if len(la2ms_f) <= min_reads and len(la2ms_r) <= min_reads:
         hp_filt.code = c.FiltCodes.INSUFFICIENT_READS.value
     else:
-        if len(la2ms_f) > 1:
-            range_f = max(la2ms_f) - min(la2ms_f)
+        if len(la2ms_f) > min_reads:
+            mad_f = max(la2ms_f) - min(la2ms_f)
             sd_f = stdev(la2ms_f)
-            if len(la2ms_r) < 2:
-                if (((sum(near_start_f) / len(near_start_f)) < 0.9) and
-                    range_f > 0 and
-                        sd_f > 4):
+            if len(la2ms_r) <= min_reads:
+                if (((sum(near_start_f) / len(near_start_f)) < edge_clustering_threshold) and
+                    mad_f > min_MAD_one_strand and
+                        sd_f > min_sd_one_strand):
                     hp_filt.code = c.FiltCodes.SIXTYAI.value  # 60A(i)
                 else:
                     hp_filt.code = c.FiltCodes.SIXTYAI.value
                     hp_filt.set()
-        if len(la2ms_r) > 1:
-            range_r = max(la2ms_r) - min(la2ms_r)
+        if len(la2ms_r) > min_reads:
+            mad_r = max(la2ms_r) - min(la2ms_r)
             sd_r = stdev(la2ms_r)
-            if len(la2ms_f) < 2:
-                if (((sum(near_start_r) / len(near_start_r)) < 0.9) and
-                    range_r > 0 and
-                        sd_r > 4):
+            if len(la2ms_f) <= min_reads:
+                if (((sum(near_start_r) / len(near_start_r)) < edge_clustering_threshold) and
+                    mad_r > min_MAD_one_strand and
+                        sd_r > min_sd_one_strand):
                     hp_filt.code = c.FiltCodes.SIXTYAI.value
                 else:
                     hp_filt.code = c.FiltCodes.SIXTYAI.value
                     hp_filt.set()
-        if len(la2ms_f) > 1 and len(la2ms_r) > 1:
+        if len(la2ms_f) > min_reads and len(la2ms_r) > min_reads:
             frac_lt_thresh = (sum(near_start_f + near_start_r)
                               / (len(near_start_f) + len(near_start_r)))
-            if (frac_lt_thresh < 0.9 or
-                (range_f > 2 and range_r > 2 and sd_f > 2 and sd_r > 2) or  # type: ignore
-                (range_f > 1 and sd_f > 10) or  # type: ignore
-                    (range_r > 1 and sd_r > 10)):  # type: ignore
+            if (frac_lt_thresh < edge_clustering_threshold or
+                # type: ignore
+                (mad_f > min_MAD_both_strand_weak and mad_r > min_MAD_both_strand_weak and sd_f > min_sd_both_strand_weak and sd_r > min_sd_both_strand_weak) or
+                # type: ignore
+                (mad_f > min_MAD_both_strand_strong and sd_f > min_sd_both_strand_strong) or
+                    (mad_r > min_MAD_both_strand_strong and sd_r > min_sd_both_strand_strong)):  # type: ignore
                 hp_filt.code = c.FiltCodes.SIXTYBI.value  # 60B(i)
             else:
                 hp_filt.code = c.FiltCodes.SIXTYBI.value
@@ -317,7 +329,15 @@ def test_record_all_alts(
     min_basequal: int,
     max_span: int,
     al_thresh: float,
-    position_fraction: float
+    edge_def: float,
+    edge_frac: float,
+    mos: int,
+    sos: float,
+    mbsw: int,
+    sbsw: float,
+    mbss: int,
+    sbss: float,
+    min_reads: int
 ) -> dict[str, c.Filters]:
 
     if vcf_rec.alts is None:
@@ -379,7 +399,15 @@ def test_record_all_alts(
                                                   al_thresh),
                                     is_variant_HP(vcf_rec.start,
                                                   alt_filt_reads,
-                                                  position_fraction))
+                                                  edge_def,
+                                                  edge_frac,
+                                                  mos,
+                                                  sos,
+                                                  mbsw,
+                                                  sbsw,
+                                                  mbss,
+                                                  sbss,
+                                                  min_reads))
     return filt_d
 
 
@@ -416,31 +444,64 @@ def main_cli() -> None:
                      choices=["s", "b", "c"],
                      type=str,
                      required=True)
-    opt = parser.add_argument_group('extended')
-    opt.add_argument('-al',
-                     '--al-filter-threshold',
-                     help='threshold for median of read alignment score per base of all relevant reads, below which a variant is flagged as ALF - default: 0.93, range: 0-',
-                     type=float)
-    opt.add_argument('-mc',
-                     '--min-clip-quality',
-                     help='discard reads with mean base quality of aligned bases below this value, if they have soft-clipped bases - default: 35, range: 0-93',
-                     type=int)
-    opt.add_argument('-mq',
-                     '--min-mapping-quality',
-                     help='discard reads with mapping quality below this value - default: 11, range: 0-60',
-                     type=int)
-    opt.add_argument('-mb',
-                     '--min-base-quality',
-                     help='discard reads with base quality at variant position below this value - default: 25, range: 0-93',
-                     type=int)
-    opt.add_argument('-ms',
-                     '--max-read-span',
-                     help='maximum +- position to use when detecting PCR duplicates. -1 will disable duplicate detection - default: 6, range: -1-',
-                     type=int)
-    opt.add_argument('-pf',
-                     '--position-fraction',
-                     help='>90%% of variant must occur within POSITION_FRACTION of read edges to allow HPF flag - default: 0.15, range: 0-1',
-                     type=float)
+    opt_rv = parser.add_argument_group('read validation')
+    opt_rv.add_argument('-mc',
+                        '--min-clip-quality',
+                        help='discard reads with mean base quality of aligned bases below this value, if they have soft-clipped bases - default: 35, range: 0-93, exclusive',
+                        type=int)
+    opt_rv.add_argument('-mq',
+                        '--min-mapping-quality',
+                        help='discard reads with mapping quality below this value - default: 11, range: 0-60, exclusive',
+                        type=int)
+    opt_rv.add_argument('-mb',
+                        '--min-base-quality',
+                        help='discard reads with base quality at variant position below this value - default: 25, range: 0-93, exclusive',
+                        type=int)
+    opt_rv.add_argument('-ms',
+                        '--max-read-span',
+                        help='maximum +- position to use when detecting PCR duplicates. -1 will disable duplicate detection - default: 6, range: -1-, inclusive',
+                        type=int)
+    opt_fc = parser.add_argument_group('filter conditions')
+    opt_fc.add_argument('-al',
+                        '--al-filter-threshold',
+                        help='ALF; threshold for median of read alignment score per base of all relevant reads, at and below which a variant is flagged as ALF - default: 0.93, range: 0-, inclusive',
+                        type=float)
+    opt_fc.add_argument('-ed',
+                        '--edge-definition',
+                        help='HPF; percentage of a read that is considered to be "the edge" for the purposes of assessing variant location distribution - default: 0.15, range: 0-0.99, inclusive',
+                        type=float)
+    opt_fc.add_argument('-ef',
+                        '--edge-fraction',
+                        help='HPF; percentage of variants must occur within EDGE_FRACTION of read edges to allow HPF flag - default: 0.15, range: 0-0.99, exclusive',
+                        type=float)
+    opt_fc.add_argument('-mos',
+                        '--min-MAD-one-strand',
+                        help='HPF; min range of distances between variant position and read start for valid reads when only one strand has sufficient valid reads for testing - default: 0, range: 0-, exclusive',
+                        type=int)
+    opt_fc.add_argument('-sos',
+                        '--min-sd-one-strand',
+                        help='HPF; min stdev of variant position and read start for valid reads when only one strand has sufficient valid reads for testing - default: 4, range: 0-, exclusive',
+                        type=float)
+    opt_fc.add_argument('-mbsw',
+                        '--min-MAD-both-strand-weak',
+                        help='HPF; min range of distances between variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -sbsw is true - default: 2, range: 0-, exclusive',
+                        type=int)
+    opt_fc.add_argument('-sbsw',
+                        '--min-sd-both-strand-weak',
+                        help='HPF; min stdev of variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -mbsw is true- default: 2, range: 0-, exclusive',
+                        type=float)
+    opt_fc.add_argument('-mbss',
+                        '--min-MAD-both-strand-strong',
+                        help='HPF; min range of distances between variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -sbss is true - default: 1, range: 0-, exclusive',
+                        type=int)
+    opt_fc.add_argument('-sbss',
+                        '--min-sd-both-strand-strong',
+                        help='HPF; min stdev of variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -mbss is true - default: 10, range: 0-, exclusive',
+                        type=float)
+    opt_fc.add_argument('-mr',
+                        '--min-reads',
+                        help='HPF; number of reads at and below which the hairpin filtering logic considers a strand to have insufficient reads for testing - default: 1, range: 0-',
+                        type=int)
     proc = parser.add_argument_group('procedural')
     proc.add_argument('-r',
                       '--cram-reference',
@@ -482,12 +543,19 @@ def main_cli() -> None:
                 setattr(args, k, c.DEFAULTS[k])
 
     # test args are sensible, exit if not
-    if not any([(args.al_filter_threshold >= 0),
-                (0 <= args.min_clip_quality <= 93),
+    if not any([(0 <= args.min_clip_quality <= 93),
                 (0 <= args.min_mapping_quality <= 60),
                 (0 <= args.min_base_quality <= 93),
-                (0 <= args.position_fraction <= 1),
-                (args.max_read_span >= -1)]):
+                (args.max_read_span >= -1),
+                (args.al_filter_threshold >= 0),
+                (0 <= args.edge_definition <= 0.99),
+                (0 <= args.edge_fraction <= 0.99),
+                (args.min_MAD_one_strand >= 0),
+                (args.min_sd_one_strand >= 0),
+                (args.min_MAD_both_strand_weak >= 0),
+                (args.min_sd_both_strand_weak >= 0),
+                (args.min_MAD_both_strand_strong >= 0),
+                (args.min_sd_both_strand_strong >= 0)]):
         h.cleanup(msg='extended arg out of range, check helptext for ranges')
 
     try:
@@ -523,8 +591,10 @@ def main_cli() -> None:
                 msg='failed to read alignment file at {}, reporting: {}'.format(path, e))
         # grab the sample name from first SM field
         # in header field RG
-        alignment_sample_name = alignment.header.to_dict()['RG'][0]['SM']  # type: ignore - program ensures not unbound
-        vcf_sample_to_alignment_map[alignment_sample_name] = alignment  # type: ignore - program ensures not unbound
+        # type: ignore - program ensures not unbound
+        alignment_sample_name = alignment.header.to_dict()['RG'][0]['SM']
+        # type: ignore - program ensures not unbound
+        vcf_sample_to_alignment_map[alignment_sample_name] = alignment
     if args.name_mapping:
         if len(args.name_mapping) > len(args.alignments):
             h.cleanup(msg="more name mappings than alignments provided")
@@ -601,7 +671,15 @@ def main_cli() -> None:
                 args.min_base_quality,
                 args.max_read_span,
                 args.al_filter_threshold,
-                args.position_fraction
+                args.edge_definition,
+                args.edge_fraction,
+                args.min_MAD_one_strand,
+                args.min_sd_one_strand,
+                args.min_MAD_both_strands_weak,
+                args.min_sd_both_strands_weak,
+                args.min_mad_both_strands_strong,
+                args.min_sd_both_strands_strong,
+                args.min_reads
             )
         except c.NoAlts:
             logging.warning('{0: <7}:{1: >12} ¦ no alts for this record'.format(

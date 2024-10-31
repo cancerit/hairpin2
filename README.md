@@ -70,29 +70,70 @@ mandatory:
                         format of alignment files; s indicates SAM, b
                         indicates BAM, and c indicates CRAM
 
-extended:
-  -al AL_FILTER_THRESHOLD, --al-filter-threshold AL_FILTER_THRESHOLD
-                        threshold for median of read alignment score per base
-                        of all relevant reads, below which a variant is
-                        flagged as ALF - default: 0.93, range: 0-
+read validation:
   -mc MIN_CLIP_QUALITY, --min-clip-quality MIN_CLIP_QUALITY
                         discard reads with mean base quality of aligned bases
                         below this value, if they have soft-clipped bases -
-                        default: 35, range: 0-93
+                        default: 35, range: 0-93, exclusive
   -mq MIN_MAPPING_QUALITY, --min-mapping-quality MIN_MAPPING_QUALITY
                         discard reads with mapping quality below this value -
-                        default: 11, range: 0-60
+                        default: 11, range: 0-60, exclusive
   -mb MIN_BASE_QUALITY, --min-base-quality MIN_BASE_QUALITY
                         discard reads with base quality at variant position
-                        below this value - default: 25, range: 0-93
+                        below this value - default: 25, range: 0-93, exclusive
   -ms MAX_READ_SPAN, --max-read-span MAX_READ_SPAN
                         maximum +- position to use when detecting PCR
                         duplicates. -1 will disable duplicate detection -
-                        default: 6, range: -1-
-  -pf POSITION_FRACTION, --position-fraction POSITION_FRACTION
-                        >90% of variant must occur within POSITION_FRACTION of
-                        read edges to allow HPF flag - default: 0.15, range:
-                        0-1
+                        default: 6, range: -1-, inclusive
+
+filter conditions:
+  -al AL_FILTER_THRESHOLD, --al-filter-threshold AL_FILTER_THRESHOLD
+                        ALF; threshold for median of read alignment score per
+                        base of all relevant reads, at and below which a
+                        variant is flagged as ALF - default: 0.93, range: 0-,
+                        inclusive
+  -ed EDGE_DEFINITION, --edge-definition EDGE_DEFINITION
+                        HPF; percentage of a read that is considered to be
+                        "the edge" for the purposes of assessing variant
+                        location distribution - default: 0.15, range: 0-0.99,
+                        inclusive
+  -ef EDGE_FRACTION, --edge-fraction EDGE_FRACTION
+                        HPF; percentage of variants must occur within
+                        EDGE_FRACTION of read edges to allow HPF flag -
+                        default: 0.15, range: 0-0.99, exclusive
+  -mos MIN_MAD_ONE_STRAND, --min-MAD-one-strand MIN_MAD_ONE_STRAND
+                        HPF; min range of distances between variant position
+                        and read start for valid reads when only one strand
+                        has sufficient valid reads for testing - default: 0,
+                        range: 0-, exclusive
+  -sos MIN_SD_ONE_STRAND, --min-sd-one-strand MIN_SD_ONE_STRAND
+                        HPF; min stdev of variant position and read start for
+                        valid reads when only one strand has sufficient valid
+                        reads for testing - default: 4, range: 0-, exclusive
+  -mbsw MIN_MAD_BOTH_STRAND_WEAK, --min-MAD-both-strand-weak MIN_MAD_BOTH_STRAND_WEAK
+                        HPF; min range of distances between variant position
+                        and read start for valid reads when both strands have
+                        sufficient valid reads for testing AND -sbsw is true -
+                        default: 2, range: 0-, exclusive
+  -sbsw MIN_SD_BOTH_STRAND_WEAK, --min-sd-both-strand-weak MIN_SD_BOTH_STRAND_WEAK
+                        HPF; min stdev of variant position and read start for
+                        valid reads when both strands have sufficient valid
+                        reads for testing AND -mbsw is true- default: 2,
+                        range: 0-, exclusive
+  -mbss MIN_MAD_BOTH_STRAND_STRONG, --min-mad-both-strand-strong MIN_MAD_BOTH_STRAND_STRONG
+                        HPF; min range of distances between variant position
+                        and read start for valid reads when both strands have
+                        sufficient valid reads for testing AND -sbss is true -
+                        default: 1, range: 0-, exclusive
+  -sbss MIN_SD_BOTH_STRAND_STRONG, --min-sd-both-strand-strong MIN_SD_BOTH_STRAND_STRONG
+                        HPF; min stdev of variant position and read start for
+                        valid reads when both strands have sufficient valid
+                        reads for testing AND -mbss is true - default: 10,
+                        range: 0-, exclusive
+  -mr MIN_READS, --min-reads MIN_READS
+                        HPF; number of reads at and below which the hairpin
+                        filtering logic considers a strand to have
+                        insufficient reads for testing - default: 1, range: 0-
 
 procedural:
   -r CRAM_REFERENCE, --cram-reference CRAM_REFERENCE
@@ -115,10 +156,9 @@ Parameters are hopefully mostly clear from the helptext, but some warrant furthe
 - --name-mapping – some variant callers, for example caveman, output sample names such as "TUMOUR" in VCF header columns. hairpin2 uses these column names to match to BAM samples via the SM tag - if these fields do not match, you'll need to provide a mapping here, for example "TUMOR:PD3738..."
 - --al-filter-threshold – the default value of 0.93 was arrived at by trial and error – since different aligners/platforms calculate alignment score differently, you may want to modify this value appropriately. In "Mathijs' Scripts", the default was set at 0.87 for filtering on ASRD.
 - --max-read-span – long homopolymer tracts can cause stuttering, where a PCR duplicate will have, for example, an additional A in a tract of As. These reads will align a base or two earlier on the reference genome than they should. As a result pcr duplicate flag machinery fails and they are not flagged as duplicates. `hairpin2` will attempt to filter out these duplicates, and MAX_READ_SPAN is then the maximum +- position to use during duplicate detection.
-- --position-fraction – cruciform artefacts usually contain segments that do not align to the reference genome, resulting in the segment being soft-clipped. The subsequent aligned portion will then contain false variants, which arise from the artefact. These false variants appear with anomalous regularity at alignment boundaries – unlike true variants. If, for a given variant, more than 90% of the variant bases are within POSITION_FRACTION of read edges, allow for calling HPF flag.
+- --edge-fraction – cruciform artefacts usually contain segments that do not align to the reference genome, resulting in the segment being soft-clipped. The subsequent aligned portion will then contain false variants, which arise from the artefact. These false variants appear with anomalous regularity at alignment boundaries – unlike true variants. If, for a given variant, more than 90% of the variant bases are within EDGE_FRACTION of read edges, allow for calling HPF flag.
 
-
-### DETAILS
+The parameters available for the HPF flag are probably best understood by reading the implementation of the function `is_variant_HP()` in `hairpin2/main.py`.
 
 The tool tests records in a VCF file and applies the `HPF` and `ALF` filter flags as appropriate. Reasoning for decisions is recorded in the INFO field of the VCF records, in the form `HPF=<alt>|<True/False>|<code>` and `ALF=<alt>|<True/False>|<code>|<median AS score>`. The codes are as follows:  
 
@@ -129,13 +169,13 @@ The tool tests records in a VCF file and applies the `HPF` and `ALF` filter flag
 > **4** – no samples have non 0,0 genotype for the record  
 
 The basic procedure of this implementation is as follows:  
->   For each record in the VCF, test every alt for that record by:  
->   1. retrieving reads from samples exhibiting the mutations
->   2. testing each read for validity for use in hairpin testing (i.e. base quality, do they express the correct alt, and so on)
+>   For each record in the VCF, test every alt for that record as follows:  
+>   1. for samples exhibiting the mutation, retrieve reads covering the region
+>   2. test each read for validity for use in hairpin testing (i.e. base quality, do they express the correct alt, and so on)
 >   3. performing statistical analysis on aggregates of the position of the mutation relative to the start and end of the aligned portion of the reads
 >   4. on the results of the statistical analysis, pass or fail the record for the filters `ALF` and `HPF`, and log a code and relevant info to the `INFO` field indicating the reason for the decision  
 
-The code has been written with the intention of clarity and extensibility – further understanding may be achieved by reading `hairpin2/main.py`.
+The code has been written with the intention of clarity and extensibility – again, further understanding may be achieved by reading `hairpin2/main.py`.
 
 
 ### TESTING
