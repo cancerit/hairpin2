@@ -497,7 +497,7 @@ def main_cli() -> None:
                         type=float)
     opt_fc.add_argument('-mr',
                         '--min-reads',
-                        help='ADF; number of reads at and below which the hairpin filtering logic considers a strand to have insufficient reads for testing - default: 1, range: 0-',
+                        help='ADF; number of reads at and below which the hairpin filtering logic considers a strand to have insufficient reads for testing - default: 1, range: 0-, inclusive',
                         type=int)
     proc = parser.add_argument_group('procedural')
     proc.add_argument('-r',

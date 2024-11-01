@@ -4,7 +4,7 @@
 
 `hairpin2` is designed to flag variants with anomalous distributions indicating that they are artefactual. Initially, it was concieved to flag possible cruciform artefacts for LCM sequence data, but the concept extends to other artefacts including artefactual indels. It operates on a VCF file containing one or more samples, and alignment files for all samples to be tested.
 
-Given a VCF, and BAM files for the samples of that VCF, return a VCF with variants flagged with `ADF` if they have anomalous distributions, and `ALF` if relevant reads have lower median alignment score per base than a specified threshold.
+Given a VCF, and BAM files for the samples of that VCF, return a VCF with variants flagged with `ADF` if variants have anomalous distributions indicating that they are likely to be artefactual, and `ALF` if relevant reads have lower median alignment score per base than a specified threshold.
 
 The `ALF` filter indicates variants which occur with poor signal-to-noise, and also provides additional confidence in the `ADF` filter – artefacts with anomalous distributions often cause a marked decrease in alignment score, as is the case for cruciform artefacts.
 
@@ -133,7 +133,7 @@ filter conditions:
   -mr MIN_READS, --min-reads MIN_READS
                         ADF; number of reads at and below which the hairpin
                         filtering logic considers a strand to have
-                        insufficient reads for testing - default: 1, range: 0-
+                        insufficient reads for testing - default: 1, range: 0-, inclusive
 
 procedural:
   -r CRAM_REFERENCE, --cram-reference CRAM_REFERENCE
@@ -154,7 +154,7 @@ procedural:
 Parameters are hopefully mostly clear from the helptext, but some warrant further explanation:
 
 - --name-mapping – some variant callers, for example caveman, output sample names such as "TUMOUR" in VCF header columns. hairpin2 uses these column names to match to BAM samples via the SM tag - if these fields do not match, you'll need to provide a mapping here, for example "TUMOR:PD3738..."
-- --al-filter-threshold – the default value of 0.93 was arrived at by trial and error – since different aligners/platforms calculate alignment score differently, you may want to modify this value appropriately. In "Mathijs' Scripts", the default was set at 0.87 for filtering on ASRD.
+- --al-filter-threshold – the default value of 0.93 was arrived at by trial and error – since different aligners/platforms calculate alignment score differently, you may want to modify this value appropriately. In past implementations, where this value was known as `ASRD`, the default was set at 0.87.
 - --max-read-span – long homopolymer tracts can cause stuttering, where a PCR duplicate will have, for example, an additional A in a tract of As. These reads will align a base or two earlier on the reference genome than they should. As a result pcr duplicate flag machinery fails and they are not flagged as duplicates. `hairpin2` will attempt to filter out these duplicates, and MAX_READ_SPAN is then the maximum +- position to use during duplicate detection.
 
 The parameters available for the ADF flag are probably best understood by reading the implementation of the function `is_variant_AD()` in `hairpin2/main.py`.
