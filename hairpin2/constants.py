@@ -35,9 +35,10 @@ DEFAULTS: dict[str, int | float] = dict((('al_filter_threshold', 0.93),
                                          ('min_MAD_one_strand', 0),
                                          ('min_sd_one_strand', 4),
                                          ('min_MAD_both_strand_weak', 2),
-                                         ('min_sd_both_strand_strong', 2),
+                                         ('min_sd_both_strand_weak', 2),
                                          ('min_MAD_both_strand_strong', 1),
-                                         ('min_sd_both_strand_strong', 10)))
+                                         ('min_sd_both_strand_strong', 10),
+                                         ('min_reads', 1)))
 
 FiltCodes = IntEnum('FiltCodes',
                     ['SIXTYAI',

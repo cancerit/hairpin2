@@ -555,7 +555,8 @@ def main_cli() -> None:
                 (args.min_MAD_both_strand_weak >= 0),
                 (args.min_sd_both_strand_weak >= 0),
                 (args.min_MAD_both_strand_strong >= 0),
-                (args.min_sd_both_strand_strong >= 0)]):
+                (args.min_sd_both_strand_strong >= 0),
+                (args.min_reads >= 0)]):
         h.cleanup(msg='extended arg out of range, check helptext for ranges')
 
     try:
@@ -675,10 +676,10 @@ def main_cli() -> None:
                 args.edge_fraction,
                 args.min_MAD_one_strand,
                 args.min_sd_one_strand,
-                args.min_MAD_both_strands_weak,
-                args.min_sd_both_strands_weak,
-                args.min_mad_both_strands_strong,
-                args.min_sd_both_strands_strong,
+                args.min_MAD_both_strand_weak,
+                args.min_sd_both_strand_weak,
+                args.min_MAD_both_strand_strong,
+                args.min_sd_both_strand_strong,
                 args.min_reads
             )
         except c.NoAlts:
