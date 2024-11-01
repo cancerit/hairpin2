@@ -121,30 +121,27 @@ def flag_read_alt(
                     # type: ignore - can't be none
                     if read.query_sequence[mut_pos + 1:mut_pos + len(alt) + 1] != alt:
                         invalid_flag |= c.ValidatorFlags.NOT_ALT.value
-    # DEL - doesn't check for matches before and after...
+    # DEL
     if mut_type == 'D':
-        rng = list(range(vcf_start, vcf_stop))
+        rng = list(range(vcf_start - 1, vcf_stop + 1))
         mut_alns = [q
                     for q, r
                     in read.get_aligned_pairs()
                     if r in rng]
         if len(mut_alns) != len(rng):
             invalid_flag |= c.ValidatorFlags.SHORT.value
-        if any([x is not None for x in mut_alns]):
-            invalid_flag |= c.ValidatorFlags.BAD_OP.value
+        if (any([x is not None for x in mut_alns[1:-1]]) or
+            any([x is None for x in [mut_alns[0], mut_alns[-1]]])):
+                invalid_flag |= c.ValidatorFlags.BAD_OP.value
 
     return invalid_flag
 
 
-# detect PCR duplicates previously missed due to (hairpin) artefacts
+# detect PCR duplicates previously missed due to slippage
 # this implementation assumes that sorting on first element of each sublist
 # is appropriate, per Peter's initial implementation.
 # is an all against all comparison between all read lists more appropriate?
 # and between pairs of readlists, why is comparing sorted pairs most appropriate?
-# again, does all against all make more sense?
-# (if so, maybe two pointer comparison?)
-# it bothers me that it matters where in the chain this occurs
-# with more reads it's more likely they'll cluster as dupes right?
 def get_hidden_PCRdup_indices(
     readpair_ends: list[list[int]],
     max_span: int
@@ -242,7 +239,7 @@ def is_variant_AL(
 # per Peter's implementation
 # can set hairpin for mutations nowhere near alignment start
 # expose more ellis conditions as parameters?
-def is_variant_HP(
+def is_variant_AD(
     vstart: int,
     mut_reads: Iterable[pysam.AlignedSegment],
     edge_definition: float = 0.15,
@@ -254,9 +251,9 @@ def is_variant_HP(
     min_MAD_both_strand_strong: int = 1,
     min_sd_both_strand_strong: float = 10,
     min_reads: int = 1  # inclusive
-) -> c.HPFilter:
+) -> c.ADFilter:
 
-    hp_filt = c.HPFilter()
+    ad_filt = c.ADFilter()
     # *l*engths of *a*lignment starts *to* *m*utant query positions
     la2ms_f: list[int] = []
     la2ms_r: list[int] = []
@@ -280,7 +277,7 @@ def is_variant_HP(
     # hairpin conditions from Ellis et al. 2020, Nature Protocols
     # sometimes reported as 2021
     if len(la2ms_f) <= min_reads and len(la2ms_r) <= min_reads:
-        hp_filt.code = c.FiltCodes.INSUFFICIENT_READS.value
+        ad_filt.code = c.FiltCodes.INSUFFICIENT_READS.value
     else:
         if len(la2ms_f) > min_reads:
             mad_f = max(la2ms_f) - min(la2ms_f)
@@ -289,10 +286,10 @@ def is_variant_HP(
                 if (((sum(near_start_f) / len(near_start_f)) < edge_clustering_threshold) and
                     mad_f > min_MAD_one_strand and
                         sd_f > min_sd_one_strand):
-                    hp_filt.code = c.FiltCodes.SIXTYAI.value  # 60A(i)
+                    ad_filt.code = c.FiltCodes.SIXTYAI.value  # 60A(i)
                 else:
-                    hp_filt.code = c.FiltCodes.SIXTYAI.value
-                    hp_filt.set()
+                    ad_filt.code = c.FiltCodes.SIXTYAI.value
+                    ad_filt.set()
         if len(la2ms_r) > min_reads:
             mad_r = max(la2ms_r) - min(la2ms_r)
             sd_r = stdev(la2ms_r)
@@ -300,10 +297,10 @@ def is_variant_HP(
                 if (((sum(near_start_r) / len(near_start_r)) < edge_clustering_threshold) and
                     mad_r > min_MAD_one_strand and
                         sd_r > min_sd_one_strand):
-                    hp_filt.code = c.FiltCodes.SIXTYAI.value
+                    ad_filt.code = c.FiltCodes.SIXTYAI.value
                 else:
-                    hp_filt.code = c.FiltCodes.SIXTYAI.value
-                    hp_filt.set()
+                    ad_filt.code = c.FiltCodes.SIXTYAI.value
+                    ad_filt.set()
         if len(la2ms_f) > min_reads and len(la2ms_r) > min_reads:
             frac_lt_thresh = (sum(near_start_f + near_start_r)
                               / (len(near_start_f) + len(near_start_r)))
@@ -313,12 +310,12 @@ def is_variant_HP(
                 # type: ignore
                 (mad_f > min_MAD_both_strand_strong and sd_f > min_sd_both_strand_strong) or
                     (mad_r > min_MAD_both_strand_strong and sd_r > min_sd_both_strand_strong)):  # type: ignore
-                hp_filt.code = c.FiltCodes.SIXTYBI.value  # 60B(i)
+                ad_filt.code = c.FiltCodes.SIXTYBI.value  # 60B(i)
             else:
-                hp_filt.code = c.FiltCodes.SIXTYBI.value
-                hp_filt.set()
+                ad_filt.code = c.FiltCodes.SIXTYBI.value
+                ad_filt.set()
 
-    return hp_filt
+    return ad_filt
 
 
 def test_record_all_alts(
@@ -393,11 +390,11 @@ def test_record_all_alts(
                                                 min_basequal)
         if len(alt_filt_reads) == 0:
             filt_d[alt] = c.Filters(c.ALFilter(code=c.FiltCodes.INSUFFICIENT_READS.value),
-                                    c.HPFilter(code=c.FiltCodes.INSUFFICIENT_READS.value))
+                                    c.ADFilter(code=c.FiltCodes.INSUFFICIENT_READS.value))
         else:
             filt_d[alt] = c.Filters(is_variant_AL(alt_filt_reads,
                                                   al_thresh),
-                                    is_variant_HP(vcf_rec.start,
+                                    is_variant_AD(vcf_rec.start,
                                                   alt_filt_reads,
                                                   edge_def,
                                                   edge_frac,
@@ -468,39 +465,39 @@ def main_cli() -> None:
                         type=float)
     opt_fc.add_argument('-ed',
                         '--edge-definition',
-                        help='HPF; percentage of a read that is considered to be "the edge" for the purposes of assessing variant location distribution - default: 0.15, range: 0-0.99, inclusive',
+                        help='ADF; percentage of a read that is considered to be "the edge" for the purposes of assessing variant location distribution - default: 0.15, range: 0-0.99, inclusive',
                         type=float)
     opt_fc.add_argument('-ef',
                         '--edge-fraction',
-                        help='HPF; percentage of variants must occur within EDGE_FRACTION of read edges to allow HPF flag - default: 0.15, range: 0-0.99, exclusive',
+                        help='ADF; percentage of variants must occur within EDGE_FRACTION of read edges to allow ADF flag - default: 0.15, range: 0-0.99, exclusive',
                         type=float)
     opt_fc.add_argument('-mos',
                         '--min-MAD-one-strand',
-                        help='HPF; min range of distances between variant position and read start for valid reads when only one strand has sufficient valid reads for testing - default: 0, range: 0-, exclusive',
+                        help='ADF; min range of distances between variant position and read start for valid reads when only one strand has sufficient valid reads for testing - default: 0, range: 0-, exclusive',
                         type=int)
     opt_fc.add_argument('-sos',
                         '--min-sd-one-strand',
-                        help='HPF; min stdev of variant position and read start for valid reads when only one strand has sufficient valid reads for testing - default: 4, range: 0-, exclusive',
+                        help='ADF; min stdev of variant position and read start for valid reads when only one strand has sufficient valid reads for testing - default: 4, range: 0-, exclusive',
                         type=float)
     opt_fc.add_argument('-mbsw',
                         '--min-MAD-both-strand-weak',
-                        help='HPF; min range of distances between variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -sbsw is true - default: 2, range: 0-, exclusive',
+                        help='ADF; min range of distances between variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -sbsw is true - default: 2, range: 0-, exclusive',
                         type=int)
     opt_fc.add_argument('-sbsw',
                         '--min-sd-both-strand-weak',
-                        help='HPF; min stdev of variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -mbsw is true- default: 2, range: 0-, exclusive',
+                        help='ADF; min stdev of variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -mbsw is true- default: 2, range: 0-, exclusive',
                         type=float)
     opt_fc.add_argument('-mbss',
                         '--min-MAD-both-strand-strong',
-                        help='HPF; min range of distances between variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -sbss is true - default: 1, range: 0-, exclusive',
+                        help='ADF; min range of distances between variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -sbss is true - default: 1, range: 0-, exclusive',
                         type=int)
     opt_fc.add_argument('-sbss',
                         '--min-sd-both-strand-strong',
-                        help='HPF; min stdev of variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -mbss is true - default: 10, range: 0-, exclusive',
+                        help='ADF; min stdev of variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -mbss is true - default: 10, range: 0-, exclusive',
                         type=float)
     opt_fc.add_argument('-mr',
                         '--min-reads',
-                        help='HPF; number of reads at and below which the hairpin filtering logic considers a strand to have insufficient reads for testing - default: 1, range: 0-',
+                        help='ADF; number of reads at and below which the hairpin filtering logic considers a strand to have insufficient reads for testing - default: 1, range: 0-',
                         type=int)
     proc = parser.add_argument_group('procedural')
     proc.add_argument('-r',
@@ -636,10 +633,10 @@ def main_cli() -> None:
     out_head = vcf_in_handle.header  # type:ignore
     out_head.add_line("##FILTER=<ID=ALF,Description=\"Median alignment score of reads reporting variant less than {}, using samples {}\">".format(
         args.al_filter_threshold, ', '.join(vcf_sample_to_alignment_map.keys())))
-    out_head.add_line("##FILTER=<ID=HPF,Description=\"Variant arises from hairpin artefact, using samples {}\">".format(
+    out_head.add_line("##FILTER=<ID=ADF,Description=\"Variant arises from hairpin artefact, using samples {}\">".format(
         ', '.join(vcf_sample_to_alignment_map.keys())))
     out_head.add_line(
-        "##INFO=<ID=HPF,Number=1,Type=String,Description=\"alt|code for each alt indicating hairpin filter decision code\">")
+        "##INFO=<ID=ADF,Number=1,Type=String,Description=\"alt|code for each alt indicating hairpin filter decision code\">")
     out_head.add_line(
         "##INFO=<ID=ALF,Number=1,Type=String,Description=\"alt|code|score for each alt indicating AL filter conditions\">")
 

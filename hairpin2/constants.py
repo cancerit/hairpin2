@@ -96,8 +96,8 @@ class FilterData:
 
 
 @d.dataclass
-class HPFilter(FilterData):
-    name: str = d.field(default='HPF')
+class ADFilter(FilterData):
+    name: str = d.field(default='ADF')
 
 
 @d.dataclass
@@ -109,7 +109,7 @@ class ALFilter(FilterData):
 @d.dataclass
 class Filters:
     AL: ALFilter
-    HP: HPFilter
+    HP: ADFilter
 
     def __iter__(self):
         return (getattr(self, field.name) for field in d.fields(self))
