@@ -6,7 +6,7 @@
 
 Given a VCF, and BAM files for the samples of that VCF, return a VCF with variants flagged with `ADF` if they have anomalous distributions, and `ALF` if relevant reads have lower median alignment score per base than a specified threshold.
 
-The `ALF` filter indicates poor signal-to-noise, and provides additional confidence in the `ADF` filter – artefacts with anomalous distributions usually cause a marked decrease in alignment score. The `ALF` flag also may appear on variants without `ADF`, often indicating other artefacts associated with poor signal-to-noise.
+The `ALF` filter indicates variants which occur with poor signal-to-noise, and also provides additional confidence in the `ADF` filter – artefacts with anomalous distributions often cause a marked decrease in alignment score, as is the case for cruciform artefacts.
 
 
 ### DEPENDENCIES
