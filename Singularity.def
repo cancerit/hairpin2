@@ -1,0 +1,19 @@
+Bootstrap: docker
+From: python:3.12-slim
+
+%files
+. hairpin2/
+
+%post
+pip install --root-user-action ignore hairpin2/
+
+%test
+	LOC=$(which hairpin2)
+	if [ -z "$LOC"]; then
+		echo "hairpin install failed"
+	else
+		echo "hairpin install successful"
+	fi
+
+%runscript
+	exec hairpin2 "$@"

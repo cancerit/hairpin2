@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "hairpin2"
+version = "1.0.0"
+description = "CLI implementation of the artefact detection algorithm concieved by Ellis et al, 2020."
+authors = ["Alex Byrne <ab63@sanger.ac.uk>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pysam = "^0.22"
+
+[tool.poetry.plugins."console_scripts"]
+hairpin2 = "hairpin2.main:main_cli"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.2.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+markers = [
+  "validate: scientific validation tests"
+]
