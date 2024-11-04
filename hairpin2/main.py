@@ -22,7 +22,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
 import pysam
 from hairpin2 import ref2seq as r2s, constants as c, helpers as h
 import hairpin2
@@ -128,7 +127,7 @@ def flag_read_alt(
                         invalid_flag |= c.ValidatorFlags.NOT_ALT.value
     # DEL
     if mut_type == 'D':
-        rng = list(range(vcf_start - 1, vcf_stop + 1))
+        rng = list(range(vcf_start, vcf_stop + 1))
         mut_alns = [q
                     for q, r
                     in read.get_aligned_pairs()
@@ -377,7 +376,8 @@ def test_record_all_alts(
         if (vcf_rec.rlen == len(alt)
                 and set(alt).issubset(set(['A', 'C', 'T', 'G', 'N', '*']))):
             mut_type = 'S'
-        elif len(alt) < vcf_rec.rlen or alt == '.':  # DEL - DOES NOT SUPPORT <DEL> TYPE IDS
+        elif (len(alt) < vcf_rec.rlen
+                and set(alt).issubset(set(['A', 'C', 'T', 'G', 'N', '*']))):  # DEL - DOES NOT SUPPORT <DEL> TYPE IDS OR .
             mut_type = 'D'
         elif (vcf_rec.rlen == 1
                 and set(alt).issubset(set(['A', 'C', 'T', 'G', 'N', '*']))):  # INS - DOES NOT SUPPORT <INS> TYPE IDS
