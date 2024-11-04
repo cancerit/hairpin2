@@ -2,11 +2,11 @@
 
 `hairpin2` – CLI implementation of the hairpin detection algorithm concieved by [Ellis et al, 2020](https://www.nature.com/articles/s41596-020-00437-6).
 
-`hairpin2` is designed to flag variants as possible cruciform artefacts. It operates on a VCF file containing one or more samples, and alignment files for all samples to be tested.
+`hairpin2` is designed to flag variants with anomalous distributions indicating that they are artefactual. Initially, it was concieved to flag possible cruciform artefacts for LCM sequence data, but the concept has been extended to other artefacts including artefactual indels. It operates on a VCF file containing one or more samples, and alignment files for all samples to be tested.
 
-Given a VCF, and BAM files for the samples of that VCF, return a VCF with variants flagged with `HPF` if they are suspected cruciform artefacts, and `ALF` if relevant reads have lower median alignment score per base than a specified threshold.
+Given a VCF, and BAM files for the samples of that VCF, return a VCF with variants flagged with `ADF` if variants have anomalous distributions indicating that they are likely to be artefactual, and `ALF` if relevant reads have lower median alignment score per base than a specified threshold.
 
-The `ALF` filter indicates poor signal-to-noise, and provides additional confidence in the `HPF` filter – cruciform artefacts usually cause a marked decrease in alignment score. The `ALF` flag also may appear on variants without `HPF`, often indicating other artefacts associated with poor signal-to-noise.
+The `ALF` filter indicates variants which occur with poor signal-to-noise, and also provides additional confidence in the `ADF` filter – artefacts with anomalous distributions often cause a marked decrease in alignment score, as is the case for cruciform artefacts.
 
 
 ### DEPENDENCIES
@@ -35,9 +35,9 @@ export PATH=${PATH}:${INST_PATH}/bin
 hairpin -h
 ```
 
-### ASSUMPTIONS
+### ASSUMPTIONS & LIMITATIONS
 
-`hairpin2` is designed for paired data where alignment records have the `MC` tag and the complete CIGAR string is present in the `CIGAR` field (rather than the `CG:B,I` tag). If the `MC` tag is not present in your data, it can be added using `samtools fixmate` or `biobambam2 bamsormadup`. No further assumptions are made – other alignment tags and VCF fields are used, however they are mandatory per the relevant format specifications.
+`hairpin2` is designed for paired data where alignment records have the `MC` tag and the complete CIGAR string is present in the `CIGAR` field (rather than the `CG:B,I` tag). If the `MC` tag is not present in your data, it can be added using `samtools fixmate` or `biobambam2 bamsormadup`. The tool can handle substitions, insertions, and deletions formatted per the VCF specification. At this time, the tool will not investigate mutations notated with angle brackets, e.g. `<DEL>`, complex mutations, or monomorphic reference. No further assumptions are made – other alignment tags and VCF fields are used, however they are mandatory per the relevant format specifications. If these requirements are limiting and you need the tool to be extended in some way, please request it.
 
 
 ### USAGE
@@ -70,29 +70,70 @@ mandatory:
                         format of alignment files; s indicates SAM, b
                         indicates BAM, and c indicates CRAM
 
-extended:
-  -al AL_FILTER_THRESHOLD, --al-filter-threshold AL_FILTER_THRESHOLD
-                        threshold for median of read alignment score per base
-                        of all relevant reads, below which a variant is
-                        flagged as ALF - default: 0.93, range: 0-
+read validation:
   -mc MIN_CLIP_QUALITY, --min-clip-quality MIN_CLIP_QUALITY
                         discard reads with mean base quality of aligned bases
                         below this value, if they have soft-clipped bases -
-                        default: 35, range: 0-93
+                        default: 35, range: 0-93, exclusive
   -mq MIN_MAPPING_QUALITY, --min-mapping-quality MIN_MAPPING_QUALITY
                         discard reads with mapping quality below this value -
-                        default: 11, range: 0-60
+                        default: 11, range: 0-60, exclusive
   -mb MIN_BASE_QUALITY, --min-base-quality MIN_BASE_QUALITY
                         discard reads with base quality at variant position
-                        below this value - default: 25, range: 0-93
+                        below this value - default: 25, range: 0-93, exclusive
   -ms MAX_READ_SPAN, --max-read-span MAX_READ_SPAN
                         maximum +- position to use when detecting PCR
                         duplicates. -1 will disable duplicate detection -
-                        default: 6, range: -1-
-  -pf POSITION_FRACTION, --position-fraction POSITION_FRACTION
-                        >90% of variant must occur within POSITION_FRACTION of
-                        read edges to allow HPF flag - default: 0.15, range:
-                        0-1
+                        default: 6, range: -1-, inclusive
+
+filter conditions:
+  -al AL_FILTER_THRESHOLD, --al-filter-threshold AL_FILTER_THRESHOLD
+                        ALF; threshold for median of read alignment score per
+                        base of all relevant reads, at and below which a
+                        variant is flagged as ALF - default: 0.93, range: 0-,
+                        inclusive
+  -ed EDGE_DEFINITION, --edge-definition EDGE_DEFINITION
+                        ADF; percentage of a read that is considered to be
+                        "the edge" for the purposes of assessing variant
+                        location distribution - default: 0.15, range: 0-0.99,
+                        inclusive
+  -ef EDGE_FRACTION, --edge-fraction EDGE_FRACTION
+                        ADF; percentage of variants must occur within
+                        EDGE_FRACTION of read edges to allow ADF flag -
+                        default: 0.15, range: 0-0.99, exclusive
+  -mos MIN_MAD_ONE_STRAND, --min-MAD-one-strand MIN_MAD_ONE_STRAND
+                        ADF; min range of distances between variant position
+                        and read start for valid reads when only one strand
+                        has sufficient valid reads for testing - default: 0,
+                        range: 0-, exclusive
+  -sos MIN_SD_ONE_STRAND, --min-sd-one-strand MIN_SD_ONE_STRAND
+                        ADF; min stdev of variant position and read start for
+                        valid reads when only one strand has sufficient valid
+                        reads for testing - default: 4, range: 0-, exclusive
+  -mbsw MIN_MAD_BOTH_STRAND_WEAK, --min-MAD-both-strand-weak MIN_MAD_BOTH_STRAND_WEAK
+                        ADF; min range of distances between variant position
+                        and read start for valid reads when both strands have
+                        sufficient valid reads for testing AND -sbsw is true -
+                        default: 2, range: 0-, exclusive
+  -sbsw MIN_SD_BOTH_STRAND_WEAK, --min-sd-both-strand-weak MIN_SD_BOTH_STRAND_WEAK
+                        ADF; min stdev of variant position and read start for
+                        valid reads when both strands have sufficient valid
+                        reads for testing AND -mbsw is true- default: 2,
+                        range: 0-, exclusive
+  -mbss MIN_MAD_BOTH_STRAND_STRONG, --min-mad-both-strand-strong MIN_MAD_BOTH_STRAND_STRONG
+                        ADF; min range of distances between variant position
+                        and read start for valid reads when both strands have
+                        sufficient valid reads for testing AND -sbss is true -
+                        default: 1, range: 0-, exclusive
+  -sbss MIN_SD_BOTH_STRAND_STRONG, --min-sd-both-strand-strong MIN_SD_BOTH_STRAND_STRONG
+                        ADF; min stdev of variant position and read start for
+                        valid reads when both strands have sufficient valid
+                        reads for testing AND -mbss is true - default: 10,
+                        range: 0-, exclusive
+  -mr MIN_READS, --min-reads MIN_READS
+                        ADF; number of reads at and below which the hairpin
+                        filtering logic considers a strand to have
+                        insufficient reads for testing - default: 1, range: 0-, inclusive
 
 procedural:
   -r CRAM_REFERENCE, --cram-reference CRAM_REFERENCE
@@ -113,34 +154,32 @@ procedural:
 Parameters are hopefully mostly clear from the helptext, but some warrant further explanation:
 
 - --name-mapping – some variant callers, for example caveman, output sample names such as "TUMOUR" in VCF header columns. hairpin2 uses these column names to match to BAM samples via the SM tag - if these fields do not match, you'll need to provide a mapping here, for example "TUMOR:PD3738..."
-- --al-filter-threshold – the default value of 0.93 was arrived at by trial and error – since different aligners/platforms calculate alignment score differently, you may want to modify this value appropriately. In "Mathijs' Scripts", the default was set at 0.87 for filtering on ASRD.
+- --al-filter-threshold – the default value of 0.93 was arrived at by trial and error – since different aligners/platforms calculate alignment score differently, you may want to modify this value appropriately. In past implementations, where this value was known as `ASRD`, the default was set at 0.87.
 - --max-read-span – long homopolymer tracts can cause stuttering, where a PCR duplicate will have, for example, an additional A in a tract of As. These reads will align a base or two earlier on the reference genome than they should. As a result pcr duplicate flag machinery fails and they are not flagged as duplicates. `hairpin2` will attempt to filter out these duplicates, and MAX_READ_SPAN is then the maximum +- position to use during duplicate detection.
-- --position-fraction – cruciform artefacts usually contain segments that do not align to the reference genome, resulting in the segment being soft-clipped. The subsequent aligned portion will then contain false variants, which arise from the artefact. These false variants appear with anomalous regularity at alignment boundaries – unlike true variants. If, for a given variant, more than 90% of the variant bases are within POSITION_FRACTION of read edges, allow for calling HPF flag.
 
+The parameters available for the ADF flag are probably best understood by reading the implementation of the function `is_variant_AD()` in `hairpin2/main.py`.
 
-### DETAILS
+The tool tests records in a VCF file and applies the `ADF` and `ALF` filter flags as appropriate. Reasoning for decisions is recorded in the INFO field of the VCF records, in the form `ADF=<alt>|<True/False>|<code>` and `ALF=<alt>|<True/False>|<code>|<median AS score>`. The codes are as follows:  
 
-The tool tests records in a VCF file and applies the `HPF` and `ALF` filter flags as appropriate. Reasoning for decisions is recorded in the INFO field of the VCF records, in the form `HPF=<alt>|<True/False>|<code>` and `ALF=<alt>|<True/False>|<code>|<median AS score>`. The codes are as follows:  
-
-> **0** – passed/failed on condition 60A(i) of Ellis et al. (`HPF` only)  
-> **1** – passed/failed on condition 60B(i) of Ellis et al. (`HPF` only)  
+> **0** – passed/failed on condition 60A(i) of Ellis et al. (`ADF` only)  
+> **1** – passed/failed on condition 60B(i) of Ellis et al. (`ADF` only)  
 > **2** – passed/failed on filter threshold (`ALF` only)  
 > **3** – insufficient appropriate reads to support calling flag – this covers a lot of possiblities, if more granularity is desired, please request it  
 > **4** – no samples have non 0,0 genotype for the record  
 
 The basic procedure of this implementation is as follows:  
->   For each record in the VCF, test every alt for that record by:  
->   1. retrieving reads from samples exhibiting the mutations
->   2. testing each read for validity for use in hairpin testing (i.e. base quality, do they express the correct alt, and so on)
+>   For each record in the VCF, test every alt for that record as follows:  
+>   1. for samples exhibiting the mutation, retrieve reads covering the region
+>   2. test each read for validity for use in distribution testing (i.e. base quality, do they express the correct alt, and so on)
 >   3. performing statistical analysis on aggregates of the position of the mutation relative to the start and end of the aligned portion of the reads
->   4. on the results of the statistical analysis, pass or fail the record for the filters `ALF` and `HPF`, and log a code and relevant info to the `INFO` field indicating the reason for the decision  
+>   4. on the results of the statistical analysis, pass or fail the record for the filters `ALF` and `ADF`, and log a code and relevant info to the `INFO` field indicating the reason for the decision  
 
-The code has been written with the intention of clarity and extensibility – further understanding may be achieved by reading `hairpin2/main.py`.
+The code has been written with the intention of clarity and extensibility – again, further understanding may be achieved by reading `hairpin2/main.py`.
 
 
 ### TESTING
 
-A test suite has been provided to prove the validity of the algorithm. To run these tests run `pytest -m "validate"` from within the install directory. `hairpin2` must have been installed from that same directory, and be available on path. The tests can be found in the `test` directory. They are simple, and, once you have read them, it should be very easy to add your own further tests should you want to confirm any behaviour.
+A test suite has been provided to prove the validity of the algorithm, i.e. to prove that it does what it claims to do. To run these tests run `pytest -m "validate"` from within the install directory. `hairpin2` must have been installed from that same directory, and be available on path (for example in a virtual environment). The tests can be found in the `test` directory. The basic premise is that of basis path testing. This approach means the focus is on testing all nodes (statements) and edges (paths between statements), rather than trying every possible input combination. Since all input possibilities will pass via the same network/graph, if we prove that each part of that network functions correctly, we can be sure that the program functions as it claims to. The tests are simple, and, once you have read them, it should be very easy to add your own further tests should you feel the need to further confirm any behaviour.
 
 
 ### LICENCE
@@ -152,16 +191,21 @@ Copyright (C) 2024 Genome Research Ltd.
 
 Author: Alex Byrne <ab63@sanger.ac.uk>
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Affero General Public License for more details.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-You should have received a copy of the GNU Affero General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 ```

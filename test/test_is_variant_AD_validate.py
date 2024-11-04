@@ -22,7 +22,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from hairpin2.main import is_variant_AL
+from hairpin2.main import is_variant_AD
 from hairpin2 import constants as c
 import pysam
 import pytest
@@ -47,26 +47,63 @@ r.set_tag('MC', '100M')
 
 
 @pytest.mark.validate
-def test_path_AL_true_code_2():
-    expected = c.ALFilter(flag=True, code=2, avg_as=0.5)
-    s1r1 = copy.deepcopy(r)  # no AS, cover except KeyError
-    s1r2 = copy.deepcopy(r)
-    s1r2.set_tag('AS', 50)  # low AS
-    result = is_variant_AL([s1r1, s1r2])
+def test_path_insufficient_reads():
+    expected = c.ADFilter(code=3)
+    result = is_variant_AD(0, [])
     assert expected == result
 
 
 @pytest.mark.validate
-def test_path_AL_false_code_2():
-    expected = c.ALFilter(flag=False, code=2, avg_as=0.99)
-    s1r1 = copy.deepcopy(r)
-    s1r1.set_tag('AS', 99)  # high AS
-    result = is_variant_AL([s1r1])
+def test_path_f_60ai_set():
+    expected = c.ADFilter(flag=True, code=0)
+    result = is_variant_AD(150, [r, r])
     assert expected == result
 
 
 @pytest.mark.validate
-def test_path_AL_false_code_3():
-    expected = c.ALFilter(code=3)
-    result = is_variant_AL([])
+def test_path_f_60ai_noset():
+    expected = c.ADFilter(code=0)
+    r1 = copy.deepcopy(r)
+    r1.reference_start = 90
+    result = is_variant_AD(150, [r, r1])
+    assert expected == result
+
+
+@pytest.mark.validate
+def test_path_r_60ai_set():
+    expected = c.ADFilter(flag=True, code=0)
+    rr = copy.deepcopy(r)
+    rr.flag = rr.flag | 0x10
+    result = is_variant_AD(150, [rr, rr])
+    assert expected == result
+
+
+@pytest.mark.validate
+def test_path_r_60ai_noset():
+    expected = c.ADFilter(code=0)
+    rr = copy.deepcopy(r)
+    rr.flag = rr.flag | 0x10
+    rr1 = copy.deepcopy(rr)
+    rr1.reference_start = 90
+    result = is_variant_AD(150, [rr, rr1])
+    assert expected == result
+
+
+@pytest.mark.validate
+def test_path_60bi_set():
+    expected = c.ADFilter(flag=True, code=1)
+    r1 = copy.deepcopy(r)
+    r1.reference_start = 190
+    rr = copy.deepcopy(r)
+    rr.flag = rr.flag | 0x10
+    result = is_variant_AD(198, [r1, r1, rr, rr])
+    assert expected == result
+
+
+@pytest.mark.validate
+def test_path_60bi_noset():
+    expected = c.ADFilter(code=1)
+    rr = copy.deepcopy(r)
+    rr.flag = rr.flag | 0x10
+    result = is_variant_AD(150, [r, r, rr, rr])
     assert expected == result
