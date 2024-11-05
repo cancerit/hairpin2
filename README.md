@@ -1,5 +1,4 @@
 # hairpin2
-
 `hairpin2` – CLI implementation of the hairpin detection algorithm concieved by [Ellis et al, 2020](https://www.nature.com/articles/s41596-020-00437-6).
 
 `hairpin2` is designed to flag variants with anomalous distributions indicating that they are artefactual. Initially, it was concieved to flag possible cruciform artefacts for LCM sequence data, but the concept has been extended to other artefacts including artefactual indels. It operates on a VCF file containing one or more samples, and alignment files for all samples to be tested.
@@ -10,14 +9,11 @@ The `ALF` filter indicates variants which occur with poor signal-to-noise, and a
 
 
 ### DEPENDENCIES
-
 * Python >= 3.10 – required
 * pysam >= 0.22.1 – installed automatically during install process (tested with 0.22.1 only)
 * pytest >= 0.8.2.2 - optional, only necessary to run tests
 
 ### INSTALLATION
-
-
 Within a virtual environment:
 ```
 python -m venv .env
@@ -36,12 +32,10 @@ hairpin -h
 ```
 
 ### ASSUMPTIONS & LIMITATIONS
-
 `hairpin2` is designed for paired data where alignment records have the `MC` tag and the complete CIGAR string is present in the `CIGAR` field (rather than the `CG:B,I` tag). If the `MC` tag is not present in your data, it can be added using `samtools fixmate` or `biobambam2 bamsormadup`. The tool can handle substitions, insertions, and deletions formatted per the VCF specification. At this time, the tool will not investigate mutations notated with angle brackets, e.g. `<DEL>`, complex mutations, or monomorphic reference. No further assumptions are made – other alignment tags and VCF fields are used, however they are mandatory per the relevant format specifications. If these requirements are limiting and you need the tool to be extended in some way, please request it.
 
 
 ### USAGE
-
 ```
 usage: hairpin2 [-h] [-v] -i VCF_IN -o VCF_OUT -a ALIGNMENTS [ALIGNMENTS ...]
                 -f {s,b,c} [-al AL_FILTER_THRESHOLD] [-mc MIN_CLIP_QUALITY]
@@ -178,12 +172,10 @@ The code has been written with the intention of clarity and extensibility – ag
 
 
 ### TESTING
-
 A test suite has been provided to prove the validity of the algorithm, i.e. to prove that it does what it claims to do. To run these tests run `pytest -m "validate"` from within the install directory. `hairpin2` must have been installed from that same directory, and be available on path (for example in a virtual environment). The tests can be found in the `test` directory. The basic premise is that of basis path testing. This approach means the focus is on testing all nodes (statements) and edges (paths between statements), rather than trying every possible input combination. Since all input possibilities will pass via the same network/graph, if we prove that each part of that network functions correctly, we can be sure that the program functions as it claims to. The tests are simple, and, once you have read them, it should be very easy to add your own further tests should you feel the need to further confirm any behaviour.
 
 
 ### LICENCE
-
 ```
 hairpin2
 
