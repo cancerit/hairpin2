@@ -1,7 +1,7 @@
 # hairpin2
 `hairpin2` – CLI implementation of the hairpin detection algorithm concieved by [Ellis et al, 2020](https://www.nature.com/articles/s41596-020-00437-6).
 
-`hairpin2` is designed to flag variants with anomalous distributions indicating that they are artefactual. Initially, it was concieved to flag possible cruciform artefacts for LCM sequence data, but the concept has been extended to other artefacts including artefactual indels. It operates on a VCF file containing one or more samples, and alignment files for all samples to be tested.
+`hairpin2` is designed to flag variants with anomalous distributions indicating that they are likely artefactual. Initially, it was concieved to flag possible cruciform artefacts for LCM sequence data, but the concept has been extended to other artefacts including artefactual indels. It operates on a VCF file containing one or more samples, and alignment files for all samples to be tested.
 
 Given a VCF, and BAM files for the samples of that VCF, return a VCF with variants flagged with `ADF` if variants have anomalous distributions indicating that they are likely to be artefactual, and `ALF` if relevant reads have lower median alignment score per base than a specified threshold.
 
