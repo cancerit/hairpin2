@@ -5,11 +5,12 @@ From: python:3.12-slim
 . hairpin2/
 
 %post
+apt update && apt upgrade && apt install -y procps
 pip install --root-user-action ignore hairpin2/
 
 %test
 	LOC=$(which hairpin2)
-	if [ -z "$LOC"]; then
+	if [ -z "$LOC" ]; then
 		echo "hairpin install failed"
 	else
 		echo "hairpin install successful"
