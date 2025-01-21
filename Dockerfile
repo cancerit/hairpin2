@@ -1,9 +1,9 @@
 FROM python:3.12-slim
 
-# Set the working directory inside the container
+RUN apt update && apt upgrade && apt install -y procps
+
 WORKDIR /hairpin2
 
-# Copy the current working directory contents into the container
 COPY . /hairpin2
 
 RUN adduser --disabled-password --gecos '' ubuntu && chsh -s /bin/bash && mkdir -p /home/ubuntu
@@ -11,7 +11,6 @@ RUN adduser --disabled-password --gecos '' ubuntu && chsh -s /bin/bash && mkdir 
 USER ubuntu
 WORKDIR /home/ubuntu
 
-# Install the hairpin package
 RUN pip install --no-warn-script-location /hairpin2
 
 ENV PATH=$PATH:/home/ubuntu/.local/bin
