@@ -32,6 +32,7 @@ import json
 from itertools import tee
 from typing import Literal
 from collections.abc import Iterable
+import sys
 
 
 # N.B.
@@ -283,10 +284,12 @@ def is_variant_AD(
     if len(la2ms_f) <= min_reads and len(la2ms_r) <= min_reads:
         ad_filt.code = c.FiltCodes.INSUFFICIENT_READS.value
     else:
-        if len(la2ms_f) > min_reads:
-            mad_f = max(la2ms_f) - min(la2ms_f)
+        if len(la2ms_f) > min_reads:  # if this, then calculate stats
+            # ok Peter's version had MAD calculated wrong! now fixed
+            med_f = median(la2ms_f)
+            mad_f = median(map(lambda x: abs(x - med_f), la2ms_f))
             sd_f = stdev(la2ms_f)
-            if len(la2ms_r) <= min_reads:
+            if len(la2ms_r) <= min_reads:  # if also this, test
                 if (((sum(near_start_f) / len(near_start_f)) < edge_clustering_threshold) and
                     mad_f > min_MAD_one_strand and
                         sd_f > min_sd_one_strand):
@@ -294,8 +297,10 @@ def is_variant_AD(
                 else:
                     ad_filt.code = c.FiltCodes.SIXTYAI.value
                     ad_filt.set()
+        # the nested if statement here is mutually exclusive with the above
         if len(la2ms_r) > min_reads:
-            mad_r = max(la2ms_r) - min(la2ms_r)
+            med_r = median(la2ms_r)
+            mad_r = median(map(lambda x: abs(x - med_r), la2ms_r))
             sd_r = stdev(la2ms_r)
             if len(la2ms_f) <= min_reads:
                 if (((sum(near_start_r) / len(near_start_r)) < edge_clustering_threshold) and
@@ -523,6 +528,8 @@ def main_cli() -> None:
                       type=str)
 
     args = parser.parse_args()
+    arg_d: dict[str, Any] = vars(args)
+    rec_args = sorted(arg_d.keys() - {"vcf_in", "vcf_out", "alignments", "input_json", "output_json", "format"})
 
     json_config: dict | None = None
     if args.input_json:
@@ -535,8 +542,8 @@ def main_cli() -> None:
             h.cleanup(msg='failed to open input JSON, reporting: {}'.format(e))
 
     # set arg defaults
-    for k in vars(args).keys():
-        if not vars(args)[k]:
+    for k in arg_d.keys():
+        if not arg_d[k]:
             if (json_config and k
                 in json_config.keys()
                     and k in c.DEFAULTS.keys()):
@@ -644,25 +651,17 @@ def main_cli() -> None:
         "##INFO=<ID=ADF,Number=1,Type=String,Description=\"alt|code for each alt indicating hairpin filter decision code\">")
     out_head.add_line(
         "##INFO=<ID=ALF,Number=1,Type=String,Description=\"alt|code|score for each alt indicating AL filter conditions\">")
+    out_head.add_line(
+        "##hairpin2-python_version={}-{}".format(hairpin2.__version__, sys.version.split()[0])
+    )
+    out_head.add_line(
+        "##hairpin2_params=[{}]".format(", ".join(f"{k}={arg_d[k]}" for k in rec_args))
+    )
 
     try:
         vcf_out_handle = pysam.VariantFile(args.vcf_out, 'w', header=out_head)
     except Exception as e:
         h.cleanup(msg='failed to open VCF output, reporting: {}'.format(e))
-
-    # write args once all verified
-    if args.output_json:
-        try:
-            with open(args.output_json, "w") as output_json:
-                json.dump(
-                    {
-                        k: vars(args)[k]
-                        for k
-                        in (vars(args).keys() - {'input_json', 'output_json', 'format'})
-                    },
-                    output_json, indent="")
-        except Exception as e:
-            h.cleanup(msg='failed to write output JSON, reporting: {}'.format(e))
 
     for record in vcf_in_handle.fetch():  # type: ignore - program ensures not unbound
         try:
@@ -703,4 +702,20 @@ def main_cli() -> None:
                 vcf_out_handle.write(record)  # type:ignore
             except Exception as e:
                 h.cleanup(msg='failed to write to vcf, reporting: {}'.format(e))
+
+    # write args once all verified
+    # is the json writing paths? it shouldn't.
+    if args.output_json:
+        try:
+            with open(args.output_json, "w") as output_json:
+                json.dump(
+                    {
+                        k: arg_d[k]
+                        for k
+                        in rec_args
+                    },
+                    output_json, indent="")
+        except Exception as e:
+            h.cleanup(msg='failed to write output JSON, reporting: {}'.format(e))
+
     h.cleanup(c.EXIT_SUCCESS)
