@@ -528,8 +528,6 @@ def main_cli() -> None:
                       type=str)
 
     args = parser.parse_args()
-    arg_d: dict[str, Any] = vars(args)
-    rec_args = sorted(arg_d.keys() - {"vcf_in", "vcf_out", "alignments", "input_json", "output_json", "format"})
 
     json_config: dict | None = None
     if args.input_json:
@@ -550,6 +548,10 @@ def main_cli() -> None:
                 setattr(args, k, json_config[k])
             elif k in c.DEFAULTS.keys():
                 setattr(args, k, c.DEFAULTS[k])
+
+    # prepare args for recording to header
+    arg_d: dict[str, Any] = vars(args)
+    rec_args = sorted(arg_d.keys() - {"vcf_in", "vcf_out", "alignments", "input_json", "output_json", "format"})
 
     # test args are sensible, exit if not
     if not any([(0 <= args.min_clip_quality <= 93),
@@ -605,6 +607,7 @@ def main_cli() -> None:
         alignment_sample_name = alignment.header.to_dict()['RG'][0]['SM']
         # type: ignore - program ensures not unbound
         vcf_sample_to_alignment_map[alignment_sample_name] = alignment
+
     if args.name_mapping:
         if len(args.name_mapping) > len(args.alignments):
             h.cleanup(msg="more name mappings than alignments provided")
@@ -637,6 +640,7 @@ def main_cli() -> None:
         if not vcf_sample_to_alignment_map.keys() <= sample_names:
             h.cleanup(msg='alignment SM tags do not match VCF sample names: {}'.format(
                 vcf_sample_to_alignment_map.keys() - sample_names))
+
     if sample_names != vcf_sample_to_alignment_map.keys():
         logging.info("alignments not provided for all VCF samples; {} will be ignored".format(
             sample_names - vcf_sample_to_alignment_map.keys()))
