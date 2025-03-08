@@ -540,8 +540,8 @@ def main_cli() -> None:
             h.cleanup(msg='failed to open input JSON, reporting: {}'.format(e))
 
     # set arg defaults
-    for k in arg_d.keys():
-        if not arg_d[k]:
+    for k in vars(args).keys():
+        if not vars(args)[k]:
             if (json_config and k
                 in json_config.keys()
                     and k in c.DEFAULTS.keys()):
@@ -579,7 +579,7 @@ def main_cli() -> None:
         h.cleanup(msg='duplicate sample names in VCF')
     sample_names: set[str] = set(sample_names)
 
-    vcf_sample_to_alignment_map: dict[str, pysam.AlignmentFile] = {}
+    id_to_alignment: dict[str, pysam.AlignmentFile] = {}
     match args.format:
         case "s":
             mode = "r"
@@ -600,47 +600,80 @@ def main_cli() -> None:
                                                                 else None))
         except Exception as e:
             h.cleanup(
-                msg='failed to read alignment file at {}, reporting: {}'.format(path, e))
+                msg='failed to read alignment file at {}, reporting: {}'.format(path, e)
+            )
         # grab the sample name from first SM field
         # in header field RG
         # type: ignore - program ensures not unbound
         alignment_sample_name = alignment.header.to_dict()['RG'][0]['SM']
         # type: ignore - program ensures not unbound
-        vcf_sample_to_alignment_map[alignment_sample_name] = alignment
+        id_to_alignment[alignment_sample_name] = alignment
 
+    # get vcf name defaults from environment variable
+    try:
+        ...
+    except:
+        ...
+    # will then need to refactor below to use defaults if n alignments == 1 and no args.name_mapping
+
+    vcf_sample_to_alignment_map: dict[str, pysam.AlignmentFile] = {}
     if args.name_mapping:
         if len(args.name_mapping) > len(args.alignments):
             h.cleanup(msg="more name mappings than alignments provided")
         vcf_map_names = []
         alignment_map_names = []
-        for pair in args.name_mapping:
-            kv_split = pair.split(':')  # VCF:aln
-            if len(kv_split) != 2:
+        if len(args.alignments) == 1:
+            kv_split = args.name_mapping[0].split(':')  # VCF:aln
+            if not (1 <= len(kv_split) <= 2):
                 h.cleanup(
-                    msg='name mapping misformatted, more than two elements in map string {}'.format(pair))
-            vcf_map_names.append(kv_split[0])
-            alignment_map_names.append(kv_split[1])
-        if h.has_duplicates(vcf_map_names):
-            h.cleanup(
-                msg='duplicate VCF sample names provided to name mapping flag')
-        if not set(vcf_map_names) <= sample_names:
-            h.cleanup(
-                msg="VCF sample names provided to name mapping flag are not equal to, or a subset of, VCF sample names as retrieved from VCF")
-        if h.has_duplicates(alignment_map_names):
-            h.cleanup(
-                msg='duplicate aligment sample names provided to name mapping flag')
-        if h.lists_not_equal(alignment_map_names,
-                             vcf_sample_to_alignment_map.keys()):  # type: ignore - dicts are stable
-            h.cleanup(
-                msg='alignment sample names provided to name mapping flag do not match alignment SM tags')
-        vcf_sample_to_alignment_map = {vcf_map_names[alignment_map_names.index(k)]: v
-                                       for k, v
-                                       in vcf_sample_to_alignment_map.items()}
+                    msg='name mapping - {} - misformatted'.format(args.name_mapping[0])
+                )
+            if len(kv_split) == 2:
+                try:
+                    id_to_alignment[kv_split[1]]
+                except KeyError as e:
+                    h.cleanup(msg="erororor")
+                    # or just warn? I think warn
+                else:
+                    vcf_sample_to_alignment_map[kv_split[0]] = id_to_alignment.pop(kv_split[1])
+            else:  # if only left hand of map is provided
+                    vcf_sample_to_alignment_map[kv_split[0]] = id_to_alignment.pop(alignment_sample_name)
+        else:
+            for pair in args.name_mapping:
+                kv_split = pair.split(':')  # VCF:aln
+                if len(kv_split) != 2:
+                    h.cleanup(
+                        msg='name mapping misformatted, more than two elements in map string {}'.format(pair)
+                    )
+                vcf_map_names.append(kv_split[0])
+                alignment_map_names.append(kv_split[1])
+            if h.has_duplicates(vcf_map_names):
+                h.cleanup(
+                    msg='duplicate VCF sample names provided to name mapping flag'
+                )
+            if not set(vcf_map_names) <= sample_names:
+                h.cleanup(
+                    msg="VCF sample names provided to name mapping flag are not equal to, or a subset of, VCF sample names as retrieved from VCF"
+                )
+            if h.has_duplicates(alignment_map_names):
+                h.cleanup(
+                    msg='duplicate aligment sample names provided to name mapping flag'
+                )
+            if h.lists_not_equal(alignment_map_names,
+                                 id_to_alignment.keys()):  # type: ignore - dicts are stable
+                h.cleanup(
+                    msg='alignment sample names provided to name mapping flag do not match alignment SM tags'
+                )
+            vcf_sample_to_alignment_map = {vcf_map_names[alignment_map_names.index(k)]: v
+                                           for k, v
+                                           in id_to_alignment.items()}
     else:
-        if not vcf_sample_to_alignment_map.keys() <= sample_names:
-            h.cleanup(msg='alignment SM tags do not match VCF sample names: {}'.format(
-                vcf_sample_to_alignment_map.keys() - sample_names))
-
+        if not id_to_alignment.keys() <= sample_names:
+            h.cleanup(
+                msg='alignment SM tags do not match VCF sample names: {}'.format(
+                    vcf_sample_to_alignment_map.keys() - sample_names
+                )
+            )
     if sample_names != vcf_sample_to_alignment_map.keys():
         logging.info("alignments not provided for all VCF samples; {} will be ignored".format(
             sample_names - vcf_sample_to_alignment_map.keys()))
