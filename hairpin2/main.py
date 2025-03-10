@@ -33,6 +33,7 @@ from itertools import tee
 from typing import Literal
 from collections.abc import Iterable
 import sys
+from os import getenv
 
 
 # N.B.
@@ -419,114 +420,164 @@ def test_record_all_alts(
 
 
 def main_cli() -> None:
-    logging.basicConfig(level=logging.INFO,
-                        format='%(asctime)s ¦ %(levelname)-8s ¦ %(message)s',
-                        datefmt='%I:%M:%S')
-
-    parser = argparse.ArgumentParser(prog="hairpin2",
-                                     description='cruciform artefact flagging algorithm based on Ellis et al. 2020 (DOI: 10.1038/s41596-020-00437-6). See README for further explanation of parameters.')
+    logging.basicConfig(
+                    level=logging.INFO,
+                    format='%(asctime)s ¦ %(levelname)-8s ¦ %(message)s',
+                    datefmt='%I:%M:%S'
+                )
+    parser = argparse.ArgumentParser(
+                                prog="hairpin2",
+                                description='cruciform artefact flagging algorithm based on Ellis et al. 2020 (DOI: 10.1038/s41596-020-00437-6). See README for further explanation of parameters.'
+                            )
     parser._optionals.title = 'info'
-    parser.add_argument('-v',
-                        '--version',
-                        help='print version',
-                        action='version',
-                        version=hairpin2.__version__)
+    parser.add_argument(
+                    '-v',
+                    '--version',
+                    help='print version',
+                    action='version',
+                    version=hairpin2.__version__
+                )
     req = parser.add_argument_group('mandatory')
-    req.add_argument('-i',
-                     '--vcf-in',
-                     help="path to input VCF",
-                     required=True)
-    req.add_argument('-o',
-                     '--vcf-out',
-                     help="path to write output VCF",
-                     required=True)
-    req.add_argument('-a',
-                     '--alignments',
-                     help="list of paths to (S/B/CR)AMs (indicated by --format) for samples in input VCF, whitespace separated - (s/b/cr)ai expected in same directories",
-                     nargs='+',
-                     required=True)
-    req.add_argument('-f',
-                     "--format",
-                     help="format of alignment files; s indicates SAM, b indicates BAM, and c indicates CRAM",
-                     choices=["s", "b", "c"],
-                     type=str,
-                     required=True)
+    req.add_argument(
+                '-i',
+                '--vcf-in',
+                help="path to input VCF",
+                required=True
+            )
+    req.add_argument(
+                '-o',
+                '--vcf-out',
+                help="path to write output VCF",
+                required=True
+            )
+    req.add_argument(
+                '-a',
+                '--alignments',
+                help="list of paths to (S/B/CR)AMs (indicated by --format) for samples in input VCF, whitespace separated - (s/b/cr)ai expected in same directories",
+                nargs='+',
+                required=True
+            )
+    req.add_argument(
+                '-f',
+                "--format",
+                help="format of alignment files; s indicates SAM, b indicates BAM, and c indicates CRAM",
+                choices=["s", "b", "c"],
+                type=str,
+                required=True
+            )
     opt_rv = parser.add_argument_group('read validation')
-    opt_rv.add_argument('-mc',
-                        '--min-clip-quality',
-                        help='discard reads with mean base quality of aligned bases below this value, if they have soft-clipped bases - default: 35, range: 0-93, exclusive',
-                        type=int)
-    opt_rv.add_argument('-mq',
-                        '--min-mapping-quality',
-                        help='discard reads with mapping quality below this value - default: 11, range: 0-60, exclusive',
-                        type=int)
-    opt_rv.add_argument('-mb',
-                        '--min-base-quality',
-                        help='discard reads with base quality at variant position below this value - default: 25, range: 0-93, exclusive',
-                        type=int)
-    opt_rv.add_argument('-ms',
-                        '--max-read-span',
-                        help='maximum +- position to use when detecting PCR duplicates. -1 will disable duplicate detection - default: 6, range: -1-, inclusive',
-                        type=int)
+    opt_rv.add_argument(
+                    '-mc',
+                    '--min-clip-quality',
+                    help='discard reads with mean base quality of aligned bases below this value, if they have soft-clipped bases - default: 35, range: 0-93, exclusive',
+                    type=int
+                )
+    opt_rv.add_argument(
+                    '-mq',
+                    '--min-mapping-quality',
+                    help='discard reads with mapping quality below this value - default: 11, range: 0-60, exclusive',
+                    type=int
+                )
+    opt_rv.add_argument(
+                    '-mb',
+                    '--min-base-quality',
+                    help='discard reads with base quality at variant position below this value - default: 25, range: 0-93, exclusive',
+                    type=int
+                )
+    opt_rv.add_argument(
+                    '-ms',
+                    '--max-read-span',
+                    help='maximum +- position to use when detecting PCR duplicates. -1 will disable duplicate detection - default: 6, range: -1-, inclusive',
+                    type=int
+                )
     opt_fc = parser.add_argument_group('filter conditions')
-    opt_fc.add_argument('-al',
-                        '--al-filter-threshold',
-                        help='ALF; threshold for median of read alignment score per base of all relevant reads, at and below which a variant is flagged as ALF - default: 0.93, range: 0-, inclusive',
-                        type=float)
-    opt_fc.add_argument('-ed',
-                        '--edge-definition',
-                        help='ADF; percentage of a read that is considered to be "the edge" for the purposes of assessing variant location distribution - default: 0.15, range: 0-0.99, inclusive',
-                        type=float)
-    opt_fc.add_argument('-ef',
-                        '--edge-fraction',
-                        help='ADF; percentage of variants must occur within EDGE_FRACTION of read edges to allow ADF flag - default: 0.15, range: 0-0.99, exclusive',
-                        type=float)
-    opt_fc.add_argument('-mos',
-                        '--min-MAD-one-strand',
-                        help='ADF; min range of distances between variant position and read start for valid reads when only one strand has sufficient valid reads for testing - default: 0, range: 0-, exclusive',
-                        type=int)
-    opt_fc.add_argument('-sos',
-                        '--min-sd-one-strand',
-                        help='ADF; min stdev of variant position and read start for valid reads when only one strand has sufficient valid reads for testing - default: 4, range: 0-, exclusive',
-                        type=float)
-    opt_fc.add_argument('-mbsw',
-                        '--min-MAD-both-strand-weak',
-                        help='ADF; min range of distances between variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -sbsw is true - default: 2, range: 0-, exclusive',
-                        type=int)
-    opt_fc.add_argument('-sbsw',
-                        '--min-sd-both-strand-weak',
-                        help='ADF; min stdev of variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -mbsw is true- default: 2, range: 0-, exclusive',
-                        type=float)
-    opt_fc.add_argument('-mbss',
-                        '--min-MAD-both-strand-strong',
-                        help='ADF; min range of distances between variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -sbss is true - default: 1, range: 0-, exclusive',
-                        type=int)
-    opt_fc.add_argument('-sbss',
-                        '--min-sd-both-strand-strong',
-                        help='ADF; min stdev of variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -mbss is true - default: 10, range: 0-, exclusive',
-                        type=float)
-    opt_fc.add_argument('-mr',
-                        '--min-reads',
-                        help='ADF; number of reads at and below which the hairpin filtering logic considers a strand to have insufficient reads for testing - default: 1, range: 0-, inclusive',
-                        type=int)
+    opt_fc.add_argument(
+                    '-al',
+                    '--al-filter-threshold',
+                    help='ALF; threshold for median of read alignment score per base of all relevant reads, at and below which a variant is flagged as ALF - default: 0.93, range: 0-, inclusive',
+                    type=float
+                )
+    opt_fc.add_argument(
+                    '-ed',
+                    '--edge-definition',
+                    help='ADF; percentage of a read that is considered to be "the edge" for the purposes of assessing variant location distribution - default: 0.15, range: 0-0.99, inclusive',
+                    type=float
+                )
+    opt_fc.add_argument(
+                    '-ef',
+                    '--edge-fraction',
+                    help='ADF; percentage of variants must occur within EDGE_FRACTION of read edges to allow ADF flag - default: 0.15, range: 0-0.99, exclusive',
+                    type=float
+                )
+    opt_fc.add_argument(
+                    '-mos',
+                    '--min-MAD-one-strand',
+                    help='ADF; min range of distances between variant position and read start for valid reads when only one strand has sufficient valid reads for testing - default: 0, range: 0-, exclusive',
+                    type=int
+                )
+    opt_fc.add_argument(
+                    '-sos',
+                    '--min-sd-one-strand',
+                    help='ADF; min stdev of variant position and read start for valid reads when only one strand has sufficient valid reads for testing - default: 4, range: 0-, exclusive',
+                    type=float
+                )
+    opt_fc.add_argument(
+                    '-mbsw',
+                    '--min-MAD-both-strand-weak',
+                    help='ADF; min range of distances between variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -sbsw is true - default: 2, range: 0-, exclusive',
+                    type=int
+                )
+    opt_fc.add_argument(
+                    '-sbsw',
+                    '--min-sd-both-strand-weak',
+                    help='ADF; min stdev of variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -mbsw is true- default: 2, range: 0-, exclusive',
+                    type=float
+                )
+    opt_fc.add_argument(
+                    '-mbss',
+                    '--min-MAD-both-strand-strong',
+                    help='ADF; min range of distances between variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -sbss is true - default: 1, range: 0-, exclusive',
+                    type=int
+                )
+    opt_fc.add_argument(
+                    '-sbss',
+                    '--min-sd-both-strand-strong',
+                    help='ADF; min stdev of variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -mbss is true - default: 10, range: 0-, exclusive',
+                    type=float
+                )
+    opt_fc.add_argument(
+                    '-mr',
+                    '--min-reads',
+                    help='ADF; number of reads at and below which the hairpin filtering logic considers a strand to have insufficient reads for testing - default: 1, range: 0-, inclusive',
+                    type=int
+                )
     proc = parser.add_argument_group('procedural')
-    proc.add_argument('-r',
-                      '--cram-reference',
-                      help="path to FASTA format CRAM reference, overrides $REF_PATH and UR tags - ignored if --format is not CRAM")
-    proc.add_argument('-m',
-                      '--name-mapping',
-                      help='map VCF sample names to alignment SM tags; useful if they differ',
-                      metavar='VCF:aln',
-                      nargs='+')
-    proc.add_argument('-ji',
-                      '--input-json',
-                      help='path to JSON of input parameters, from which extended arguments will be loaded - overridden by arguments provided on command line',
-                      type=str)
-    proc.add_argument('-jo',
-                      '--output-json',
-                      help='log input arguments to JSON',
-                      type=str)
-
+    proc.add_argument(
+                    '-r',
+                    '--cram-reference',
+                    help="path to FASTA format CRAM reference, overrides $REF_PATH and UR tags - ignored if --format is not CRAM",
+                    type=str
+                )
+    proc.add_argument(
+                    '-m',
+                    '--name-mapping',
+                    help='map VCF sample names to alignment SM tags; useful if they differ',
+                    metavar='VCF:aln',
+                    nargs='+',
+                    default=getenv('HP2_NAME_DFL')  # if unset, None
+                )
+    proc.add_argument(
+                    '-ji',
+                    '--input-json',
+                    help='path to JSON of input parameters, from which extended arguments will be loaded - overridden by arguments provided on command line',
+                    type=str
+                )
+    proc.add_argument(
+                    '-jo',
+                    '--output-json',
+                    help='log input arguments to JSON',
+                    type=str
+                )
     args = parser.parse_args()
 
     json_config: dict | None = None
@@ -574,12 +625,11 @@ def main_cli() -> None:
         vcf_in_handle = pysam.VariantFile(args.vcf_in)
     except Exception as e:
         h.cleanup(msg='failed to open VCF input, reporting: {}'.format(e))
-    sample_names = list(vcf_in_handle.header.samples)  # type:ignore
-    if len(set(sample_names)) != len(sample_names):
+    vcf_names: list[str] = list(vcf_in_handle.header.samples)  # type:ignore
+    if len(set(vcf_names)) != len(vcf_names):
         h.cleanup(msg='duplicate sample names in VCF')
-    sample_names: set[str] = set(sample_names)
 
-    id_to_alignment: dict[str, pysam.AlignmentFile] = {}
+    sm_to_aln_map: dict[str, pysam.AlignmentFile] = {}
     match args.format:
         case "s":
             mode = "r"
@@ -604,79 +654,99 @@ def main_cli() -> None:
             )
         # grab the sample name from first SM field
         # in header field RG
-        # type: ignore - program ensures not unbound
-        alignment_sample_name = alignment.header.to_dict()['RG'][0]['SM']
-        # type: ignore - program ensures not unbound
-        id_to_alignment[alignment_sample_name] = alignment
+        aln_sm = alignment.header.to_dict()['RG'][0]['SM']
+        sm_to_aln_map[aln_sm] = alignment
 
-    # get vcf name defaults from environment variable
-    try:
-        ...
-    except:
-        ...
-    # will then need to refactor below to use defaults if n alignments == 1 and no args.name_mapping
-
+    # hacky quick way to do flexible name mapping
+    # we'll fix it when it breaks
     vcf_sample_to_alignment_map: dict[str, pysam.AlignmentFile] = {}
     if args.name_mapping:
         if len(args.name_mapping) > len(args.alignments):
             h.cleanup(msg="more name mappings than alignments provided")
-        vcf_map_names = []
-        alignment_map_names = []
+        vcf_mapflag = []
+        alignment_mapflag = []
         if len(args.alignments) == 1:
             kv_split = args.name_mapping[0].split(':')  # VCF:aln
             if not (1 <= len(kv_split) <= 2):
                 h.cleanup(
-                    msg='name mapping - {} - misformatted'.format(args.name_mapping[0])
+                    msg='name mapping misformatted: {}'.format(set(args.name_mapping[0]))
                 )
             if len(kv_split) == 2:
                 try:
-                    id_to_alignment[kv_split[1]]
+                    sm_to_aln_map[kv_split[1]]
                 except KeyError as e:
-                    h.cleanup(msg="erororor")
-                    # or just warn? I think warn
+                    h.cleanup(
+                            msg='SM tag {{\'{}\'}} provided to name mapping flag does not match SM tag {} in alignment file'.format(  # now there's a weird format string
+                                kv_split[1],
+                                set(sm_to_aln_map.keys())  # just for formatting really
+                            )
+                        )
                 else:
-                    vcf_sample_to_alignment_map[kv_split[0]] = id_to_alignment.pop(kv_split[1])
+                    vcf_sample_to_alignment_map[kv_split[0]] = alignment
             else:  # if only left hand of map is provided
-                    vcf_sample_to_alignment_map[kv_split[0]] = id_to_alignment.pop(alignment_sample_name)
+                vcf_id = next((x for x in kv_split[0].split(',') if x in vcf_names), None)
+                if not vcf_id:
+                    h.cleanup(
+                        msg='None of the VCF sample names {} provided to name mapping flag match any sample names in input VCF {}'.format(
+                            set(kv_split[0].split(',')),
+                            set(vcf_names)
+                        )
+                    )
+                else:
+                    vcf_sample_to_alignment_map[vcf_id] = alignment
         else:
             for pair in args.name_mapping:
                 kv_split = pair.split(':')  # VCF:aln
                 if len(kv_split) != 2:
                     h.cleanup(
-                        msg='name mapping misformatted, more than two elements in map string {}'.format(pair)
+                        msg='name mapping misformatted, expecting two colon-separated elements in map string: {}'.format(pair)
                     )
-                vcf_map_names.append(kv_split[0])
-                alignment_map_names.append(kv_split[1])
-            if h.has_duplicates(vcf_map_names):
+                vcf_mapflag.append(kv_split[0])
+                alignment_mapflag.append(kv_split[1])
+
+            if h.has_duplicates(vcf_mapflag):
                 h.cleanup(
                     msg='duplicate VCF sample names provided to name mapping flag'
                 )
-            if not set(vcf_map_names) <= sample_names:
+            if not set(vcf_mapflag) <= set(vcf_names):
                 h.cleanup(
-                    msg="VCF sample names provided to name mapping flag are not equal to, or a subset of, VCF sample names as retrieved from VCF"
+                    msg="VCF sample names {} provided to name mapping flag are not equal to or a subset of VCF samples from file {}".format(
+                        set(vcf_mapflag),
+                        set(vcf_names)
+                    )
                 )
-            if h.has_duplicates(alignment_map_names):
+            if h.has_duplicates(alignment_mapflag):
                 h.cleanup(
                     msg='duplicate aligment sample names provided to name mapping flag'
                 )
-            if h.lists_not_equal(alignment_map_names,
-                                 id_to_alignment.keys()):  # type: ignore - dicts are stable
+            if h.lists_not_equal(alignment_mapflag, sm_to_aln_map.keys()):  # type: ignore - dicts are stable
                 h.cleanup(
-                    msg='alignment sample names provided to name mapping flag do not match alignment SM tags'
+                    msg='SM tags {} provided to name mapping flag do not match SM tags in alignment files {}'.format(
+                        set(alignment_mapflag),
+                        set(sm_to_aln_map.keys())
+                    )
                 )
-            vcf_sample_to_alignment_map = {vcf_map_names[alignment_map_names.index(k)]: v
-                                           for k, v
-                                           in id_to_alignment.items()}
+
+            vcf_sample_to_alignment_map = {
+                                    vcf_mapflag[alignment_mapflag.index(k)]: v
+                                    for k, v
+                                    in sm_to_aln_map.items()
+                                }
     else:
-        if not id_to_alignment.keys() <= sample_names:
+        if not sm_to_aln_map.keys() <= set(vcf_names):
             h.cleanup(
-                msg='alignment SM tags do not match VCF sample names: {}'.format(
-                    vcf_sample_to_alignment_map.keys() - sample_names
+                msg='alignment SM tags {} are not equal to or a subset of VCF sample names {}'.format(
+                    set(sm_to_aln_map.keys()),
+                    set(vcf_names)
                 )
             )
-    if sample_names != vcf_sample_to_alignment_map.keys():
-        logging.info("alignments not provided for all VCF samples; {} will be ignored".format(
-            sample_names - vcf_sample_to_alignment_map.keys()))
+
+    if set(vcf_names) != vcf_sample_to_alignment_map.keys():
+        logging.info(
+            "alignments not provided for all VCF samples; {} will be ignored".format(
+                set(vcf_names) - vcf_sample_to_alignment_map.keys()
+            )
+        )
 
     # init output
     out_head = vcf_in_handle.header  # type:ignore
