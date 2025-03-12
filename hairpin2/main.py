@@ -69,7 +69,7 @@ def flag_read_broad(
             invalid_flag |= c.ValidatorFlags.MAPQUAL.value
 
         if ('S' in read.cigarstring and  # type: ignore - program ensures can't be none
-                mean(read.query_alignment_qualities) < min_clipqual):  # type: ignore - legit type issue here with pysam but I can't fix it
+                mean(read.query_alignment_qualities) < min_clipqual):  # type: ignore - pysam typing at fault
             invalid_flag |= c.ValidatorFlags.CLIPQUAL.value
 
         if (not (invalid_flag & c.ValidatorFlags.FLAG.value)
@@ -157,7 +157,7 @@ def get_hidden_PCRdup_indices(
                                                             for i, l
                                                             in enumerate(readpair_ends)],
                                                            key=lambda x: x[1])
-    # smallest first element. What was Peter's intention here?
+    # smallest first element, per pc8 implementation
     base_read_ends_list: list[list[int]] = [read_ends_sorted[0][1]]
     for i in range(1, len(read_ends_sorted)):
         comparison_read_ends = read_ends_sorted[i]
@@ -242,15 +242,14 @@ def is_variant_AL(
     return al_filt
 
 
-# per Peter's implementation
-# can set hairpin for mutations nowhere near alignment start
-# expose more ellis conditions as parameters?
+# per paper, can set hairpin for mutations distant alignment start
+# in the case where both strands have sufficient supporting reads
 def is_variant_AD(
     vstart: int,
     mut_reads: Iterable[pysam.AlignedSegment],
-    edge_definition: float = 0.15,
-    edge_clustering_threshold: float = 0.9,
-    min_MAD_one_strand: int = 0,  # exclusive (and subsequent)
+    edge_definition: float = 0.15,  # relative proportion, by percentage, of a read to be considered 'the edge'
+    edge_clustering_threshold: float = 0.9,  # percentage threshold
+    min_MAD_one_strand: int = 0,  # exclusive (and subsequent params)
     min_sd_one_strand: float = 4,
     min_MAD_both_strand_weak: int = 2,
     min_sd_both_strand_weak: float = 2,
@@ -298,7 +297,7 @@ def is_variant_AD(
                 else:
                     ad_filt.code = c.FiltCodes.SIXTYAI.value
                     ad_filt.set()
-        # the nested if statement here is mutually exclusive with the above
+        # the nested if statement here makes the combined condition mutually exclusive with the above
         if len(la2ms_r) > min_reads:
             med_r = median(la2ms_r)
             mad_r = median(map(lambda x: abs(x - med_r), la2ms_r))
@@ -307,17 +306,15 @@ def is_variant_AD(
                 if (((sum(near_start_r) / len(near_start_r)) < edge_clustering_threshold) and
                     mad_r > min_MAD_one_strand and
                         sd_r > min_sd_one_strand):
-                    ad_filt.code = c.FiltCodes.SIXTYAI.value
+                    ad_filt.code = c.FiltCodes.SIXTYAI.value  # the value assigned here just informs as to the condition upon which the result was decided, whether true or false
                 else:
                     ad_filt.code = c.FiltCodes.SIXTYAI.value
-                    ad_filt.set()
+                    ad_filt.set()  # setting the filter actually flags it true
         if len(la2ms_f) > min_reads and len(la2ms_r) > min_reads:
             frac_lt_thresh = (sum(near_start_f + near_start_r)
                               / (len(near_start_f) + len(near_start_r)))
             if (frac_lt_thresh < edge_clustering_threshold or
-                # type: ignore
                 (mad_f > min_MAD_both_strand_weak and mad_r > min_MAD_both_strand_weak and sd_f > min_sd_both_strand_weak and sd_r > min_sd_both_strand_weak) or
-                # type: ignore
                 (mad_f > min_MAD_both_strand_strong and sd_f > min_sd_both_strand_strong) or
                     (mad_r > min_MAD_both_strand_strong and sd_r > min_sd_both_strand_strong)):  # type: ignore
                 ad_filt.code = c.FiltCodes.SIXTYBI.value  # 60B(i)
@@ -377,6 +374,8 @@ def test_record_all_alts(
                 # doesn't check for overwrite
                 region_reads_by_sample[k] = broad_filtered_iter
 
+    # the ability to handle complex mutations would be a potentially interesting future feature
+    # for extending to more varied artifacts
     filt_d = {}
     for alt in vcf_rec.alts:
         if (vcf_rec.rlen == len(alt)
@@ -811,7 +810,6 @@ def main_cli() -> None:
                 h.cleanup(msg='failed to write to vcf, reporting: {}'.format(e))
 
     # write args once all verified
-    # is the json writing paths? it shouldn't.
     if args.output_json:
         try:
             with open(args.output_json, "w") as output_json:
