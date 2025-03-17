@@ -697,7 +697,6 @@ def main_cli() -> None:
                         vcf_names,
                         args.name_mapping))
             else:
-                breakpoint()
                 logging.info('matched alignment to sample {} in VCF'.format(matches[0]))
                 vcf_sample_to_alignment_map[matches[0]] = alignment
 
