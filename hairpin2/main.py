@@ -557,20 +557,19 @@ def main_cli() -> None:
     proc.add_argument(
                     '-m',
                     '--name-mapping',
-                    help='map VCF sample names to alignment SM tags; useful if they differ',
-                    metavar='VCF:aln',
+                    help='key to map samples in a multisample VCF to alignment/s provided to -a. Uses VCF sample names per VCF header and alignment SM tags. With multiple alignments to -a, accepts a space separated list of sample:SM pairs. With a single alignment, also accepts a comma separated string of one or more possible sample-of-interest names like TUMOR,TUMOUR',
                     nargs='+'
                 )
     proc.add_argument(
                     '-ji',
                     '--input-json',
-                    help='path to JSON of input parameters, from which extended arguments will be loaded - overridden by arguments provided on command line',
+                    help='path to JSON of command line parameters, from which arguments will be loaded - overridden by arguments provided at runtime',
                     type=str
                 )
     proc.add_argument(
                     '-jo',
                     '--output-json',
-                    help='log input arguments to JSON',
+                    help='log command line arguments to JSON',
                     type=str
                 )
     args = parser.parse_args()
