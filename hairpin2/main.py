@@ -559,8 +559,7 @@ def main_cli() -> None:
                     '--name-mapping',
                     help='map VCF sample names to alignment SM tags; useful if they differ',
                     metavar='VCF:aln',
-                    nargs='+',
-                    default=getenv('HP2_NAME_DFL')  # if unset, None
+                    nargs='+'
                 )
     proc.add_argument(
                     '-ji',
@@ -579,7 +578,7 @@ def main_cli() -> None:
     json_config: dict | None = None
     if args.input_json:
         logging.info(
-            'args JSON provided, extended arguments will be loaded from JSON if not present on command line')
+            'args JSON provided, non-path and non-mandatory arguments will be loaded from JSON if not present on command line')
         try:
             with open(args.input_json, 'r') as f:
                 json_config = json.load(f)
@@ -590,8 +589,7 @@ def main_cli() -> None:
     for k in vars(args).keys():
         if not vars(args)[k]:
             if (json_config and k
-                in json_config.keys()
-                    and k in c.DEFAULTS.keys()):
+                in json_config.keys()):
                 setattr(args, k, json_config[k])
             elif k in c.DEFAULTS.keys():
                 setattr(args, k, c.DEFAULTS[k])
@@ -653,82 +651,59 @@ def main_cli() -> None:
         aln_sm = alignment.header.to_dict()['RG'][0]['SM']
         sm_to_aln_map[aln_sm] = alignment
 
-    # hacky quick way to do flexible name mapping
-    # we'll fix it when it breaks
     vcf_sample_to_alignment_map: dict[str, pysam.AlignmentFile] = {}
     if args.name_mapping:
-        if len(args.name_mapping) > len(args.alignments):
-            h.cleanup(msg="more name mappings than alignments provided")
         vcf_mapflag = []
         alignment_mapflag = []
-        if len(args.alignments) == 1:
-            kv_split = args.name_mapping[0].split(':')  # VCF:aln
-            if not (1 <= len(kv_split) <= 2):
-                h.cleanup(
-                    msg='name mapping misformatted: {}'.format(set(args.name_mapping[0]))
-                )
-            if len(kv_split) == 2:
-                try:
-                    sm_to_aln_map[kv_split[1]]
-                except KeyError as e:
-                    h.cleanup(
-                            msg='SM tag {{\'{}\'}} provided to name mapping flag does not match SM tag {} in alignment file'.format(  # now there's a weird format string
-                                kv_split[1],
-                                set(sm_to_aln_map.keys())  # just for formatting really
-                            )
-                        )
-                else:
-                    vcf_sample_to_alignment_map[kv_split[0]] = alignment
-            else:  # if only left hand of map is provided
-                vcf_id = next((x for x in kv_split[0].split(',') if x in vcf_names), None)
-                if not vcf_id:
-                    h.cleanup(
-                        msg='None of the VCF sample names {} provided to name mapping flag match any sample names in input VCF {}'.format(
-                            set(kv_split[0].split(',')),
-                            set(vcf_names)
-                        )
-                    )
-                else:
-                    vcf_sample_to_alignment_map[vcf_id] = alignment
-        else:
+        if len(args.name_mapping) <= len(args.alignments) and all(m.count(':') == 1 for m in args.name_mapping) and not any("," in m for m in args.name_mapping):
             for pair in args.name_mapping:
                 kv_split = pair.split(':')  # VCF:aln
-                if len(kv_split) != 2:
-                    h.cleanup(
-                        msg='name mapping misformatted, expecting two colon-separated elements in map string: {}'.format(pair)
-                    )
                 vcf_mapflag.append(kv_split[0])
                 alignment_mapflag.append(kv_split[1])
 
             if h.has_duplicates(vcf_mapflag):
-                h.cleanup(
-                    msg='duplicate VCF sample names provided to name mapping flag'
-                )
-            if not set(vcf_mapflag) <= set(vcf_names):
-                h.cleanup(
-                    msg="VCF sample names {} provided to name mapping flag are not equal to or a subset of VCF samples from file {}".format(
-                        set(vcf_mapflag),
-                        set(vcf_names)
-                    )
-                )
-            if h.has_duplicates(alignment_mapflag):
-                h.cleanup(
-                    msg='duplicate aligment sample names provided to name mapping flag'
-                )
-            if h.lists_not_equal(alignment_mapflag, sm_to_aln_map.keys()):  # type: ignore - dicts are stable
-                h.cleanup(
-                    msg='SM tags {} provided to name mapping flag do not match SM tags in alignment files {}'.format(
-                        set(alignment_mapflag),
-                        set(sm_to_aln_map.keys())
-                    )
-                )
+                h.cleanup(msg='duplicate VCF sample names provided to name mapping flag')
 
-            vcf_sample_to_alignment_map = {
-                                    vcf_mapflag[alignment_mapflag.index(k)]: v
-                                    for k, v
-                                    in sm_to_aln_map.items()
-                                }
-    else:
+            if not set(vcf_mapflag) <= set(vcf_names):
+                h.cleanup(msg="VCF sample names provided to name mapping flag {} are not equal to or a subset of VCF samples from file {} - flag recieved {}".format(
+                        vcf_mapflag,
+                        vcf_names,
+                        args.name_mapping))
+
+            if h.has_duplicates(alignment_mapflag):
+                h.cleanup(msg='duplicate aligment sample names provided to name mapping flag')
+
+            if h.lists_not_equal(alignment_mapflag, sm_to_aln_map.keys()):  # type: ignore - dicts are stable
+                h.cleanup(msg='SM tags provided to name mapping flag {} are not equal to SM tag list from alignment files {} - flag recieved {}'.format(
+                        alignment_mapflag,
+                        set(sm_to_aln_map.keys()),
+                        args.name_mapping))
+
+            vcf_sample_to_alignment_map = {vcf_mapflag[alignment_mapflag.index(k)]: v
+                                            for k, v
+                                            in sm_to_aln_map.items()}
+        elif not any(":" in m for m in args.name_mapping) and len(args.alignments) == len(args.name_mapping) == 1:
+            if "," in args.name_mapping[0]:
+                possible_sample_names = args.name_mapping[0].split(',')
+            else:
+                possible_sample_names = args.name_mapping  # list of len 1
+            matches = [n for n in possible_sample_names if n in set(vcf_names)]
+            if len(matches) > 1:
+                h.cleanup(msg='More than one of the VCF sample names provided to name mapping flag match any sample names in input VCF {} - flag recieved {}'.format(
+                        vcf_names,
+                        args.name_mapping))
+            elif not matches:
+                h.cleanup(msg='None of the VCF sample names provided to name mapping flag match any sample names in input VCF {} - flag recieved {}'.format(
+                        vcf_names,
+                        args.name_mapping))
+            else:
+                breakpoint()
+                logging.info('matched alignment to sample {} in VCF'.format(matches[0]))
+                vcf_sample_to_alignment_map[matches[0]] = alignment
+
+        else:
+            h.cleanup(msg='name mapping misformatted, see helptext for expectations - flag recieved: {}'.format(args.name_mapping))
+    else:  # no name mapping flag
         if not sm_to_aln_map.keys() <= set(vcf_names):
             h.cleanup(
                 msg='alignment SM tags {} are not equal to or a subset of VCF sample names {}'.format(
@@ -736,6 +711,8 @@ def main_cli() -> None:
                     set(vcf_names)
                 )
             )
+        vcf_sample_to_alignment_map = sm_to_aln_map
+    ## end name mapping handling
 
     if set(vcf_names) != vcf_sample_to_alignment_map.keys():
         logging.info(
