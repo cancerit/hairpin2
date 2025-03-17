@@ -38,10 +38,15 @@ hairpin -h
 ### USAGE
 ```
 usage: hairpin2 [-h] [-v] -i VCF_IN -o VCF_OUT -a ALIGNMENTS [ALIGNMENTS ...]
-                -f {s,b,c} [-al AL_FILTER_THRESHOLD] [-mc MIN_CLIP_QUALITY]
-                [-mq MIN_MAPPING_QUALITY] [-mb MIN_BASE_QUALITY]
-                [-ms MAX_READ_SPAN] [-pf POSITION_FRACTION]
-                [-r CRAM_REFERENCE] [-m VCF:aln [VCF:aln ...]]
+                -f {s,b,c} [-mc MIN_CLIP_QUALITY] [-mq MIN_MAPPING_QUALITY]
+                [-mb MIN_BASE_QUALITY] [-ms MAX_READ_SPAN]
+                [-al AL_FILTER_THRESHOLD] [-ed EDGE_DEFINITION]
+                [-ef EDGE_FRACTION] [-mos MIN_MAD_ONE_STRAND]
+                [-sos MIN_SD_ONE_STRAND] [-mbsw MIN_MAD_BOTH_STRAND_WEAK]
+                [-sbsw MIN_SD_BOTH_STRAND_WEAK]
+                [-mbss MIN_MAD_BOTH_STRAND_STRONG]
+                [-sbss MIN_SD_BOTH_STRAND_STRONG] [-mr MIN_READS]
+                [-r CRAM_REFERENCE] [-m NAME_MAPPING [NAME_MAPPING ...]]
                 [-ji INPUT_JSON] [-jo OUTPUT_JSON]
 
 cruciform artefact flagging algorithm based on Ellis et al. 2020 (DOI:
@@ -114,7 +119,7 @@ filter conditions:
                         valid reads when both strands have sufficient valid
                         reads for testing AND -mbsw is true- default: 2,
                         range: 0-, exclusive
-  -mbss MIN_MAD_BOTH_STRAND_STRONG, --min-mad-both-strand-strong MIN_MAD_BOTH_STRAND_STRONG
+  -mbss MIN_MAD_BOTH_STRAND_STRONG, --min-MAD-both-strand-strong MIN_MAD_BOTH_STRAND_STRONG
                         ADF; min range of distances between variant position
                         and read start for valid reads when both strands have
                         sufficient valid reads for testing AND -sbss is true -
@@ -127,27 +132,33 @@ filter conditions:
   -mr MIN_READS, --min-reads MIN_READS
                         ADF; number of reads at and below which the hairpin
                         filtering logic considers a strand to have
-                        insufficient reads for testing - default: 1, range: 0-, inclusive
+                        insufficient reads for testing - default: 1, range:
+                        0-, inclusive
 
 procedural:
   -r CRAM_REFERENCE, --cram-reference CRAM_REFERENCE
                         path to FASTA format CRAM reference, overrides
                         $REF_PATH and UR tags - ignored if --format is not
                         CRAM
-  -m VCF:aln [VCF:aln ...], --name-mapping VCF:aln [VCF:aln ...]
-                        map VCF sample names to alignment SM tags; useful if
-                        they differ
+  -m NAME_MAPPING [NAME_MAPPING ...], --name-mapping NAME_MAPPING [NAME_MAPPING ...]
+                        key to map samples in a multisample VCF to alignment/s
+                        provided to -a. Uses VCF sample names per VCF header
+                        and alignment SM tags. With multiple alignments to -a,
+                        accepts a space separated list of sample:SM pairs.
+                        With a single alignment, also accepts a comma
+                        separated string of one or more possible sample-of-
+                        interest names like TUMOR,TUMOUR
   -ji INPUT_JSON, --input-json INPUT_JSON
-                        path to JSON of input parameters, from which extended
+                        path to JSON of command line parameters, from which
                         arguments will be loaded - overridden by arguments
-                        provided on command line
+                        provided at runtime
   -jo OUTPUT_JSON, --output-json OUTPUT_JSON
-                        log input arguments to JSON
+                        log command line arguments to JSON
 ```
 
 Parameters are hopefully mostly clear from the helptext, but some warrant further explanation:
 
-- --name-mapping – some variant callers, for example caveman, output sample names such as "TUMOUR" in VCF header columns. hairpin2 uses these column names to match to BAM samples via the SM tag - if these fields do not match, you'll need to provide a mapping here, for example "TUMOR:PD3738..."
+- --name-mapping – When using multisample VCFS, hairpin2 compares VCF sample names found in the VCF header to SM tags in alignments to match samples of interest to the correct alignment. If these IDs are different between the VCF and alignments, you'll need to provide a key. If there are multiple samples of interest in the VCF, and therefore multiple alignments, you will need to provide a key for each pair - e.g. `-m sample1:SM1 sample2:SM2 ...`. If there is only one alignment, then you need only indicate which VCF sample is the sample of interest, e.g. `-m TUMOR`. As a convenience for high throughput workflows, when there is only one alignment you may also provide a comma separated string of possible names for the sample of interest, e.g. `-m TUMOR,TUMOUR`. Assuming there is one and only one match in the VCF, the tool will match the alignment to that sample.
 - --al-filter-threshold – the default value of 0.93 was arrived at by trial and error – since different aligners/platforms calculate alignment score differently, you may want to modify this value appropriately. In past implementations, where this value was known as `ASRD`, the default was set at 0.87.
 - --max-read-span – long homopolymer tracts can cause stuttering, where a PCR duplicate will have, for example, an additional A in a tract of As. These reads will align a base or two earlier on the reference genome than they should. As a result pcr duplicate flag machinery fails and they are not flagged as duplicates. `hairpin2` will attempt to filter out these duplicates, and MAX_READ_SPAN is then the maximum +- position to use during duplicate detection.
 
