@@ -14,20 +14,11 @@ The `ALF` filter indicates variants which occur with poor signal-to-noise, and a
 * `pytest >= 0.8.2.2` - optional, only necessary to run tests
 
 ### INSTALLATION
-Within a virtual environment:
+The easiest end-user approach is to install into a virtual environment:
 ```
 python -m venv .env
 source .env/bin/activate
 pip install .
-hairpin -h
-```
-
-For system-wide access:
-```
-export INST_PATH=/path/to/install/location/
-mkdir -p $INST_PATH
-pip install . --target $INST_PATH
-export PATH=${PATH}:${INST_PATH}/bin  # and add to your shell rc file or similar
 hairpin -h
 ```
 
