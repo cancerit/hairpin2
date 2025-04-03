@@ -5,7 +5,9 @@ From: python:3.12-slim
 . hairpin2/
 
 %post
-apt update && apt upgrade && apt install -y procps
+apt update
+apt upgrade -y
+apt install -y procps
 pip install --root-user-action ignore hairpin2/
 
 %test

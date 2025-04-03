@@ -285,7 +285,8 @@ def is_variant_AD(
         ad_filt.code = c.FiltCodes.INSUFFICIENT_READS.value
     else:
         if len(la2ms_f) > min_reads:  # if this, then calculate stats
-            mad_f = max(la2ms_f) - min(la2ms_f)
+            med_f = median(la2ms_f)  # range calculation replaced with true MAD calc (for r strand also)
+            mad_f = median(map(lambda x: abs(x - med_f), la2ms_f))
             sd_f = stdev(la2ms_f)
             if len(la2ms_r) <= min_reads:  # if also this, test
                 if (((sum(near_start_f) / len(near_start_f)) < edge_clustering_threshold) and
@@ -297,7 +298,8 @@ def is_variant_AD(
                     ad_filt.set()
         # the nested if statement here makes the combined condition mutually exclusive with the above
         if len(la2ms_r) > min_reads:
-            mad_r = max(la2ms_r) - min(la2ms_r)
+            med_r = median(la2ms_r)
+            mad_r = median(map(lambda x: abs(x - med_r), la2ms_r))
             sd_r = stdev(la2ms_r)
             if len(la2ms_f) <= min_reads:
                 if (((sum(near_start_r) / len(near_start_r)) < edge_clustering_threshold) and
