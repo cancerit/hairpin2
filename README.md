@@ -27,7 +27,7 @@ For system-wide access:
 export INST_PATH=/path/to/install/location/
 mkdir -p $INST_PATH
 pip install . --target $INST_PATH
-export PATH=${PATH}:${INST_PATH}/bin
+export PATH=${PATH}:${INST_PATH}/bin  # and add to your shell rc file or similar
 hairpin -h
 ```
 
