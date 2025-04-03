@@ -9,9 +9,9 @@ The `ALF` filter indicates variants which occur with poor signal-to-noise, and a
 
 
 ### DEPENDENCIES
-* Python >= 3.10 – required
-* pysam >= 0.22.1 – installed automatically during install process (tested with 0.22.1 only)
-* pytest >= 0.8.2.2 - optional, only necessary to run tests
+* `Python >= 3.10`
+* `pysam >= 0.22.1` – installed automatically during install process (tested with 0.22.1 only)
+* `pytest >= 0.8.2.2` - optional, only necessary to run tests
 
 ### INSTALLATION
 Within a virtual environment:
