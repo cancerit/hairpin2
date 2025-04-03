@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "hairpin2"
-version = "1.1.1rc"
+version = "1.2.0"
 description = "CLI implementation of the artefact detection algorithm concieved by Ellis et al, 2020."
 authors = ["Alex Byrne <ab63@sanger.ac.uk>"]
 license = "MIT"
