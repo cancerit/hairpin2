@@ -35,7 +35,7 @@ from collections.abc import Iterable
 import sys
 
 
-def flag_read_broad(
+def qc_read_broad(
     read: pysam.AlignedSegment,
     vcf_start: int,
     min_mapqual: int,
@@ -91,7 +91,7 @@ def flag_read_broad(
     return invalid_flag
 
 
-def flag_read_alt(
+def qc_read_alt_specific(
     read: pysam.AlignedSegment,
     vcf_start: int,
     vcf_stop: int,
@@ -215,7 +215,7 @@ def alt_filter_reads(
     for mut_sample, read_iter in region_reads_by_sample.items():
         sample_readpair_ends: list[list[int]] = []
         for read in read_iter:
-            if not flag_read_alt(read,
+            if not qc_read_alt_specific(read,
                                  vstart,
                                  vstop,
                                  alt,
@@ -257,7 +257,7 @@ def is_variant_AL(
         if al_filt.avg_as <= al_thresh:
             al_filt.set()
     else:
-        al_filt.code = c.FiltCodes.INSUFFICIENT_READS.value
+        al_filt.code = c.FiltCodes.INSUFFICIENT_SUPPORT.value
 
     return al_filt
 
@@ -302,7 +302,7 @@ def is_variant_AD(
     # hairpin conditions from Ellis et al. 2020, Nature Protocols
     # sometimes reported as 2021
     if len(la2ms_f) <= min_reads and len(la2ms_r) <= min_reads:
-        ad_filt.code = c.FiltCodes.INSUFFICIENT_READS.value
+        ad_filt.code = c.FiltCodes.INSUFFICIENT_SUPPORT.value
     else:
         if len(la2ms_f) > min_reads:  # if this, then calculate stats
             med_f = median(la2ms_f)  # range calculation replaced with true MAD calc (for r strand also)
@@ -386,7 +386,7 @@ def test_record_all_alts(
                 broad_filtered_iter = (read
                                        for read
                                        in read_iter
-                                       if not flag_read_broad(read,
+                                       if not qc_read_broad(read,
                                                               vcf_rec.start,
                                                               min_mapqual,
                                                               min_clipqual))
@@ -395,8 +395,9 @@ def test_record_all_alts(
 
     # the ability to handle complex mutations would be a potentially interesting future feature
     # for extending to more varied artifacts
-    filt_d = {}
+    filt_d: dict[str, c.Filters] = {}
     for alt in vcf_rec.alts:
+        ad = al = dv = qc = None
         if (vcf_rec.rlen == len(alt)
                 and set(alt).issubset(set(['A', 'C', 'T', 'G', 'N', '*']))):
             mut_type = 'S'
@@ -411,7 +412,6 @@ def test_record_all_alts(
                 vcf_rec.pos, vcf_rec.ref, alt))
             continue
 
-    ### UNDER CONSTRUCTION
         var_filtered_rrbs: dict[str, list[pysam.AlignedSegment]] = {key: []
                                                                     for key
                                                                     in region_reads_by_sample}
@@ -419,80 +419,69 @@ def test_record_all_alts(
             var_filtered_rrbs[mut_sample] = [read
                                              for read
                                              in read_iter
-                                             if not flag_read_alt(read,
+                                             if not qc_read_alt_specific(read,
                                                                   vcf_rec.start,
                                                                   vcf_rec.stop,
                                                                   alt,
                                                                   mut_type,
                                                                   min_basequal)]
         testing_reads = list(chain.from_iterable(var_filtered_rrbs.values()))
-        # min reads is by strand, not total number of reads
-        # so need to test if duplicate detection puts those below min reads, not total_nread_wdup
-        nfreads_wdup = sum([not (r.flag & 0x10) for r in testing_reads])
-        nrreads_wdup = sum([r.flag & 0x10 for r in testing_reads])
-        ...  # CONTINUE
-        # ~ ISSUE ~
-        # for each readpair, we avoid including both read1 and read2 as testing is fragment-based, not read-based
-        # HOWEVER, we do this by skipping read2 if it overlaps VCF start
-        # subsequent testing depends number of forward and reverse strands.
-        # Assuming that the overlap logic runs for a significant number of fragments
-        # if there's correlation between strand orientation and being read2,
-        # or even if orientation is stochastic and theres just a low number of reads
-        # such that the low read number itself stochastically results in bias towards read1 or read2,
-        # or forward or reverse orientation,
-        # aren't we biasing the data?
-        # ~~~
-
-        # if variant has no decent support
-        # ...maybe insuffcient reads is an unclear name for that
-        if total_nread_wdup := len(testing_reads) == 0:
-            al = c.ALFilter(code=c.FiltCodes.INSUFFICIENT_READS.value)
-            ad = c.ADFilter(code=c.FiltCodes.INSUFFICIENT_READS.value)
-            dv = c.DVFilter(code=c.FiltCodes.INSUFFICIENT_READS.value)
-        elif any([len(l) > 1 for l in var_filtered_rrbs.values()]):
-            dupfree_reads: list[pysam.AlignedSegment] = []
-            # this duplicates some iteration, but practice it's no problem
-            for mut_sample, reads in var_filtered_rrbs.items():
-                if len(reads) > 1:
-                    sample_readpair_ends: list[list[int]] = [[read.reference_start,
-                                                              read.reference_end,  # type: ignore - won't be unbound within program
-                                                              read.next_reference_start,
-                                                              r2s.ref_end_via_cigar(
-                                                                str(read.get_tag('MC')),
-                                                                read.next_reference_start
-                                                              )
-                                                             ]
-                                                             for read in reads]
-                    # I think I'd prefer find_stutter_duplicates to return a sanitised list
-                    drop_idcs = find_stutter_duplicates(
-                                                sample_readpair_ends,
-                                                max_span
-                                            )
-                    dupfree_reads = dupfree_reads + [j
-                                                         for i, j
-                                                         in enumerate(reads)
-                                                         if i not in drop_idcs]
-            testing_reads = dupfree_reads
-        al = is_variant_AL(testing_reads, al_thresh)
-        # BAD, FIX
-        dv = c.DVFilter(code=55 if nread_wdup > min_reads else 100)  # placeholder codes - variant collapsed by dedup and spurious if true, else false
-        if len(testing_reads) < min_reads:
-            ad = c.ADFilter(code=c.FiltCodes.INSUFFICIENT_READS.value)
+        if len(testing_reads) == 0:  # if variant has no decent reads to support it after read qc
+            al = c.ALFilter(code=c.FiltCodes.INSUFFICIENT_SUPPORT.value)
+            ad = c.ADFilter(code=c.FiltCodes.INSUFFICIENT_SUPPORT.value)
+            dv = c.DVFilter(code=c.FiltCodes.INSUFFICIENT_SUPPORT.value)
+            qc = c.QCFilter(code=55)  # all reads too poor to test
+            qc.set()
+            # should this situation engender a qc fail flag for the variant?
+            # All reads are essentially being declared too poor for testing in some way.
+            # TODO: discuss with Phuong/Peter
+            # Phuong - yes
         else:
-            ad = is_variant_AD(vcf_rec.start,
-                               testing_reads,
-                               edge_def,
-                               edge_frac,
-                               mos,
-                               sos,
-                               mbsw,
-                               sbsw,
-                               mbss,
-                               sbss,
-                               min_reads)
-    ### CONSTRUCTION END
-        # ensure when changing above alt dict entry can't be filled by previous alt filters!
-        filt_d[alt] = c.Filters(al, ad, dv)
+            qc = c.QCFilter(code=60)  # pass
+            if any([len(l) > 1 for l in var_filtered_rrbs.values()]):  # run duplication testing if any samples have more than one read for the variant
+                dupfree_reads: list[pysam.AlignedSegment] = []
+                # this duplicates some iteration, but practice it's no problem
+                for mut_sample, reads in var_filtered_rrbs.items():
+                    if len(reads) > 1:
+                        sample_readpair_ends: list[list[int]] = [[read.reference_start,
+                                                                  read.reference_end,  # type: ignore - won't be unbound within program
+                                                                  read.next_reference_start,
+                                                                  r2s.ref_end_via_cigar(
+                                                                    str(read.get_tag('MC')),
+                                                                    read.next_reference_start
+                                                                  )
+                                                                 ]
+                                                                 for read in reads]
+                        # I think I'd prefer find_stutter_duplicates to return a sanitised list
+                        drop_idcs = find_stutter_duplicates(
+                                                    sample_readpair_ends,
+                                                    max_span
+                                                )
+                        dupfree_reads = dupfree_reads + [j
+                                                             for i, j
+                                                             in enumerate(reads)
+                                                             if i not in drop_idcs]
+                testing_reads = dupfree_reads
+            if len(testing_reads) == 0:  # hardcoded threshold for duplicate only support - best exposed to user? TODO: discuss with Phuong/Peter - Phuong: yes, expose
+                al = c.ALFilter(code=c.FiltCodes.INSUFFICIENT_SUPPORT.value)
+                ad = c.ADFilter(code=c.FiltCodes.INSUFFICIENT_SUPPORT.value)
+                dv = c.DVFilter(code=55) # variant only supported by duplicates (placeholder flag)
+                dv.set()
+            else:
+                al = is_variant_AL(testing_reads, al_thresh)
+                ad = is_variant_AD(vcf_rec.start,
+                                   testing_reads,
+                                   edge_def,
+                                   edge_frac,
+                                   mos,
+                                   sos,
+                                   mbsw,
+                                   sbsw,
+                                   mbss,
+                                   sbss,
+                                   min_reads)
+                dv = c.DVFilter(code=100) # variant NOT only supported by duplicates (placeholder flag)
+        filt_d[alt] = c.Filters(al, ad, dv, qc)
     return filt_d
 
 

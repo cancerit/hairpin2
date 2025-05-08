@@ -48,7 +48,7 @@ FiltCodes = IntEnum('FiltCodes',
                     ['SIXTYAI',
                      'SIXTYBI',
                      'ON_THRESHOLD',
-                     'INSUFFICIENT_READS',
+                     'INSUFFICIENT_SUPPORT',
                      'NO_MUTANTS'],
                     start=0)
 Ops = IntEnum('Ops',
@@ -113,8 +113,16 @@ class ALFilter(FilterData):
 @d.dataclass
 class DVFilter(FilterData):
     """
-    duplicated variant filter - variant suspected to have PCR duplication
-    that has escaped dupmarking.
+    duplication variant filter - variant suspected to arise from duplicated reads
+    that have escaped dupmarking.
+    """
+    name: str = d.field(default='DVF')
+
+
+@d.dataclass
+class QCFilter(FilterData):
+    """
+    All reads supporting the variant have failed hairpin2 QC
     """
     name: str = d.field(default='DVF')
 

@@ -22,7 +22,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from hairpin2.main import flag_read_alt
+from hairpin2.main import qc_read_alt_specific
 from hairpin2 import constants as c
 import pysam
 from pysam.libcalignedsegment import SAM_FLAGS as s
@@ -50,7 +50,7 @@ r.set_tag('MC', '10M')
 @pytest.mark.validate
 def test_path_unsupported_mut_type():
     with pytest.raises(ValueError):
-        flag_read_alt(read=r,
+        qc_read_alt_specific(read=r,
                       vcf_start=99,
                       vcf_stop=100,
                       alt='A',
@@ -61,7 +61,7 @@ def test_path_unsupported_mut_type():
 @pytest.mark.validate
 def test_path_sub_not_aligned():
     expected = c.ValidatorFlags.NOT_ALIGNED.value
-    result = flag_read_alt(read=r,
+    result = qc_read_alt_specific(read=r,
                            vcf_start=200,
                            vcf_stop=100,
                            alt='A',
@@ -74,7 +74,7 @@ def test_path_sub_not_aligned():
 def test_path_bad_sub():
     expected = (c.ValidatorFlags.NOT_ALT.value
                 | c.ValidatorFlags.BASEQUAL.value)
-    result = flag_read_alt(read=r,
+    result = qc_read_alt_specific(read=r,
                            vcf_start=99,
                            vcf_stop=100,
                            alt='T',
@@ -86,7 +86,7 @@ def test_path_bad_sub():
 @pytest.mark.validate
 def test_path_good_sub():
     expected = c.ValidatorFlags.CLEAR.value
-    result = flag_read_alt(read=r,
+    result = qc_read_alt_specific(read=r,
                            vcf_start=99,
                            vcf_stop=100,
                            alt='A',
@@ -98,7 +98,7 @@ def test_path_good_sub():
 @pytest.mark.validate
 def test_path_del_short():
     expected = c.ValidatorFlags.SHORT.value
-    result = flag_read_alt(read=r,
+    result = qc_read_alt_specific(read=r,
                            vcf_start=99,
                            vcf_stop=110,
                            alt='.',
@@ -110,7 +110,7 @@ def test_path_del_short():
 @pytest.mark.validate
 def test_path_del_bad_op():
     expected = c.ValidatorFlags.BAD_OP.value
-    result = flag_read_alt(read=r,
+    result = qc_read_alt_specific(read=r,
                            vcf_start=99,
                            vcf_stop=101,
                            alt='C',
@@ -125,7 +125,7 @@ def test_path_good_del():
     expected = c.ValidatorFlags.CLEAR.value
     rc = copy.deepcopy(r)
     rc.cigarstring = '4M2D6M'
-    result = flag_read_alt(read=rc,
+    result = qc_read_alt_specific(read=rc,
                            vcf_start=98,
                            vcf_stop=101,
                            alt='CC',
@@ -137,7 +137,7 @@ def test_path_good_del():
 @pytest.mark.validate
 def test_path_ins_not_aligned():
     expected = c.ValidatorFlags.NOT_ALIGNED.value
-    result = flag_read_alt(read=r,
+    result = qc_read_alt_specific(read=r,
                            vcf_start=200,
                            vcf_stop=100,
                            alt='A',
@@ -149,7 +149,7 @@ def test_path_ins_not_aligned():
 @pytest.mark.validate
 def test_path_ins_short():
     expected = c.ValidatorFlags.SHORT.value
-    result = flag_read_alt(read=r,
+    result = qc_read_alt_specific(read=r,
                            vcf_start=99,
                            vcf_stop=100,
                            alt='ATTTTTTTTTTTTTT',
@@ -161,7 +161,7 @@ def test_path_ins_short():
 @pytest.mark.validate
 def test_path_bad_ins():
     expected = (c.ValidatorFlags.BAD_OP.value | c.ValidatorFlags.NOT_ALT.value)
-    result = flag_read_alt(read=r,
+    result = qc_read_alt_specific(read=r,
                            vcf_start=99,
                            vcf_stop=100,
                            alt='AC',
@@ -175,7 +175,7 @@ def test_path_good_ins():
     expected = c.ValidatorFlags.CLEAR.value
     rc = copy.deepcopy(r)
     rc.cigarstring = '5M2I3M'
-    result = flag_read_alt(read=rc,
+    result = qc_read_alt_specific(read=rc,
                            vcf_start=99,
                            vcf_stop=100,
                            alt='AA',
