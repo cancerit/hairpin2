@@ -124,7 +124,7 @@ class QCFilter(FilterData):
     """
     All reads supporting the variant have failed hairpin2 QC
     """
-    name: str = d.field(default='DVF')
+    name: str = d.field(default='QCF')
 
 
 @d.dataclass
@@ -132,6 +132,7 @@ class Filters:
     AL: ALFilter
     HP: ADFilter
     DV: DVFilter
+    QC: QCFilter
 
     def __iter__(self):
         return (getattr(self, field.name) for field in d.fields(self))
