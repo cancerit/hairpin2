@@ -111,9 +111,19 @@ class ALFilter(FilterData):
 
 
 @d.dataclass
+class DVFilter(FilterData):
+    """
+    duplicated variant filter - variant suspected to have PCR duplication
+    that has escaped dupmarking.
+    """
+    name: str = d.field(default='DVF')
+
+
+@d.dataclass
 class Filters:
     AL: ALFilter
     HP: ADFilter
+    DV: DVFilter
 
     def __iter__(self):
         return (getattr(self, field.name) for field in d.fields(self))

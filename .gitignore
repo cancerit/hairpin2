@@ -15,3 +15,4 @@ poetry.lock
 .coverage
 test/sim-data/
 test/old_*
+scratch.md

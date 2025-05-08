@@ -29,23 +29,27 @@ from statistics import mean, median, stdev
 import argparse
 import logging
 import json
-from itertools import tee
-from typing import Literal
+from itertools import tee, chain
+from typing import Literal, Any
 from collections.abc import Iterable
 import sys
-from os import getenv
 
 
-# N.B.
-# pysam guards against:
-# quality and seq length mismatch
-# reference id is none
 def flag_read_broad(
     read: pysam.AlignedSegment,
     vcf_start: int,
     min_mapqual: int,
     min_clipqual: int,
 ) -> int:
+    """
+    When testing variants, test a read for various general - i.e. not specific to a
+    particular variant - features identifying the read as a poor source of support
+    for a variant. Used to disqualify reads for use in testing a variant.
+    
+    does not check for the following, as pysam already guards against:
+        - quality and seq length mismatch
+        - reference id is none
+    """
     invalid_flag = c.ValidatorFlags.CLEAR.value  # 0 - evaluates false
 
     try:
@@ -72,6 +76,7 @@ def flag_read_broad(
                 mean(read.query_alignment_qualities) < min_clipqual):  # type: ignore - pysam typing at fault
             invalid_flag |= c.ValidatorFlags.CLIPQUAL.value
 
+        # avoid analysing both read1 and mate if they both cover the variant
         if (not (invalid_flag & c.ValidatorFlags.FLAG.value)
                 and not (read.flag & 0x40)):
             read_range = range(read.reference_start,
@@ -94,6 +99,11 @@ def flag_read_alt(
     mut_type: Literal['S', 'D', 'I'],
     min_basequal: int
 ) -> int:
+    """
+    When testing a variant, test a read for various features specific to the variant
+    at hand which would identify that read as a poor source of support for that
+    variant. Used to disqualify reads for use in testing a variant.
+    """
     if mut_type not in ['S', 'D', 'I']:
         raise ValueError(
             'unsupported mut_type: {} - supports \'S\' (SUB) \'D\' (DEL) \'I\' (INS)'.format(mut_type))
@@ -107,8 +117,7 @@ def flag_read_alt(
             invalid_flag |= c.ValidatorFlags.NOT_ALIGNED.value
         else:
             if mut_type == 'S':  # SUB
-                # type: ignore - can't be none
-                if read.query_sequence[mut_pos:mut_pos + len(alt)] != alt:
+                if read.query_sequence[mut_pos:mut_pos + len(alt)] != alt:  # type: ignore - can't be none
                     invalid_flag |= c.ValidatorFlags.NOT_ALT.value
                 if any([bq < min_basequal
                         for bq
@@ -124,8 +133,7 @@ def flag_read_alt(
                                 if q in range(mut_pos + 1, mut_pos + len(alt) + 1)]
                     if any([r is not None for _, r in mut_alns]):
                         invalid_flag |= c.ValidatorFlags.BAD_OP.value
-                    # type: ignore - can't be none
-                    if read.query_sequence[mut_pos + 1:mut_pos + len(alt) + 1] != alt:
+                    if read.query_sequence[mut_pos + 1:mut_pos + len(alt) + 1] != alt:  # type: ignore - can't be none
                         invalid_flag |= c.ValidatorFlags.NOT_ALT.value
     # DEL
     if mut_type == 'D':
@@ -148,10 +156,22 @@ def flag_read_alt(
 # is appropriate, per Peter's initial implementation.
 # is an all against all comparison between all read lists more appropriate?
 # and between pairs of readlists, why is comparing sorted pairs most appropriate?
-def get_hidden_PCRdup_indices(
+def find_stutter_duplicates(
     readpair_ends: list[list[int]],
     max_span: int
 ) -> list[int]:
+    """
+    When analysing a variant, given `readpair_ends`, a list of readpair start/end co-ordinates,
+    use a simple algorithm to identify likely stutter duplicate reads missed by traditional dupmarking.
+    `max_span` sets the maximum deviation of length between readpairs within which reads might be identified
+    as duplicates
+    
+    In regions of low complexity, short repeats and homopolymer tracts can cause PCR stuttering.
+    Leading to, for example, an additional A on the read when amplifying a tract of As.
+    If duplicated reads contain stutter, this can lead to variation of read length and alignment to reference
+    between reads that are in fact duplicates. These duplicates then evade dupmarking and give rise to
+    spurious variants when calling.
+    """
     dup_idcs: list[int] = []
     read_ends_sorted: list[tuple[int, list[int]]] = sorted([(i, sorted(l))
                                                             for i, l
@@ -210,7 +230,7 @@ def alt_filter_reads(
                                              read.next_reference_start,
                                              next_ref_end])
         if len(rrbs_filt[mut_sample]) > 1:
-            drop_idcs = get_hidden_PCRdup_indices(sample_readpair_ends,
+            drop_idcs = find_stutter_duplicates(sample_readpair_ends,
                                                   max_span=max_span)
             filtered_reads = filtered_reads + [j
                                                for i, j
@@ -390,30 +410,89 @@ def test_record_all_alts(
             logging.warning('could not infer mutation type, POS={} REF={} ALT={}, skipping variant'.format(
                 vcf_rec.pos, vcf_rec.ref, alt))
             continue
-        alt_filt_reads: list = alt_filter_reads(vcf_rec.start,
-                                                vcf_rec.stop,
-                                                alt,
-                                                mut_type,
-                                                region_reads_by_sample,
-                                                max_span,
-                                                min_basequal)
-        if len(alt_filt_reads) == 0:
-            filt_d[alt] = c.Filters(c.ALFilter(code=c.FiltCodes.INSUFFICIENT_READS.value),
-                                    c.ADFilter(code=c.FiltCodes.INSUFFICIENT_READS.value))
+
+    ### UNDER CONSTRUCTION
+        var_filtered_rrbs: dict[str, list[pysam.AlignedSegment]] = {key: []
+                                                                    for key
+                                                                    in region_reads_by_sample}
+        for mut_sample, read_iter in region_reads_by_sample.items():
+            var_filtered_rrbs[mut_sample] = [read
+                                             for read
+                                             in read_iter
+                                             if not flag_read_alt(read,
+                                                                  vcf_rec.start,
+                                                                  vcf_rec.stop,
+                                                                  alt,
+                                                                  mut_type,
+                                                                  min_basequal)]
+        testing_reads = list(chain.from_iterable(var_filtered_rrbs.values()))
+        # min reads is by strand, not total number of reads
+        # so need to test if duplicate detection puts those below min reads, not total_nread_wdup
+        nfreads_wdup = sum([not (r.flag & 0x10) for r in testing_reads])
+        nrreads_wdup = sum([r.flag & 0x10 for r in testing_reads])
+        ...  # CONTINUE
+        # ~ ISSUE ~
+        # for each readpair, we avoid including both read1 and read2 as testing is fragment-based, not read-based
+        # HOWEVER, we do this by skipping read2 if it overlaps VCF start
+        # subsequent testing depends number of forward and reverse strands.
+        # Assuming that the overlap logic runs for a significant number of fragments
+        # if there's correlation between strand orientation and being read2,
+        # or even if orientation is stochastic and theres just a low number of reads
+        # such that the low read number itself stochastically results in bias towards read1 or read2,
+        # or forward or reverse orientation,
+        # aren't we biasing the data?
+        # ~~~
+
+        # if variant has no decent support
+        # ...maybe insuffcient reads is an unclear name for that
+        if total_nread_wdup := len(testing_reads) == 0:
+            al = c.ALFilter(code=c.FiltCodes.INSUFFICIENT_READS.value)
+            ad = c.ADFilter(code=c.FiltCodes.INSUFFICIENT_READS.value)
+            dv = c.DVFilter(code=c.FiltCodes.INSUFFICIENT_READS.value)
+        elif any([len(l) > 1 for l in var_filtered_rrbs.values()]):
+            dupfree_reads: list[pysam.AlignedSegment] = []
+            # this duplicates some iteration, but practice it's no problem
+            for mut_sample, reads in var_filtered_rrbs.items():
+                if len(reads) > 1:
+                    sample_readpair_ends: list[list[int]] = [[read.reference_start,
+                                                              read.reference_end,  # type: ignore - won't be unbound within program
+                                                              read.next_reference_start,
+                                                              r2s.ref_end_via_cigar(
+                                                                str(read.get_tag('MC')),
+                                                                read.next_reference_start
+                                                              )
+                                                             ]
+                                                             for read in reads]
+                    # I think I'd prefer find_stutter_duplicates to return a sanitised list
+                    drop_idcs = find_stutter_duplicates(
+                                                sample_readpair_ends,
+                                                max_span
+                                            )
+                    dupfree_reads = dupfree_reads + [j
+                                                         for i, j
+                                                         in enumerate(reads)
+                                                         if i not in drop_idcs]
+            testing_reads = dupfree_reads
+        al = is_variant_AL(testing_reads, al_thresh)
+        # BAD, FIX
+        dv = c.DVFilter(code=55 if nread_wdup > min_reads else 100)  # placeholder codes - variant collapsed by dedup and spurious if true, else false
+        if len(testing_reads) < min_reads:
+            ad = c.ADFilter(code=c.FiltCodes.INSUFFICIENT_READS.value)
         else:
-            filt_d[alt] = c.Filters(is_variant_AL(alt_filt_reads,
-                                                  al_thresh),
-                                    is_variant_AD(vcf_rec.start,
-                                                  alt_filt_reads,
-                                                  edge_def,
-                                                  edge_frac,
-                                                  mos,
-                                                  sos,
-                                                  mbsw,
-                                                  sbsw,
-                                                  mbss,
-                                                  sbss,
-                                                  min_reads))
+            ad = is_variant_AD(vcf_rec.start,
+                               testing_reads,
+                               edge_def,
+                               edge_frac,
+                               mos,
+                               sos,
+                               mbsw,
+                               sbsw,
+                               mbss,
+                               sbss,
+                               min_reads)
+    ### CONSTRUCTION END
+        # ensure when changing above alt dict entry can't be filled by previous alt filters!
+        filt_d[alt] = c.Filters(al, ad, dv)
     return filt_d
 
 
@@ -699,7 +778,7 @@ def main_cli() -> None:
                         args.name_mapping))
             else:
                 logging.info('matched alignment to sample {} in VCF'.format(matches[0]))
-                vcf_sample_to_alignment_map[matches[0]] = alignment
+                vcf_sample_to_alignment_map[matches[0]] = alignment  # since length of alignments == 1, can just reuse this variable
 
         else:
             h.cleanup(msg='name mapping misformatted, see helptext for expectations - flag recieved: {}'.format(args.name_mapping))
