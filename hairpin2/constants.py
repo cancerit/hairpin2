@@ -22,7 +22,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from enum import IntEnum, Flag
+from enum import IntEnum, Flag, auto
 from typing import Callable
 import dataclasses as d
 
@@ -44,38 +44,44 @@ DEFAULTS: dict[str, int | float] = dict((('al_filter_threshold', 0.93),
                                          ('min_sd_both_strand_strong', 10),
                                          ('min_reads', 1)))
 
-FiltCodes = IntEnum('FiltCodes',
-                    ['SIXTYAI',
-                     'SIXTYBI',
-                     'ON_THRESHOLD',
-                     'INSUFFICIENT_SUPPORT',
-                     'NO_MUTANTS'],
-                    start=0)
-Ops = IntEnum('Ops',
-              ['MATCH',
-               'INS',
-               'DEL',
-               'SKIP',
-               'SOFT',
-               'HARD',
-               'PAD',
-               'EQUAL',
-               'DIFF',
-               'BACK'],
-              start=0)
-ValidatorFlags = Flag('ValidatorFlags',
-                      ['CLEAR',
-                       'FLAG',
-                       'MAPQUAL',
-                       'READ_FIELDS_MISSING',
-                       'NOT_ALIGNED',
-                       'BAD_OP',
-                       'NOT_ALT',
-                       'BASEQUAL',
-                       'SHORT',
-                       'CLIPQUAL',
-                       'OVERLAP'],
-                      start=0)
+
+class ADFCodes(IntEnum):
+    INSUFFICIENT_SUPPORT = 0
+    SIXTYAI = auto()
+    SIXTYBI = auto()
+
+class ALFCodes(IntEnum):
+    INSUFFICIENT_SUPPORT = 0
+    ON_THRESHOLD = auto()
+
+class DVFCodes(IntEnum):
+    INSUFFICIENT_SUPPORT = 0
+    DUPLICATION = auto()
+
+class Ops(IntEnum):
+    MATCH = 0
+    INS = auto()
+    DEL = auto()
+    SKIP = auto()
+    SOFT = auto()
+    HARD = auto()
+    PAD = auto()
+    EQUAL = auto()
+    DIFF = auto()
+    BACK = auto()
+
+class ValidatorFlags(Flag):
+    CLEAR = 0
+    FLAG = auto()
+    MAPQUAL = auto()
+    READ_FIELDS_MISSING = auto()
+    NOT_ALIGNED = auto()
+    BAD_OP = auto()
+    NOT_ALT = auto()
+    BASEQUAL = auto()
+    SHORT = auto()
+    CLIPQUAL = auto()
+    OVERLAP = auto()
 
 
 class NoAlts(ValueError):
@@ -89,11 +95,14 @@ class NoMutants(ValueError):
 @d.dataclass
 class FilterData:
     name: str
-    flag: bool = False
+    flag: bool | None = None  # !!!!!!!!!! make sure this change is accounted for
     code: int | None = None
 
-    def set(self):
+    def set_true(self):
         self.flag = True
+
+    def set_false(self):
+        self.flag = False
 
     def __iter__(self):
         return (getattr(self, field.name) for field in d.fields(self))
@@ -132,7 +141,7 @@ class Filters:
     AL: ALFilter
     HP: ADFilter
     DV: DVFilter
-    QC: QCFilter
+    # QC: QCFilter  # pending overlap discussion
 
     def __iter__(self):
         return (getattr(self, field.name) for field in d.fields(self))

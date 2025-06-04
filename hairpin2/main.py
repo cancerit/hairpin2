@@ -239,11 +239,11 @@ def alt_filter_reads(
     return filtered_reads
 
 
-def is_variant_AL(
+def variant_AL_threshold(
+    filt: c.ALFilter,
     mut_reads: Iterable[pysam.AlignedSegment],
     al_thresh: float = 0.93
-) -> c.ALFilter:
-    al_filt = c.ALFilter()
+) -> None:
     aln_scores: list[float] = []
 
     for read in mut_reads:
@@ -252,19 +252,20 @@ def is_variant_AL(
         except KeyError:
             pass
     if len(aln_scores) != 0:
-        al_filt.avg_as = median(aln_scores)
-        al_filt.code = c.FiltCodes.ON_THRESHOLD.value
-        if al_filt.avg_as <= al_thresh:
-            al_filt.set()
+        filt.avg_as = median(aln_scores)
+        filt.code = c.ALFCodes.ON_THRESHOLD
+        filt.set_false()
+        if filt.avg_as <= al_thresh:
+            filt.set_true()
     else:
-        al_filt.code = c.FiltCodes.INSUFFICIENT_SUPPORT.value
-
-    return al_filt
+        filt.code = c.ALFCodes.INSUFFICIENT_SUPPORT
+        filt.set_false()
 
 
 # per paper, can set hairpin for mutations distant alignment start
 # in the case where both strands have sufficient supporting reads
-def is_variant_AD(
+def variant_AD_ellis_conditions(
+    filt: c.ADFilter,
     vstart: int,
     mut_reads: Iterable[pysam.AlignedSegment],
     edge_definition: float = 0.15,  # relative proportion, by percentage, of a read to be considered 'the edge'
@@ -276,9 +277,8 @@ def is_variant_AD(
     min_MAD_both_strand_strong: int = 1,
     min_sd_both_strand_strong: float = 10,
     min_reads: int = 1  # inclusive
-) -> c.ADFilter:
+) -> None:
 
-    ad_filt = c.ADFilter()
     # *l*engths of *a*lignment starts *to* *m*utant query positions
     la2ms_f: list[int] = []
     la2ms_r: list[int] = []
@@ -302,7 +302,8 @@ def is_variant_AD(
     # hairpin conditions from Ellis et al. 2020, Nature Protocols
     # sometimes reported as 2021
     if len(la2ms_f) <= min_reads and len(la2ms_r) <= min_reads:
-        ad_filt.code = c.FiltCodes.INSUFFICIENT_SUPPORT.value
+        filt.code = c.ADFCodes.INSUFFICIENT_SUPPORT.value
+        filt.set_false()
     else:
         if len(la2ms_f) > min_reads:  # if this, then calculate stats
             med_f = median(la2ms_f)  # range calculation replaced with true MAD calc (for r strand also)
@@ -312,10 +313,11 @@ def is_variant_AD(
                 if (((sum(near_start_f) / len(near_start_f)) < edge_clustering_threshold) and
                     mad_f > min_MAD_one_strand and
                         sd_f > min_sd_one_strand):
-                    ad_filt.code = c.FiltCodes.SIXTYAI.value  # 60A(i)
+                    filt.code = c.ADFCodes.SIXTYAI.value  # 60A(i)
+                    filt.set_false()
                 else:
-                    ad_filt.code = c.FiltCodes.SIXTYAI.value
-                    ad_filt.set()
+                    filt.code = c.ADFCodes.SIXTYAI.value
+                    filt.set_true()
         # the nested if statement here makes the combined condition mutually exclusive with the above
         if len(la2ms_r) > min_reads:
             med_r = median(la2ms_r)
@@ -325,23 +327,23 @@ def is_variant_AD(
                 if (((sum(near_start_r) / len(near_start_r)) < edge_clustering_threshold) and
                     mad_r > min_MAD_one_strand and
                         sd_r > min_sd_one_strand):
-                    ad_filt.code = c.FiltCodes.SIXTYAI.value  # the value assigned here just informs as to the condition upon which the result was decided, whether true or false
+                    filt.code = c.ADFCodes.SIXTYAI.value  # the value assigned here just informs as to the condition upon which the result was decided, whether true or false
+                    filt.set_false()
                 else:
-                    ad_filt.code = c.FiltCodes.SIXTYAI.value
-                    ad_filt.set()  # setting the filter actually flags it true
+                    filt.code = c.ADFCodes.SIXTYAI.value
+                    filt.set_true()  # setting the filter actually flags it true
         if len(la2ms_f) > min_reads and len(la2ms_r) > min_reads:
             frac_lt_thresh = (sum(near_start_f + near_start_r)
                               / (len(near_start_f) + len(near_start_r)))
             if (frac_lt_thresh < edge_clustering_threshold or
-                (mad_f > min_MAD_both_strand_weak and mad_r > min_MAD_both_strand_weak and sd_f > min_sd_both_strand_weak and sd_r > min_sd_both_strand_weak) or
-                (mad_f > min_MAD_both_strand_strong and sd_f > min_sd_both_strand_strong) or
+                (mad_f > min_MAD_both_strand_weak and mad_r > min_MAD_both_strand_weak and sd_f > min_sd_both_strand_weak and sd_r > min_sd_both_strand_weak) or  # pyright: ignore[reportPossiblyUnboundVariable]
+                (mad_f > min_MAD_both_strand_strong and sd_f > min_sd_both_strand_strong) or  # pyright: ignore[reportPossiblyUnboundVariable]
                     (mad_r > min_MAD_both_strand_strong and sd_r > min_sd_both_strand_strong)):  # type: ignore
-                ad_filt.code = c.FiltCodes.SIXTYBI.value  # 60B(i)
+                filt.code = c.ADFCodes.SIXTYBI.value  # 60B(i)
+                filt.set_false()
             else:
-                ad_filt.code = c.FiltCodes.SIXTYBI.value
-                ad_filt.set()
-
-    return ad_filt
+                filt.code = c.ADFCodes.SIXTYBI.value
+                filt.set_true()
 
 
 def test_record_all_alts(
@@ -360,7 +362,7 @@ def test_record_all_alts(
     sbsw: float,
     mbss: int,
     sbss: float,
-    min_reads: int
+    min_reads: int,
 ) -> dict[str, c.Filters]:
 
     if vcf_rec.alts is None:
@@ -397,7 +399,9 @@ def test_record_all_alts(
     # for extending to more varied artifacts
     filt_d: dict[str, c.Filters] = {}
     for alt in vcf_rec.alts:
-        ad = al = dv = qc = None
+        ad = c.ADFilter()
+        al = c.ALFilter()
+        dv = c.DVFilter() # !!!!
         if (vcf_rec.rlen == len(alt)
                 and set(alt).issubset(set(['A', 'C', 'T', 'G', 'N', '*']))):
             mut_type = 'S'
@@ -427,17 +431,18 @@ def test_record_all_alts(
                                                                   min_basequal)]
         testing_reads = list(chain.from_iterable(var_filtered_rrbs.values()))
         if len(testing_reads) == 0:  # if variant has no decent reads to support it after read qc
-            al = c.ALFilter(code=c.FiltCodes.INSUFFICIENT_SUPPORT.value)
-            ad = c.ADFilter(code=c.FiltCodes.INSUFFICIENT_SUPPORT.value)
-            dv = c.DVFilter(code=c.FiltCodes.INSUFFICIENT_SUPPORT.value)
-            qc = c.QCFilter(code=55)  # all reads too poor to test
-            qc.set()
-            # should this situation engender a qc fail flag for the variant?
-            # All reads are essentially being declared too poor for testing in some way.
-            # TODO: discuss with Phuong/Peter
-            # Phuong - yes
+            al.code = c.ALFCodes.INSUFFICIENT_SUPPORT  # BUG: (possibly) I've got rid of .value...
+            al.set_false()
+            ad.code = c.ADFCodes.INSUFFICIENT_SUPPORT
+            ad.set_false()
+            dv.code = c.DVFCodes.INSUFFICIENT_SUPPORT
+            dv.set_false()
+            # intentionally commented out below - wait until overlap discussion has been had
+            # qc = c.QCFilter(code=55)  # all reads too poor to test in some way, so flag as variant is poorly supported (make this and all flags optional)
+            # qc.set()
         else:
-            qc = c.QCFilter(code=60)  # pass
+            dv.code = c.DVFCodes.DUPLICATION  # only remaining option at this time
+            # qc = c.QCFilter(code=60)  # pass (placeholder code, as above)
             if any([len(l) > 1 for l in var_filtered_rrbs.values()]):  # run duplication testing if any samples have more than one read for the variant
                 dupfree_reads: list[pysam.AlignedSegment] = []
                 # this duplicates some iteration, but practice it's no problem
@@ -462,26 +467,33 @@ def test_record_all_alts(
                                                              in enumerate(reads)
                                                              if i not in drop_idcs]
                 testing_reads = dupfree_reads
-            if len(testing_reads) == 0:  # hardcoded threshold for duplicate only support - best exposed to user? TODO: discuss with Phuong/Peter - Phuong: yes, expose
-                al = c.ALFilter(code=c.FiltCodes.INSUFFICIENT_SUPPORT.value)
-                ad = c.ADFilter(code=c.FiltCodes.INSUFFICIENT_SUPPORT.value)
-                dv = c.DVFilter(code=55) # variant only supported by duplicates (placeholder flag)
-                dv.set()
+            # requested to expose this threshold but
+            # doesn't make sense to expose this comparison directly
+            # instead expose n change in reads. TODO: discuss with Phuong/Peter
+            if len(testing_reads) == 0:  # threshold for duplicate only support
+                al.code = c.ALFCodes.INSUFFICIENT_SUPPORT
+                al.set_false()
+                ad.code = c.ADFCodes.INSUFFICIENT_SUPPORT
+                al.set_false()
+                dv.set_true()  # code already set
             else:
-                al = is_variant_AL(testing_reads, al_thresh)
-                ad = is_variant_AD(vcf_rec.start,
-                                   testing_reads,
-                                   edge_def,
-                                   edge_frac,
-                                   mos,
-                                   sos,
-                                   mbsw,
-                                   sbsw,
-                                   mbss,
-                                   sbss,
-                                   min_reads)
-                dv = c.DVFilter(code=100) # variant NOT only supported by duplicates (placeholder flag)
-        filt_d[alt] = c.Filters(al, ad, dv, qc)
+                dv.set_false()  # variant NOT only supported by duplicates
+                variant_AL_threshold(al, testing_reads, al_thresh)
+                variant_AD_ellis_conditions(
+                    ad,
+                    vcf_rec.start,
+                    testing_reads,
+                    edge_def,
+                    edge_frac,
+                    mos,
+                    sos,
+                    mbsw,
+                    sbsw,
+                    mbss,
+                    sbss,
+                    min_reads
+                )
+        filt_d[alt] = c.Filters(al, ad, dv)
     return filt_d
 
 
@@ -717,8 +729,8 @@ def main_cli() -> None:
             )
         # grab the sample name from first SM field
         # in header field RG
-        aln_sm = alignment.header.to_dict()['RG'][0]['SM']
-        sm_to_aln_map[aln_sm] = alignment
+        aln_sm = alignment.header.to_dict()['RG'][0]['SM']  # pyright: ignore[reportPossiblyUnboundVariable]
+        sm_to_aln_map[aln_sm] = alignment  # pyright: ignore[reportPossiblyUnboundVariable]
 
     vcf_sample_to_alignment_map: dict[str, pysam.AlignmentFile] = {}
     if args.name_mapping:
@@ -767,7 +779,7 @@ def main_cli() -> None:
                         args.name_mapping))
             else:
                 logging.info('matched alignment to sample {} in VCF'.format(matches[0]))
-                vcf_sample_to_alignment_map[matches[0]] = alignment  # since length of alignments == 1, can just reuse this variable
+                vcf_sample_to_alignment_map[matches[0]] = alignment  # pyright: ignore[reportPossiblyUnboundVariable] | since length of alignments == 1, can just reuse this variable
 
         else:
             h.cleanup(msg='name mapping misformatted, see helptext for expectations - flag recieved: {}'.format(args.name_mapping))
@@ -829,14 +841,14 @@ def main_cli() -> None:
                 args.min_sd_both_strand_weak,
                 args.min_MAD_both_strand_strong,
                 args.min_sd_both_strand_strong,
-                args.min_reads
+                args.min_reads,
             )
         except c.NoAlts:
             logging.warning('{0: <7}:{1: >12} ¦ no alts for this record'.format(
                 record.chrom, record.pos))
         except c.NoMutants:
-            logging.warning('{0: <7}:{1: >12} ¦ no samples exhibit record alts'.format(
-                record.chrom, record.pos))
+            logging.warning('{0: <7}:{1: >12} ¦ no samples exhibit alts associated with this record'.format(
+                record.chrom, record.pos))  # should this be recorded in the VCF?
         else:
             for alt, filter_bundle in filter_d.items():
                 for filter in filter_bundle:

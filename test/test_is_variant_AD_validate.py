@@ -22,7 +22,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from hairpin2.main import is_variant_AD
+from hairpin2.main import variant_AD_ellis_conditions
 from hairpin2 import constants as c
 import pysam
 import pytest
@@ -48,62 +48,69 @@ r.set_tag('MC', '100M')
 
 @pytest.mark.validate
 def test_path_insufficient_reads():
-    expected = c.ADFilter(code=3)
-    result = is_variant_AD(0, [])
-    assert expected == result
+    ad = c.ADFilter()
+    expected = c.ADFilter(flag=False, code=c.ADFCodes.INSUFFICIENT_SUPPORT)
+    variant_AD_ellis_conditions(ad, 0, [])
+    assert expected == ad
 
 
 @pytest.mark.validate
 def test_path_f_60ai_set():
-    expected = c.ADFilter(flag=True, code=0)
-    result = is_variant_AD(150, [r, r])
-    assert expected == result
+    ad = c.ADFilter()
+    expected = c.ADFilter(flag=True, code=c.ADFCodes.SIXTYAI)
+    variant_AD_ellis_conditions(ad, 150, [r, r])
+    assert expected == ad
 
 
 @pytest.mark.validate
 def test_path_f_60ai_noset():
-    expected = c.ADFilter(code=0)
+    ad = c.ADFilter()
+    expected = c.ADFilter(flag=False, code=c.ADFCodes.SIXTYAI)
     r1 = copy.deepcopy(r)
     r1.reference_start = 90
-    result = is_variant_AD(150, [r, r1])
-    assert expected == result
+    variant_AD_ellis_conditions(ad, 150, [r, r1])
+    assert expected == ad
 
 
 @pytest.mark.validate
 def test_path_r_60ai_set():
-    expected = c.ADFilter(flag=True, code=0)
+    ad = c.ADFilter()
+    expected = c.ADFilter(flag=True, code=c.ADFCodes.SIXTYAI)
     rr = copy.deepcopy(r)
     rr.flag = rr.flag | 0x10
-    result = is_variant_AD(150, [rr, rr])
-    assert expected == result
+    variant_AD_ellis_conditions(ad, 150, [rr, rr])
+    assert expected == ad
 
 
 @pytest.mark.validate
 def test_path_r_60ai_noset():
-    expected = c.ADFilter(code=0)
+    ad = c.ADFilter()
+    expected = c.ADFilter(flag=False, code=c.ADFCodes.SIXTYAI)
     rr = copy.deepcopy(r)
     rr.flag = rr.flag | 0x10
     rr1 = copy.deepcopy(rr)
     rr1.reference_start = 90
-    result = is_variant_AD(150, [rr, rr1])
-    assert expected == result
+    variant_AD_ellis_conditions(ad, 150, [rr, rr1])
+    assert expected == ad
 
 
 @pytest.mark.validate
 def test_path_60bi_set():
-    expected = c.ADFilter(flag=True, code=1)
+    ad = c.ADFilter()
+    expected = c.ADFilter(flag=True, code=c.ADFCodes.SIXTYBI)
     r1 = copy.deepcopy(r)
     r1.reference_start = 190
     rr = copy.deepcopy(r)
     rr.flag = rr.flag | 0x10
-    result = is_variant_AD(198, [r1, r1, rr, rr])
-    assert expected == result
+    variant_AD_ellis_conditions(ad, 198, [r1, r1, rr, rr])
+    assert expected == ad
 
 
 @pytest.mark.validate
 def test_path_60bi_noset():
-    expected = c.ADFilter(code=1)
+    ad = c.ADFilter()
+    expected = c.ADFilter(flag=False, code=c.ADFCodes.SIXTYBI)
     rr = copy.deepcopy(r)
     rr.flag = rr.flag | 0x10
-    result = is_variant_AD(150, [r, r, rr, rr])
-    assert expected == result
+    variant_AD_ellis_conditions(ad, 150, [r, r, rr, rr])
+    assert expected == ad
