@@ -23,8 +23,6 @@
 # SOFTWARE.
 
 from enum import IntEnum, Flag, auto
-from typing import Callable
-import dataclasses as d
 
 EXIT_SUCCESS = 0
 EXIT_FAILURE = 1
@@ -44,19 +42,6 @@ DEFAULTS: dict[str, int | float] = dict((('al_filter_threshold', 0.93),
                                          ('min_sd_both_strand_strong', 10),
                                          ('min_reads', 1)))
 
-
-class ADFCodes(IntEnum):
-    INSUFFICIENT_SUPPORT = 0
-    SIXTYAI = auto()
-    SIXTYBI = auto()
-
-class ALFCodes(IntEnum):
-    INSUFFICIENT_SUPPORT = 0
-    ON_THRESHOLD = auto()
-
-class DVFCodes(IntEnum):
-    INSUFFICIENT_SUPPORT = 0
-    DUPLICATION = auto()
 
 class Ops(IntEnum):
     MATCH = 0
@@ -91,73 +76,3 @@ class NoAlts(ValueError):
 class NoMutants(ValueError):
     pass
 
-
-@d.dataclass
-class FilterData:
-    name: str
-    flag: bool | None = None  # !!!!!!!!!! make sure this change is accounted for
-    code: int | None = None
-
-    def set_true(self):
-        self.flag = True
-
-    def set_false(self):
-        self.flag = False
-
-    def __iter__(self):
-        return (getattr(self, field.name) for field in d.fields(self))
-
-
-@d.dataclass
-class ADFilter(FilterData):
-    name: str = d.field(default='ADF')
-
-
-@d.dataclass
-class ALFilter(FilterData):
-    name: str = d.field(default='ALF')
-    avg_as: float | None = None
-
-
-@d.dataclass
-class DVFilter(FilterData):
-    """
-    duplication variant filter - variant suspected to arise from duplicated reads
-    that have escaped dupmarking.
-    """
-    name: str = d.field(default='DVF')
-
-
-@d.dataclass
-class QCFilter(FilterData):
-    """
-    All reads supporting the variant have failed hairpin2 QC
-    """
-    name: str = d.field(default='QCF')
-
-
-@d.dataclass
-class Filters:
-    AL: ALFilter
-    HP: ADFilter
-    DV: DVFilter
-    # QC: QCFilter  # pending overlap discussion
-
-    def __iter__(self):
-        return (getattr(self, field.name) for field in d.fields(self))
-
-    def fill_field(self, field_name, value):
-        if hasattr(self, field_name):
-            setattr(self, field_name, value)
-        else:
-            raise AttributeError
-
-    def get_field(self, field_name):
-        if hasattr(self, field_name):
-            return getattr(self, field_name)
-        else:
-            raise AttributeError
-
-
-FiltReturn = Callable[..., Filters]
-FlagReturn = Callable[..., int]

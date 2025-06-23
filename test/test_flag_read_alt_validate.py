@@ -60,7 +60,7 @@ def test_path_unsupported_mut_type():
 
 @pytest.mark.validate
 def test_path_sub_not_aligned():
-    expected = c.ValidatorFlags.NOT_ALIGNED.value
+    expected = c.ValidatorFlags.NOT_ALIGNED
     result = qc_read_alt_specific(read=r,
                            vcf_start=200,
                            vcf_stop=100,
@@ -72,8 +72,8 @@ def test_path_sub_not_aligned():
 
 @pytest.mark.validate
 def test_path_bad_sub():
-    expected = (c.ValidatorFlags.NOT_ALT.value
-                | c.ValidatorFlags.BASEQUAL.value)
+    expected = (c.ValidatorFlags.NOT_ALT
+                | c.ValidatorFlags.BASEQUAL)
     result = qc_read_alt_specific(read=r,
                            vcf_start=99,
                            vcf_stop=100,
@@ -85,7 +85,7 @@ def test_path_bad_sub():
 
 @pytest.mark.validate
 def test_path_good_sub():
-    expected = c.ValidatorFlags.CLEAR.value
+    expected = c.ValidatorFlags.CLEAR
     result = qc_read_alt_specific(read=r,
                            vcf_start=99,
                            vcf_stop=100,
@@ -97,7 +97,7 @@ def test_path_good_sub():
 
 @pytest.mark.validate
 def test_path_del_short():
-    expected = c.ValidatorFlags.SHORT.value
+    expected = c.ValidatorFlags.SHORT
     result = qc_read_alt_specific(read=r,
                            vcf_start=99,
                            vcf_stop=110,
@@ -109,7 +109,7 @@ def test_path_del_short():
 
 @pytest.mark.validate
 def test_path_del_bad_op():
-    expected = c.ValidatorFlags.BAD_OP.value
+    expected = c.ValidatorFlags.BAD_OP
     result = qc_read_alt_specific(read=r,
                            vcf_start=99,
                            vcf_stop=101,
@@ -122,7 +122,7 @@ def test_path_del_bad_op():
 # 2bp del
 @pytest.mark.validate
 def test_path_good_del():
-    expected = c.ValidatorFlags.CLEAR.value
+    expected = c.ValidatorFlags.CLEAR
     rc = copy.deepcopy(r)
     rc.cigarstring = '4M2D6M'
     result = qc_read_alt_specific(read=rc,
@@ -136,7 +136,7 @@ def test_path_good_del():
 
 @pytest.mark.validate
 def test_path_ins_not_aligned():
-    expected = c.ValidatorFlags.NOT_ALIGNED.value
+    expected = c.ValidatorFlags.NOT_ALIGNED
     result = qc_read_alt_specific(read=r,
                            vcf_start=200,
                            vcf_stop=100,
@@ -148,7 +148,7 @@ def test_path_ins_not_aligned():
 
 @pytest.mark.validate
 def test_path_ins_short():
-    expected = c.ValidatorFlags.SHORT.value
+    expected = c.ValidatorFlags.SHORT
     result = qc_read_alt_specific(read=r,
                            vcf_start=99,
                            vcf_stop=100,
@@ -160,7 +160,7 @@ def test_path_ins_short():
 
 @pytest.mark.validate
 def test_path_bad_ins():
-    expected = (c.ValidatorFlags.BAD_OP.value | c.ValidatorFlags.NOT_ALT.value)
+    expected = (c.ValidatorFlags.BAD_OP | c.ValidatorFlags.NOT_ALT)
     result = qc_read_alt_specific(read=r,
                            vcf_start=99,
                            vcf_stop=100,
@@ -172,7 +172,7 @@ def test_path_bad_ins():
 
 @pytest.mark.validate
 def test_path_good_ins():
-    expected = c.ValidatorFlags.CLEAR.value
+    expected = c.ValidatorFlags.CLEAR
     rc = copy.deepcopy(r)
     rc.cigarstring = '5M2I3M'
     result = qc_read_alt_specific(read=rc,

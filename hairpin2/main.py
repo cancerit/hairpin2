@@ -40,7 +40,7 @@ def qc_read_broad(
     vcf_start: int,
     min_mapqual: int,
     min_clipqual: int,
-) -> int:
+) -> c.ValidatorFlags:
     """
     When testing variants, test a read for various general - i.e. not specific to a
     particular variant - features identifying the read as a poor source of support
@@ -50,7 +50,7 @@ def qc_read_broad(
         - quality and seq length mismatch
         - reference id is none
     """
-    invalid_flag = c.ValidatorFlags.CLEAR.value  # 0 - evaluates false
+    invalid_flag = c.ValidatorFlags.CLEAR  # 0 - evaluates false
 
     try:
         mate_cig = str(read.get_tag('MC'))
@@ -64,20 +64,20 @@ def qc_read_broad(
                 read.cigarstring,
                 read.cigartuples,
                 mate_cig]):
-        invalid_flag |= c.ValidatorFlags.READ_FIELDS_MISSING.value
+        invalid_flag |= c.ValidatorFlags.READ_FIELDS_MISSING
     else:
         if not (read.flag & 0x2) or read.flag & 0xE00:
-            invalid_flag |= c.ValidatorFlags.FLAG.value
+            invalid_flag |= c.ValidatorFlags.FLAG
 
         if read.mapping_quality < min_mapqual:
-            invalid_flag |= c.ValidatorFlags.MAPQUAL.value
+            invalid_flag |= c.ValidatorFlags.MAPQUAL
 
         if ('S' in read.cigarstring and  # type: ignore - program ensures can't be none
                 mean(read.query_alignment_qualities) < min_clipqual):  # type: ignore - pysam typing at fault
-            invalid_flag |= c.ValidatorFlags.CLIPQUAL.value
+            invalid_flag |= c.ValidatorFlags.CLIPQUAL
 
         # avoid analysing both read1 and mate if they both cover the variant
-        if (not (invalid_flag & c.ValidatorFlags.FLAG.value)
+        if (not (invalid_flag & c.ValidatorFlags.FLAG)
                 and not (read.flag & 0x40)):
             read_range = range(read.reference_start,
                                read.reference_end)  # type: ignore - can't be none
@@ -86,7 +86,7 @@ def qc_read_broad(
                                                      read.next_reference_start))
             ref_overlap = set(read_range).intersection(mate_range)
             if vcf_start in ref_overlap:
-                invalid_flag |= c.ValidatorFlags.OVERLAP.value
+                invalid_flag |= c.ValidatorFlags.OVERLAP
 
     return invalid_flag
 
@@ -98,7 +98,7 @@ def qc_read_alt_specific(
     alt: str,
     mut_type: Literal['S', 'D', 'I'],
     min_basequal: int
-) -> int:
+) -> c.ValidatorFlags:
     """
     When testing a variant, test a read for various features specific to the variant
     at hand which would identify that read as a poor source of support for that
@@ -108,33 +108,33 @@ def qc_read_alt_specific(
         raise ValueError(
             'unsupported mut_type: {} - supports \'S\' (SUB) \'D\' (DEL) \'I\' (INS)'.format(mut_type))
 
-    invalid_flag = c.ValidatorFlags.CLEAR.value
+    invalid_flag = c.ValidatorFlags.CLEAR
 
     if mut_type in ['S', 'I']:
         try:
             mut_pos = r2s.ref2querypos(read, vcf_start)
         except IndexError:
-            invalid_flag |= c.ValidatorFlags.NOT_ALIGNED.value
+            invalid_flag |= c.ValidatorFlags.NOT_ALIGNED
         else:
             if mut_type == 'S':  # SUB
                 if read.query_sequence[mut_pos:mut_pos + len(alt)] != alt:  # type: ignore - can't be none
-                    invalid_flag |= c.ValidatorFlags.NOT_ALT.value
+                    invalid_flag |= c.ValidatorFlags.NOT_ALT
                 if any([bq < min_basequal
                         for bq
                         in read.query_qualities[mut_pos:mut_pos + len(alt)]]):  # type: ignore - can't be none
-                    invalid_flag |= c.ValidatorFlags.BASEQUAL.value
+                    invalid_flag |= c.ValidatorFlags.BASEQUAL
             if mut_type == 'I':  # INS - mut_pos is position immediately before insertion
                 if mut_pos + len(alt) > read.query_length:
-                    invalid_flag |= c.ValidatorFlags.SHORT.value
+                    invalid_flag |= c.ValidatorFlags.SHORT
                 else:
                     mut_alns = [(q, r)
                                 for q, r
                                 in read.get_aligned_pairs()
                                 if q in range(mut_pos + 1, mut_pos + len(alt) + 1)]
                     if any([r is not None for _, r in mut_alns]):
-                        invalid_flag |= c.ValidatorFlags.BAD_OP.value
+                        invalid_flag |= c.ValidatorFlags.BAD_OP
                     if read.query_sequence[mut_pos + 1:mut_pos + len(alt) + 1] != alt:  # type: ignore - can't be none
-                        invalid_flag |= c.ValidatorFlags.NOT_ALT.value
+                        invalid_flag |= c.ValidatorFlags.NOT_ALT
     # DEL
     if mut_type == 'D':
         rng = list(range(vcf_start, vcf_stop + 1))
@@ -143,10 +143,10 @@ def qc_read_alt_specific(
                     in read.get_aligned_pairs()
                     if r in rng]
         if len(mut_alns) != len(rng):
-            invalid_flag |= c.ValidatorFlags.SHORT.value
+            invalid_flag |= c.ValidatorFlags.SHORT
         if (any([x is not None for x in mut_alns[1:-1]]) or
             any([x is None for x in [mut_alns[0], mut_alns[-1]]])):
-                invalid_flag |= c.ValidatorFlags.BAD_OP.value
+                invalid_flag |= c.ValidatorFlags.BAD_OP
 
     return invalid_flag
 
@@ -302,7 +302,7 @@ def variant_AD_ellis_conditions(
     # hairpin conditions from Ellis et al. 2020, Nature Protocols
     # sometimes reported as 2021
     if len(la2ms_f) <= min_reads and len(la2ms_r) <= min_reads:
-        filt.code = c.ADFCodes.INSUFFICIENT_SUPPORT.value
+        filt.code = c.ADFCodes.INSUFFICIENT_SUPPORT
         filt.set_false()
     else:
         if len(la2ms_f) > min_reads:  # if this, then calculate stats
@@ -313,10 +313,10 @@ def variant_AD_ellis_conditions(
                 if (((sum(near_start_f) / len(near_start_f)) < edge_clustering_threshold) and
                     mad_f > min_MAD_one_strand and
                         sd_f > min_sd_one_strand):
-                    filt.code = c.ADFCodes.SIXTYAI.value  # 60A(i)
+                    filt.code = c.ADFCodes.SIXTYAI  # 60A(i)
                     filt.set_false()
                 else:
-                    filt.code = c.ADFCodes.SIXTYAI.value
+                    filt.code = c.ADFCodes.SIXTYAI
                     filt.set_true()
         # the nested if statement here makes the combined condition mutually exclusive with the above
         if len(la2ms_r) > min_reads:
@@ -327,10 +327,10 @@ def variant_AD_ellis_conditions(
                 if (((sum(near_start_r) / len(near_start_r)) < edge_clustering_threshold) and
                     mad_r > min_MAD_one_strand and
                         sd_r > min_sd_one_strand):
-                    filt.code = c.ADFCodes.SIXTYAI.value  # the value assigned here just informs as to the condition upon which the result was decided, whether true or false
+                    filt.code = c.ADFCodes.SIXTYAI  # the value assigned here just informs as to the condition upon which the result was decided, whether true or false
                     filt.set_false()
                 else:
-                    filt.code = c.ADFCodes.SIXTYAI.value
+                    filt.code = c.ADFCodes.SIXTYAI
                     filt.set_true()  # setting the filter actually flags it true
         if len(la2ms_f) > min_reads and len(la2ms_r) > min_reads:
             frac_lt_thresh = (sum(near_start_f + near_start_r)
@@ -339,10 +339,10 @@ def variant_AD_ellis_conditions(
                 (mad_f > min_MAD_both_strand_weak and mad_r > min_MAD_both_strand_weak and sd_f > min_sd_both_strand_weak and sd_r > min_sd_both_strand_weak) or  # pyright: ignore[reportPossiblyUnboundVariable]
                 (mad_f > min_MAD_both_strand_strong and sd_f > min_sd_both_strand_strong) or  # pyright: ignore[reportPossiblyUnboundVariable]
                     (mad_r > min_MAD_both_strand_strong and sd_r > min_sd_both_strand_strong)):  # type: ignore
-                filt.code = c.ADFCodes.SIXTYBI.value  # 60B(i)
+                filt.code = c.ADFCodes.SIXTYBI  # 60B(i)
                 filt.set_false()
             else:
-                filt.code = c.ADFCodes.SIXTYBI.value
+                filt.code = c.ADFCodes.SIXTYBI
                 filt.set_true()
 
 
@@ -401,7 +401,7 @@ def test_record_all_alts(
     for alt in vcf_rec.alts:
         ad = c.ADFilter()
         al = c.ALFilter()
-        dv = c.DVFilter() # !!!!
+        dv = c.DVFilter()
         if (vcf_rec.rlen == len(alt)
                 and set(alt).issubset(set(['A', 'C', 'T', 'G', 'N', '*']))):
             mut_type = 'S'
@@ -431,7 +431,7 @@ def test_record_all_alts(
                                                                   min_basequal)]
         testing_reads = list(chain.from_iterable(var_filtered_rrbs.values()))
         if len(testing_reads) == 0:  # if variant has no decent reads to support it after read qc
-            al.code = c.ALFCodes.INSUFFICIENT_SUPPORT  # BUG: (possibly) I've got rid of .value...
+            al.code = c.ALFCodes.INSUFFICIENT_SUPPORT
             al.set_false()
             ad.code = c.ADFCodes.INSUFFICIENT_SUPPORT
             ad.set_false()
@@ -441,7 +441,7 @@ def test_record_all_alts(
             # qc = c.QCFilter(code=55)  # all reads too poor to test in some way, so flag as variant is poorly supported (make this and all flags optional)
             # qc.set()
         else:
-            dv.code = c.DVFCodes.DUPLICATION  # only remaining option at this time
+            dv.code = c.DVFCodes.DUPLICATION  # only remaining option (doesn't indicate true/false)
             # qc = c.QCFilter(code=60)  # pass (placeholder code, as above)
             if any([len(l) > 1 for l in var_filtered_rrbs.values()]):  # run duplication testing if any samples have more than one read for the variant
                 dupfree_reads: list[pysam.AlignedSegment] = []
@@ -855,7 +855,7 @@ def main_cli() -> None:
                     if filter.flag:
                         record.filter.add(filter.name)
                     record.info.update({filter.name: '|'.join(  # type: ignore - unclear what pysam wants
-                        [alt, str(int(filter.flag)), str(filter.code)] +
+                        [alt, str(int(filter.flag)), str(filter.code.value)] +
                         ([str(filter.avg_as)] if filter.name == 'ALF' else [])
                     )})
             try:

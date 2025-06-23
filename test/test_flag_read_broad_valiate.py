@@ -49,7 +49,7 @@ r.set_tag('MC', '10M')
 
 @pytest.mark.validate
 def test_path_clear():
-    expected = c.ValidatorFlags.CLEAR.value
+    expected = c.ValidatorFlags.CLEAR
     result = qc_read_broad(read=r,
                              vcf_start=99,
                              min_mapqual=11,
@@ -59,7 +59,7 @@ def test_path_clear():
 
 @pytest.mark.validate
 def test_path_missing_mc():
-    expected = c.ValidatorFlags.READ_FIELDS_MISSING.value
+    expected = c.ValidatorFlags.READ_FIELDS_MISSING
     rc = copy.deepcopy(r)
     rc.set_tag('MC', None)
     result = qc_read_broad(read=rc,
@@ -71,7 +71,7 @@ def test_path_missing_mc():
 
 @pytest.mark.validate
 def test_path_missing_field():
-    expected = c.ValidatorFlags.READ_FIELDS_MISSING.value
+    expected = c.ValidatorFlags.READ_FIELDS_MISSING
     rc = copy.deepcopy(r)
     rc.cigarstring = None
     result = qc_read_broad(read=rc,
@@ -83,9 +83,9 @@ def test_path_missing_field():
 
 @pytest.mark.validate
 def test_path_set_flag_mapqual_clipqual():
-    expected = (c.ValidatorFlags.FLAG.value
-                | c.ValidatorFlags.MAPQUAL.value
-                | c.ValidatorFlags.CLIPQUAL.value)
+    expected = (c.ValidatorFlags.FLAG
+                | c.ValidatorFlags.MAPQUAL
+                | c.ValidatorFlags.CLIPQUAL)
     rc = copy.deepcopy(r)
     rc.flag = s.FQCFAIL  # 0x200
     rc.cigarstring = '1S9M'
@@ -98,7 +98,7 @@ def test_path_set_flag_mapqual_clipqual():
 
 @pytest.mark.validate
 def test_path_overlap():
-    expected = c.ValidatorFlags.OVERLAP.value
+    expected = c.ValidatorFlags.OVERLAP
     rc = copy.deepcopy(r)
     rc.flag = s.FPAIRED | s.FPROPER_PAIR | s.FREAD2  # 0x80
     result = qc_read_broad(read=rc,
@@ -110,7 +110,7 @@ def test_path_overlap():
 
 @pytest.mark.validate
 def test_path_no_overlap():
-    expected = c.ValidatorFlags.CLEAR.value
+    expected = c.ValidatorFlags.CLEAR
     rc = copy.deepcopy(r)
     rc.flag = s.FPAIRED | s.FPROPER_PAIR | s.FREAD2  # 0x80
     rc.set_tag('MC', '3M')
