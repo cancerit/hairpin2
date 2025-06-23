@@ -25,13 +25,13 @@
 from enum import IntEnum, Flag
 import logging
 import sys
-from hairpin2 import constants as c
+from hairpin2 import constants as cnst
 
 
-def cleanup(code: int = c.EXIT_FAILURE, msg: None | str = None) -> None:
-    if code != c.EXIT_SUCCESS and msg:
+def cleanup(code: int = cnst.EXIT_FAILURE, msg: None | str = None) -> None:
+    if code != cnst.EXIT_SUCCESS and msg:
         logging.error(msg)
-    if code == c.EXIT_SUCCESS:
+    if code == cnst.EXIT_SUCCESS:
         logging.info('hairpin complete')
     sys.exit(code)
 

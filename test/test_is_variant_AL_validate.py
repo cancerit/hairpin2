@@ -23,7 +23,7 @@
 # SOFTWARE.
 
 from hairpin2.main import variant_AL_threshold
-from hairpin2 import constants as c
+from hairpin2 import constants as cnst
 import pysam
 import pytest
 import copy
@@ -48,8 +48,8 @@ r.set_tag('MC', '100M')
 
 @pytest.mark.validate
 def test_path_AL_true_code_2():
-    al = c.ALFilter()
-    expected = c.ALFilter(flag=True, code=c.ALFCodes.ON_THRESHOLD, avg_as=0.5)
+    al = cnst.ALFilter()
+    expected = cnst.ALFilter(flag=True, code=cnst.ALFCodes.ON_THRESHOLD, avg_as=0.5)
     s1r1 = copy.deepcopy(r)  # no AS, cover except KeyError
     s1r2 = copy.deepcopy(r)
     s1r2.set_tag('AS', 50)  # low AS
@@ -59,8 +59,8 @@ def test_path_AL_true_code_2():
 
 @pytest.mark.validate
 def test_path_AL_false_code_2():
-    al = c.ALFilter()
-    expected = c.ALFilter(flag=False, code=c.ALFCodes.ON_THRESHOLD, avg_as=0.99)
+    al = cnst.ALFilter()
+    expected = cnst.ALFilter(flag=False, code=cnst.ALFCodes.ON_THRESHOLD, avg_as=0.99)
     s1r1 = copy.deepcopy(r)
     s1r1.set_tag('AS', 99)  # high AS
     variant_AL_threshold(al, [s1r1])
@@ -69,7 +69,7 @@ def test_path_AL_false_code_2():
 
 @pytest.mark.validate
 def test_path_AL_false_code_3():
-    al = c.ALFilter()
-    expected = c.ALFilter(flag=False, code=c.ALFCodes.INSUFFICIENT_SUPPORT)
+    al = cnst.ALFilter()
+    expected = cnst.ALFilter(flag=False, code=cnst.ALFCodes.INSUFFICIENT_SUPPORT)
     variant_AL_threshold(al, [])
     assert expected == al

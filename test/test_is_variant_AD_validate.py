@@ -23,7 +23,7 @@
 # SOFTWARE.
 
 from hairpin2.main import variant_AD_ellis_conditions
-from hairpin2 import constants as c
+from hairpin2 import constants as cnst
 import pysam
 import pytest
 import copy
@@ -48,24 +48,24 @@ r.set_tag('MC', '100M')
 
 @pytest.mark.validate
 def test_path_insufficient_reads():
-    ad = c.ADFilter()
-    expected = c.ADFilter(flag=False, code=c.ADFCodes.INSUFFICIENT_SUPPORT)
+    ad = cnst.ADFilter()
+    expected = cnst.ADFilter(flag=False, code=cnst.ADFCodes.INSUFFICIENT_SUPPORT)
     variant_AD_ellis_conditions(ad, 0, [])
     assert expected == ad
 
 
 @pytest.mark.validate
 def test_path_f_60ai_set():
-    ad = c.ADFilter()
-    expected = c.ADFilter(flag=True, code=c.ADFCodes.SIXTYAI)
+    ad = cnst.ADFilter()
+    expected = cnst.ADFilter(flag=True, code=cnst.ADFCodes.SIXTYAI)
     variant_AD_ellis_conditions(ad, 150, [r, r])
     assert expected == ad
 
 
 @pytest.mark.validate
 def test_path_f_60ai_noset():
-    ad = c.ADFilter()
-    expected = c.ADFilter(flag=False, code=c.ADFCodes.SIXTYAI)
+    ad = cnst.ADFilter()
+    expected = cnst.ADFilter(flag=False, code=cnst.ADFCodes.SIXTYAI)
     r1 = copy.deepcopy(r)
     r1.reference_start = 90
     variant_AD_ellis_conditions(ad, 150, [r, r1])
@@ -74,8 +74,8 @@ def test_path_f_60ai_noset():
 
 @pytest.mark.validate
 def test_path_r_60ai_set():
-    ad = c.ADFilter()
-    expected = c.ADFilter(flag=True, code=c.ADFCodes.SIXTYAI)
+    ad = cnst.ADFilter()
+    expected = cnst.ADFilter(flag=True, code=cnst.ADFCodes.SIXTYAI)
     rr = copy.deepcopy(r)
     rr.flag = rr.flag | 0x10
     variant_AD_ellis_conditions(ad, 150, [rr, rr])
@@ -84,8 +84,8 @@ def test_path_r_60ai_set():
 
 @pytest.mark.validate
 def test_path_r_60ai_noset():
-    ad = c.ADFilter()
-    expected = c.ADFilter(flag=False, code=c.ADFCodes.SIXTYAI)
+    ad = cnst.ADFilter()
+    expected = cnst.ADFilter(flag=False, code=cnst.ADFCodes.SIXTYAI)
     rr = copy.deepcopy(r)
     rr.flag = rr.flag | 0x10
     rr1 = copy.deepcopy(rr)
@@ -96,8 +96,8 @@ def test_path_r_60ai_noset():
 
 @pytest.mark.validate
 def test_path_60bi_set():
-    ad = c.ADFilter()
-    expected = c.ADFilter(flag=True, code=c.ADFCodes.SIXTYBI)
+    ad = cnst.ADFilter()
+    expected = cnst.ADFilter(flag=True, code=cnst.ADFCodes.SIXTYBI)
     r1 = copy.deepcopy(r)
     r1.reference_start = 190
     rr = copy.deepcopy(r)
@@ -108,8 +108,8 @@ def test_path_60bi_set():
 
 @pytest.mark.validate
 def test_path_60bi_noset():
-    ad = c.ADFilter()
-    expected = c.ADFilter(flag=False, code=c.ADFCodes.SIXTYBI)
+    ad = cnst.ADFilter()
+    expected = cnst.ADFilter(flag=False, code=cnst.ADFCodes.SIXTYBI)
     rr = copy.deepcopy(r)
     rr.flag = rr.flag | 0x10
     variant_AD_ellis_conditions(ad, 150, [r, r, rr, rr])
