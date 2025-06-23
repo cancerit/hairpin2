@@ -1,11 +1,12 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Callable, ClassVar, override, Generic, TypeVar, final, cast, Any
+from typing import ClassVar, override, Generic, TypeVar, final, cast, Any
 from collections.abc import Sequence
 from pysam import AlignedSegment
 from hairpin2 import ref2seq as r2s
 from enum import IntEnum, auto, EnumMeta
 from statistics import median, stdev
+# pyright: reportExplicitAny=false
 
 # If you're here just to examine the scientific implementation of each filter,
 # examine the `test` methods for each one
@@ -52,7 +53,7 @@ class FilterData(ABC, Generic[T]):
         self,
         *args,  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
         **kwargs  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    ) -> None | dict[Any, list[AlignedSegment]]:  # pyright: ignore[reportExplicitAny]
+    ) -> None | dict[Any, list[AlignedSegment]]:
         """
         each filter must define a test method
         """
@@ -321,4 +322,4 @@ class DVFilter(FilterData[DVFCodes]):
 
 
 # useful aliases
-type AnyFilterSequence = Sequence[FilterData[Any]]  # pyright: ignore[reportExplicitAny]
+type AnyFilterSequence = Sequence[FilterData[Any]]

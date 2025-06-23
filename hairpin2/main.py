@@ -21,11 +21,12 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+# pyright: reportUnusedCallResult=false
 
 import pysam
 from hairpin2 import ref2seq as r2s, constants as cnst, helpers as hlp, filters as fl
 import hairpin2
-from statistics import mean, median, stdev
+from statistics import mean
 import argparse
 import logging
 import json
@@ -72,15 +73,15 @@ def qc_read_broad(
         if read.mapping_quality < min_mapqual:
             invalid_flag |= cnst.ValidatorFlags.MAPQUAL
 
-        if ('S' in read.cigarstring and  # type: ignore - program ensures can't be none
-                mean(read.query_alignment_qualities) < min_clipqual):  # type: ignore - pysam typing at fault
+        if ('S' in read.cigarstring and  # pyright: ignore[reportOperatorIssue]
+                mean(read.query_alignment_qualities) < min_clipqual):  # pyright: ignore[reportUnknownMemberType, reportArgumentType]
             invalid_flag |= cnst.ValidatorFlags.CLIPQUAL
 
         # avoid analysing both read1 and mate if they both cover the variant
         if (not (invalid_flag & cnst.ValidatorFlags.FLAG)
                 and not (read.flag & 0x40)):
             read_range = range(read.reference_start,
-                               read.reference_end)  # type: ignore - can't be none
+                               read.reference_end)  # pyright: ignore[reportArgumentType]
             mate_range = range(read.next_reference_start,
                                r2s.ref_end_via_cigar(mate_cig,  # type: ignore
                                                      read.next_reference_start))
@@ -168,7 +169,7 @@ def test_record_all_alts(
     mbss: int,
     sbss: float,
     min_reads: int,
-) -> dict[str, fl.AnyFilterList]:
+) -> dict[str, fl.AnyFilterSequence]:
 
     if vcf_rec.alts is None:
         raise cnst.NoAlts
@@ -238,6 +239,7 @@ def test_record_all_alts(
 
         # instantiate filters to test the QC'd reads
         ad = fl.ADFilter(
+            vcf_rec.start,
             edge_def,
             edge_frac,
             mos,
@@ -251,7 +253,9 @@ def test_record_all_alts(
         al = fl.ALFilter(
             al_thresh
         )
-        dv = fl.DVFilter()  # TODO: fill out
+        dv = fl.DVFilter(
+            max_span
+        )  # TODO: fill out
         
 
         dup_qc_region_reads = dv.test(alt_qc_region_reads)
@@ -259,7 +263,7 @@ def test_record_all_alts(
         al.test(testing_reads)
         ad.test(vcf_rec.start, testing_reads)
         alt_filters[alt] = (al, ad, dv)
-    return filt_d
+    return alt_filters
 
 
 def main_cli() -> None:
