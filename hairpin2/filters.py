@@ -21,6 +21,7 @@ T = TypeVar("T", bound=IntEnum)
 class FilterData(ABC, Generic[T]):
     CodeEnum: ClassVar[EnumMeta]
     name: str
+    alt: str
 
     def __post_init__(self) -> None:
         self._flag: bool | None = None
@@ -55,8 +56,18 @@ class FilterData(ABC, Generic[T]):
         **kwargs  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
     ) -> None | dict[Any, list[AlignedSegment]]:
         """
-        each filter must define a test method
+        Each filter must define a test method via override
         """
+
+    def getinfo(self) -> str | None:
+        """
+        Return basic filter info in a string formatted for use in the VCF INFO field.
+        The default format is "<alt>|<flag>|<code>".
+
+        Each filter must return INFO as it should be formatted for the VCF INFO field, or None if not applicable.
+        Subclasses may override this method to return more specific info
+        """
+        return f"{self.alt}|{self.flag}|{self.code}"
 
 
 class ADFCodes(IntEnum):
@@ -68,7 +79,6 @@ class ADFCodes(IntEnum):
 class ADFilter(FilterData[ADFCodes]):
     CodeEnum: ClassVar[type[ADFCodes]] = ADFCodes
     name: str = field(default='ADF', init=False)
-    variant_start: int
     edge_definition: float = 0.15  # relative proportion, by percentage, of a read to be considered 'the edge'
     edge_clustering_threshold: float = 0.9  # percentage threshold
     min_MAD_one_strand: int = 0  # exclusive (and subsequent params)
@@ -89,8 +99,7 @@ class ADFilter(FilterData[ADFCodes]):
     ) -> None:
 
         if len(variant_reads) < 1:
-            self.CodeEnum.INSUFFICIENT_READS
-            self.flag = False
+            self.code = self.CodeEnum.INSUFFICIENT_READS
             return
 
         # *l*engths of *a*lignment starts *to* *m*utant query positions
@@ -188,8 +197,7 @@ class ALFilter(FilterData[ALFCodes]):
         variant_reads: Sequence[AlignedSegment]
     ) -> None:
         if len(variant_reads) < 1:
-            self.CodeEnum.INSUFFICIENT_READS
-            self.flag = False
+            self.code = self.CodeEnum.INSUFFICIENT_READS
             return
         
         aln_scores: list[float] = []
@@ -208,6 +216,10 @@ class ALFilter(FilterData[ALFCodes]):
         else:
             self.code = self.CodeEnum.INSUFFICIENT_READS
             self.flag = False
+
+    @override
+    def getinfo(self) -> str:
+        return f"{self.alt}|{self.flag}|{self.code}|{self.avg_as}"
 
 
 class DVFCodes(IntEnum):
@@ -309,6 +321,10 @@ class DVFilter(FilterData[DVFCodes]):
                 self.flag = True
 
             return sanitised_reads_by_sample
+
+    @override
+    def getinfo(self) -> str:
+        return f"{self.alt}|{self.flag}|{self.code}"  # TODO: report which samples?
 
 
 

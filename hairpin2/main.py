@@ -22,6 +22,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 # pyright: reportUnusedCallResult=false
+# pyright: reportAny=false
+# pyright: reportExplicitAny=false
 
 import pysam
 from hairpin2 import ref2seq as r2s, constants as cnst, helpers as hlp, filters as fl
@@ -57,7 +59,7 @@ def qc_read_broad(
         mate_cig = str(read.get_tag('MC'))
     except KeyError:
         mate_cig = None
-    if any(x is None for x in
+    if any(flg is None for flg in
             [read.reference_end,
                 read.query_sequence,
                 read.query_qualities,
@@ -83,7 +85,7 @@ def qc_read_broad(
             read_range = range(read.reference_start,
                                read.reference_end)  # pyright: ignore[reportArgumentType]
             mate_range = range(read.next_reference_start,
-                               r2s.ref_end_via_cigar(mate_cig,  # type: ignore
+                               r2s.ref_end_via_cigar(mate_cig,  # pyright: ignore[reportArgumentType]
                                                      read.next_reference_start))
             ref_overlap = set(read_range).intersection(mate_range)
             if vcf_start in ref_overlap:
@@ -108,6 +110,14 @@ def qc_read_alt_specific(
     if mut_type not in ['S', 'D', 'I']:
         raise ValueError(
             'unsupported mut_type: {} - supports \'S\' (SUB) \'D\' (DEL) \'I\' (INS)'.format(mut_type))
+    if read.query_sequence is None:
+        raise ValueError(
+            'read must have query sequence'
+        )
+    if read.query_qualities is None:
+        raise ValueError(
+            'read must have query qualities'
+        )
 
     invalid_flag = cnst.ValidatorFlags.CLEAR
 
@@ -239,6 +249,7 @@ def test_record_all_alts(
 
         # instantiate filters to test the QC'd reads
         ad = fl.ADFilter(
+            alt,
             vcf_rec.start,
             edge_def,
             edge_frac,
@@ -251,13 +262,15 @@ def test_record_all_alts(
             min_reads
         )
         al = fl.ALFilter(
+            alt,
             al_thresh
         )
         dv = fl.DVFilter(
+            alt,
             max_span
         )  # TODO: fill out
-        
 
+        # run the tests
         dup_qc_region_reads = dv.test(alt_qc_region_reads)
         testing_reads = list(chain.from_iterable(dup_qc_region_reads.values()))
         al.test(testing_reads)
@@ -425,15 +438,16 @@ def main_cli() -> None:
                 )
     args = parser.parse_args()
 
-    json_config: dict | None = None
+    json_config: dict[str, Any] | None = None
     if args.input_json:
         logging.info(
             'args JSON provided, non-path and non-mandatory arguments will be loaded from JSON if not present on command line')
         try:
             with open(args.input_json, 'r') as f:
                 json_config = json.load(f)
-        except Exception as e:
-            hlp.cleanup(msg='failed to open input JSON, reporting: {}'.format(e))
+        except Exception as er:
+            logging.error(f'failed to open input JSON, reporting: {er}')
+            sys.exit(cnst.EXIT_FAILURE)
 
     # set arg defaults
     for k in vars(args).keys():
@@ -463,15 +477,18 @@ def main_cli() -> None:
                 (args.min_MAD_both_strand_strong >= 0),
                 (args.min_sd_both_strand_strong >= 0),
                 (args.min_reads >= 0)]):
-        hlp.cleanup(msg='extended arg out of range, check helptext for ranges')
+        logging.error('extended arg out of range, check helptext for ranges')
+        sys.exit(cnst.EXIT_FAILURE)
 
     try:
         vcf_in_handle = pysam.VariantFile(args.vcf_in)
-    except Exception as e:
-        hlp.cleanup(msg='failed to open VCF input, reporting: {}'.format(e))
+    except Exception as er:
+        logging.error(f'failed to open input VCF, reporting {er}')
+        sys.exit(cnst.EXIT_FAILURE)
     vcf_names: list[str] = list(vcf_in_handle.header.samples)  # type:ignore
     if len(set(vcf_names)) != len(vcf_names):
-        hlp.cleanup(msg='duplicate sample names in VCF')
+        logging.error('duplicate sample names in input VCF')
+        sys.exit(cnst.EXIT_FAILURE)
 
     sm_to_aln_map: dict[str, pysam.AlignmentFile] = {}
     match args.format:
@@ -484,6 +501,8 @@ def main_cli() -> None:
         case "c":
             mode = "rc"
             logging.info("CRAM format specified")
+        case _:
+            raise ValueError('Unknown mode {args.format} found in args.format')
     for path in args.alignments:
         try:
             alignment = pysam.AlignmentFile(path,
@@ -492,14 +511,13 @@ def main_cli() -> None:
                                                                 if args.cram_reference
                                                                 and args.format == "c"
                                                                 else None))
-        except Exception as e:
-            hlp.cleanup(
-                msg='failed to read alignment file at {}, reporting: {}'.format(path, e)
-            )
+        except Exception as er:
+            logging.error(f'failed to read alignment file {path!r}, reporting {er}')
+            sys.exit(cnst.EXIT_FAILURE)
         # grab the sample name from first SM field
         # in header field RG
-        aln_sm = alignment.header.to_dict()['RG'][0]['SM']  # pyright: ignore[reportPossiblyUnboundVariable]
-        sm_to_aln_map[aln_sm] = alignment  # pyright: ignore[reportPossiblyUnboundVariable]
+        aln_sm = alignment.header.to_dict()['RG'][0]['SM']
+        sm_to_aln_map[aln_sm] = alignment
 
     vcf_sample_to_alignment_map: dict[str, pysam.AlignmentFile] = {}
     if args.name_mapping:
@@ -512,22 +530,23 @@ def main_cli() -> None:
                 alignment_mapflag.append(kv_split[1])
 
             if hlp.has_duplicates(vcf_mapflag):
-                hlp.cleanup(msg='duplicate VCF sample names provided to name mapping flag')
+                logging.error('duplicate VCF sample names provided to --name-mapping flag')
+                sys.exit(cnst.EXIT_FAILURE)
 
             if not set(vcf_mapflag) <= set(vcf_names):
-                hlp.cleanup(msg="VCF sample names provided to name mapping flag {} are not equal to or a subset of VCF samples from file {} - flag recieved {}".format(
-                        vcf_mapflag,
-                        vcf_names,
-                        args.name_mapping))
+                logging.error(f'VCF sample names provided to --name-mapping flag {vcf_mapflag!r} are not equal to or a subset of VCF samples from input VCF {vcf_names!r}')
+                sys.exit(cnst.EXIT_FAILURE)
 
             if hlp.has_duplicates(alignment_mapflag):
-                hlp.cleanup(msg='duplicate aligment sample names provided to name mapping flag')
+                logging.error(msg='duplicate aligment sample names provided to name mapping flag')
+                sys.exit(cnst.EXIT_FAILURE)
 
-            if hlp.lists_not_equal(alignment_mapflag, sm_to_aln_map.keys()):  # type: ignore - dicts are stable
-                hlp.cleanup(msg='SM tags provided to name mapping flag {} are not equal to SM tag list from alignment files {} - flag recieved {}'.format(
+            if not hlp.collection_equal(alignment_mapflag, sm_to_aln_map.keys()):  # type: ignore - dicts are stable
+                logging.error(msg='SM tags provided to name mapping flag {} are not equal to SM tag list from alignment files {} - flag recieved {}'.format(
                         alignment_mapflag,
                         set(sm_to_aln_map.keys()),
                         args.name_mapping))
+                sys.exit(cnst.EXIT_FAILURE)
 
             vcf_sample_to_alignment_map = {vcf_mapflag[alignment_mapflag.index(k)]: v
                                             for k, v
@@ -539,27 +558,32 @@ def main_cli() -> None:
                 possible_sample_names = args.name_mapping  # list of len 1
             matches = [n for n in possible_sample_names if n in set(vcf_names)]
             if len(matches) > 1:
-                hlp.cleanup(msg='More than one of the VCF sample names provided to name mapping flag match any sample names in input VCF {} - flag recieved {}'.format(
+                logging.error(msg='More than one of the VCF sample names provided to name mapping flag match any sample names in input VCF {} - flag recieved {}'.format(
                         vcf_names,
                         args.name_mapping))
+                sys.exit(cnst.EXIT_FAILURE)
             elif not matches:
-                hlp.cleanup(msg='None of the VCF sample names provided to name mapping flag match any sample names in input VCF {} - flag recieved {}'.format(
+                logging.error(msg='None of the VCF sample names provided to name mapping flag match any sample names in input VCF {} - flag recieved {}'.format(
                         vcf_names,
                         args.name_mapping))
+                sys.exit(cnst.EXIT_FAILURE)
             else:
                 logging.info('matched alignment to sample {} in VCF'.format(matches[0]))
                 vcf_sample_to_alignment_map[matches[0]] = alignment  # pyright: ignore[reportPossiblyUnboundVariable] | since length of alignments == 1, can just reuse this variable
+                sys.exit(cnst.EXIT_FAILURE)
 
         else:
-            hlp.cleanup(msg='name mapping misformatted, see helptext for expectations - flag recieved: {}'.format(args.name_mapping))
+            logging.error(msg='name mapping misformatted, see helptext for expectations - flag recieved: {}'.format(args.name_mapping))
+            sys.exit(cnst.EXIT_FAILURE)
     else:  # no name mapping flag
         if not sm_to_aln_map.keys() <= set(vcf_names):
-            hlp.cleanup(
+            logging.error(
                 msg='alignment SM tags {} are not equal to or a subset of VCF sample names {}'.format(
                     set(sm_to_aln_map.keys()),
                     set(vcf_names)
                 )
             )
+            sys.exit(cnst.EXIT_FAILURE)
         vcf_sample_to_alignment_map = sm_to_aln_map
     ## end name mapping handling
 
@@ -569,6 +593,7 @@ def main_cli() -> None:
                 set(vcf_names) - vcf_sample_to_alignment_map.keys()
             )
         )
+        sys.exit(cnst.EXIT_FAILURE)
 
     # init output
     out_head = vcf_in_handle.header  # type:ignore
@@ -590,11 +615,12 @@ def main_cli() -> None:
     try:
         vcf_out_handle = pysam.VariantFile(args.vcf_out, 'w', header=out_head)
     except Exception as e:
-        hlp.cleanup(msg='failed to open VCF output, reporting: {}'.format(e))
+        logging.error(msg='failed to open VCF output, reporting: {}'.format(e))
+        sys.exit(cnst.EXIT_FAILURE)
 
     for record in vcf_in_handle.fetch():  # type: ignore - program ensures not unbound
         try:
-            filter_d: dict[str, fl.Filters] = test_record_all_alts(
+            filter_d: dict[str, fl.AnyFilterSequence] = test_record_all_alts(
                 vcf_sample_to_alignment_map,
                 record,
                 args.min_mapping_quality,
@@ -615,22 +641,23 @@ def main_cli() -> None:
         except cnst.NoAlts:
             logging.warning('{0: <7}:{1: >12} ¦ no alts for this record'.format(
                 record.chrom, record.pos))
+            sys.exit(cnst.EXIT_FAILURE)
         except cnst.NoMutants:
             logging.warning('{0: <7}:{1: >12} ¦ no samples exhibit alts associated with this record'.format(
                 record.chrom, record.pos))  # should this be recorded in the VCF?
+            sys.exit(cnst.EXIT_FAILURE)
         else:
-            for alt, filter_bundle in filter_d.items():
+            for _, filter_bundle in filter_d.items():
                 for filter in filter_bundle:
                     if filter.flag:
                         record.filter.add(filter.name)
-                    record.info.update({filter.name: '|'.join(  # type: ignore - unclear what pysam wants
-                        [alt, str(int(filter.flag)), str(filter.code.value)] +
-                        ([str(filter.avg_as)] if filter.name == 'ALF' else [])
-                    )})
+                    if finfo := filter.getinfo():
+                        record.info.update({filter.name: finfo})  # pyright: ignore[reportArgumentType]
             try:
                 vcf_out_handle.write(record)  # type:ignore
             except Exception as e:
-                hlp.cleanup(msg='failed to write to vcf, reporting: {}'.format(e))
+                logging.error(msg='failed to write to vcf, reporting: {}'.format(e))
+                sys.exit(cnst.EXIT_FAILURE)
 
     # write args once all verified
     if args.output_json:
@@ -644,6 +671,8 @@ def main_cli() -> None:
                     },
                     output_json, indent="")
         except Exception as e:
-            hlp.cleanup(msg='failed to write output JSON, reporting: {}'.format(e))
+            logging.error(msg='failed to write output JSON, reporting: {}'.format(e))
+            sys.exit(cnst.EXIT_FAILURE)
 
-    hlp.cleanup(cnst.EXIT_SUCCESS)
+    logging.info('hairpin complete')
+    sys.exit(cnst.EXIT_SUCCESS)

@@ -26,6 +26,9 @@ from enum import IntEnum, Flag
 import logging
 import sys
 from hairpin2 import constants as cnst
+from typing import Any
+from collections.abc import Collection
+# pyright: reportExplicitAny=false
 
 
 def cleanup(code: int = cnst.EXIT_FAILURE, msg: None | str = None) -> None:
@@ -37,29 +40,29 @@ def cleanup(code: int = cnst.EXIT_FAILURE, msg: None | str = None) -> None:
 
 
 def has_duplicates(
-    l: list
+    l: list[Any]
 ) -> bool:
     return len(l) != len(set(l))
 
 
-def lists_not_equal(
-    l1: list | set,
-    l2: list | set
+def collection_equal(
+    l1: Collection[Any],
+    l2: Collection[Any]
 ) -> bool:
-    return sorted(l1) != sorted(l2)
+    return sorted(l1) == sorted(l2)
 
 
 def print_flag(
     print_enum: Flag,
 ) -> None:
-    pl = []
+    pl: list[str] = []
     for e in print_enum:
         vs = '-'.join([str(int(e.value)), str(hex(e.value)), str(bin(e.value))])
-        pl.append(': '.join([str(e), vs]))
+        pl.append(f'{e}: {vs}')
     print(pl)
 
 
 def print_enum(
     print_enum: IntEnum
 ) -> None:
-    print([e for e in print_enum])  # type: ignore - iterating works fine
+    print([e for e in print_enum])  # pyright: ignore[reportGeneralTypeIssues] - iterating works fine

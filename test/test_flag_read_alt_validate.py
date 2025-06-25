@@ -21,13 +21,12 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
 from hairpin2.main import qc_read_alt_specific
 from hairpin2 import constants as cnst
 import pysam
 from pysam.libcalignedsegment import SAM_FLAGS as s
 import copy
-import pytest
+from pytest import raises
 
 
 # BASIS PATH TESTING (ish)
@@ -47,9 +46,8 @@ r.cigarstring = '10M'
 r.set_tag('MC', '10M')
 
 
-@pytest.mark.validate
 def test_path_unsupported_mut_type():
-    with pytest.raises(ValueError):
+    with raises(ValueError):
         qc_read_alt_specific(read=r,
                       vcf_start=99,
                       vcf_stop=100,
@@ -58,7 +56,6 @@ def test_path_unsupported_mut_type():
                       min_basequal=25)
 
 
-@pytest.mark.validate
 def test_path_sub_not_aligned():
     expected = cnst.ValidatorFlags.NOT_ALIGNED
     result = qc_read_alt_specific(read=r,
@@ -70,7 +67,6 @@ def test_path_sub_not_aligned():
     assert expected == result
 
 
-@pytest.mark.validate
 def test_path_bad_sub():
     expected = (cnst.ValidatorFlags.NOT_ALT
                 | cnst.ValidatorFlags.BASEQUAL)
@@ -83,7 +79,6 @@ def test_path_bad_sub():
     assert expected == result
 
 
-@pytest.mark.validate
 def test_path_good_sub():
     expected = cnst.ValidatorFlags.CLEAR
     result = qc_read_alt_specific(read=r,
@@ -95,7 +90,6 @@ def test_path_good_sub():
     assert expected == result
 
 
-@pytest.mark.validate
 def test_path_del_short():
     expected = cnst.ValidatorFlags.SHORT
     result = qc_read_alt_specific(read=r,
@@ -107,7 +101,6 @@ def test_path_del_short():
     assert expected & result
 
 
-@pytest.mark.validate
 def test_path_del_bad_op():
     expected = cnst.ValidatorFlags.BAD_OP
     result = qc_read_alt_specific(read=r,
@@ -120,7 +113,6 @@ def test_path_del_bad_op():
 
 
 # 2bp del
-@pytest.mark.validate
 def test_path_good_del():
     expected = cnst.ValidatorFlags.CLEAR
     rc = copy.deepcopy(r)
@@ -134,7 +126,6 @@ def test_path_good_del():
     assert expected == result
 
 
-@pytest.mark.validate
 def test_path_ins_not_aligned():
     expected = cnst.ValidatorFlags.NOT_ALIGNED
     result = qc_read_alt_specific(read=r,
@@ -146,7 +137,6 @@ def test_path_ins_not_aligned():
     assert expected == result
 
 
-@pytest.mark.validate
 def test_path_ins_short():
     expected = cnst.ValidatorFlags.SHORT
     result = qc_read_alt_specific(read=r,
@@ -158,7 +148,6 @@ def test_path_ins_short():
     assert expected == result
 
 
-@pytest.mark.validate
 def test_path_bad_ins():
     expected = (cnst.ValidatorFlags.BAD_OP | cnst.ValidatorFlags.NOT_ALT)
     result = qc_read_alt_specific(read=r,
@@ -170,7 +159,6 @@ def test_path_bad_ins():
     assert expected == result
 
 
-@pytest.mark.validate
 def test_path_good_ins():
     expected = cnst.ValidatorFlags.CLEAR
     rc = copy.deepcopy(r)

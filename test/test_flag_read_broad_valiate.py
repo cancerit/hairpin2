@@ -21,13 +21,11 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
 from hairpin2.main import qc_read_broad
 from hairpin2 import constants as cnst
 import pysam
 from pysam.libcalignedsegment import SAM_FLAGS as s
 import copy
-import pytest
 
 
 # BASIS PATH TESTING (ish)
@@ -47,7 +45,6 @@ r.cigarstring = '10M'
 r.set_tag('MC', '10M')
 
 
-@pytest.mark.validate
 def test_path_clear():
     expected = cnst.ValidatorFlags.CLEAR
     result = qc_read_broad(read=r,
@@ -57,7 +54,6 @@ def test_path_clear():
     assert expected == result
 
 
-@pytest.mark.validate
 def test_path_missing_mc():
     expected = cnst.ValidatorFlags.READ_FIELDS_MISSING
     rc = copy.deepcopy(r)
@@ -69,7 +65,6 @@ def test_path_missing_mc():
     assert expected == result
 
 
-@pytest.mark.validate
 def test_path_missing_field():
     expected = cnst.ValidatorFlags.READ_FIELDS_MISSING
     rc = copy.deepcopy(r)
@@ -81,7 +76,6 @@ def test_path_missing_field():
     assert expected == result
 
 
-@pytest.mark.validate
 def test_path_set_flag_mapqual_clipqual():
     expected = (cnst.ValidatorFlags.FLAG
                 | cnst.ValidatorFlags.MAPQUAL
@@ -96,7 +90,6 @@ def test_path_set_flag_mapqual_clipqual():
     assert expected == result
 
 
-@pytest.mark.validate
 def test_path_overlap():
     expected = cnst.ValidatorFlags.OVERLAP
     rc = copy.deepcopy(r)
@@ -108,7 +101,6 @@ def test_path_overlap():
     assert expected == result
 
 
-@pytest.mark.validate
 def test_path_no_overlap():
     expected = cnst.ValidatorFlags.CLEAR
     rc = copy.deepcopy(r)

@@ -21,9 +21,8 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
 from hairpin2.ref2seq import ref2querypos
-import pytest
+from pytest import raises
 import pysam
 
 
@@ -44,13 +43,11 @@ r.cigarstring = '10M'
 r.set_tag('MC', '10M')
 
 
-@pytest.mark.validate
 def test_path_indexerror():
-    with pytest.raises(IndexError):
+    with raises(IndexError):
         ref2querypos(r, 1000)
 
 
-@pytest.mark.validate
 def test_path_good():
     expected = 5
     result = ref2querypos(r, 100)
