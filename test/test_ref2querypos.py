@@ -45,7 +45,7 @@ r.set_tag('MC', '10M')
 
 def test_path_indexerror():
     with raises(IndexError):
-        ref2querypos(r, 1000)
+        _ = ref2querypos(r, 1000)
 
 
 def test_path_good():

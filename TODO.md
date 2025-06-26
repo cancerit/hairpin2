@@ -1,2 +1,4 @@
-- document DVFilter
-- document modular filter approach, both scientifically and with respect to typing magic
+- Document all remaining filters and functions with docstrings
+- Collate the scientific discussions to be had with responsible scientists (these are for a future release)
+- Complete testing of DVFilter
+- Run prerelease over many samples

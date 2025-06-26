@@ -48,11 +48,11 @@ r.set_tag('MC', '10M')
 
 def test_path_unsupported_mut_type():
     with raises(ValueError):
-        qc_read_alt_specific(read=r,
+        _ = qc_read_alt_specific(read=r,
                       vcf_start=99,
                       vcf_stop=100,
                       alt='A',
-                      mut_type='8',  # type: ignore
+                      mut_type='8',  # pyright: ignore[reportArgumentType]
                       min_basequal=25)
 
 

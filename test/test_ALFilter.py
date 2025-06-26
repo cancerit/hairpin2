@@ -44,26 +44,26 @@ r.set_tag('MC', '100M')
 
 
 def test_path_AL_true_code_2():
-    al = ALFilter('_')
+    al = ALFilter()
     s1r1 = copy.deepcopy(r)  # no AS, cover except KeyError
     s1r2 = copy.deepcopy(r)
     s1r2.set_tag('AS', 50)  # low AS
-    al.test([s1r1, s1r2])
+    al.test('_', [s1r1, s1r2])
     assert al.flag == True
     assert al.code == al.CodeEnum.ON_THRESHOLD
 
 
 def test_path_AL_false_code_2():
-    al = ALFilter('_')
+    al = ALFilter()
     s1r1 = copy.deepcopy(r)
     s1r1.set_tag('AS', 99)  # high AS
-    al.test([s1r1])
+    al.test('_', [s1r1])
     assert al.flag == False
     assert al.code == al.CodeEnum.ON_THRESHOLD
 
 
 def test_path_AL_false_code_3():
-    al = ALFilter('_')
-    al.test([])
+    al = ALFilter()
+    al.test('_', [])
     assert al.flag == None
     assert al.code == al.CodeEnum.INSUFFICIENT_READS

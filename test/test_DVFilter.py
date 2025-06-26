@@ -22,7 +22,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import pysam
-import copy
 
 from hairpin2.filters import DVFilter
 
@@ -45,8 +44,8 @@ r.set_tag('MC', '100M')
 
 
 def test_path_insufficient_reads():
-    dv = DVFilter('_')
-    _ = dv.test({'_': []})
+    dv = DVFilter()
+    _ = dv.test('_', {'_': []})
     assert dv.code == dv.CodeEnum.INSUFFICIENT_READS
     assert dv.flag == None
 

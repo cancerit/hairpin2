@@ -31,7 +31,7 @@ from pytest import raises
 # ----
 def test_path_valueerror():
     with raises(ValueError):
-        ref_end_via_cigar('30M2I* ,', 0)
+        _ = ref_end_via_cigar('30M2I* ,', 0)
 
 
 def test_path_normal():

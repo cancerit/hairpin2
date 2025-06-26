@@ -249,8 +249,6 @@ def test_record_all_alts(
 
         # instantiate filters to test the QC'd reads
         ad = fl.ADFilter(
-            alt,
-            vcf_rec.start,
             edge_def,
             edge_frac,
             mos,
@@ -262,19 +260,17 @@ def test_record_all_alts(
             min_reads
         )
         al = fl.ALFilter(
-            alt,
             al_thresh
         )
         dv = fl.DVFilter(
-            alt,
             max_span
         )  # TODO: fill out
 
         # run the tests
-        dup_qc_region_reads = dv.test(alt_qc_region_reads)
+        dup_qc_region_reads = dv.test(alt, alt_qc_region_reads)
         testing_reads = list(chain.from_iterable(dup_qc_region_reads.values()))
-        al.test(testing_reads)
-        ad.test(vcf_rec.start, testing_reads)
+        al.test(alt, testing_reads)
+        ad.test(alt, vcf_rec.start, testing_reads)
         alt_filters[alt] = (al, ad, dv)
     return alt_filters
 

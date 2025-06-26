@@ -44,63 +44,63 @@ r.set_tag('MC', '100M')
 
 
 def test_path_insufficient_reads():
-    ad = ADFilter('_')
-    ad.test(0, [])
+    ad = ADFilter()
+    ad.test('_', 0, [])
     assert ad.flag == None
     assert ad.code == ADFilter.CodeEnum.INSUFFICIENT_READS
 
 
 def test_path_f_60ai_set():
-    ad = ADFilter('_')
-    ad.test(150, [r, r])
+    ad = ADFilter()
+    ad.test('_', 150, [r, r])
     assert ad.flag == True
     assert ad.code == ADFilter.CodeEnum.SIXTYAI
 
 
 def test_path_f_60ai_noset():
-    ad = ADFilter('_')
+    ad = ADFilter()
     r1 = copy.deepcopy(r)
     r1.reference_start = 90
-    ad.test(150, [r, r1])
+    ad.test('_', 150, [r, r1])
     assert ad.flag == False
     assert ad.code == ADFilter.CodeEnum.SIXTYAI
 
 
 def test_path_r_60ai_set():
-    ad = ADFilter('_')
+    ad = ADFilter()
     rr = copy.deepcopy(r)
     rr.flag = rr.flag | 0x10
-    ad.test(150, [rr, rr])
+    ad.test('_', 150, [rr, rr])
     assert ad.flag == True
     assert ad.code == ADFilter.CodeEnum.SIXTYAI
 
 
 def test_path_r_60ai_noset():
-    ad = ADFilter('_')
+    ad = ADFilter()
     rr = copy.deepcopy(r)
     rr.flag = rr.flag | 0x10
     rr1 = copy.deepcopy(rr)
     rr1.reference_start = 90
-    ad.test(150, [rr, rr1])
+    ad.test('_', 150, [rr, rr1])
     assert ad.flag == False
     assert ad.code == ADFilter.CodeEnum.SIXTYAI
 
 
 def test_path_60bi_set():
-    ad = ADFilter('_')
+    ad = ADFilter()
     r1 = copy.deepcopy(r)
     r1.reference_start = 190
     rr = copy.deepcopy(r)
     rr.flag = rr.flag | 0x10
-    ad.test(198, [r1, r1, rr, rr])
+    ad.test('_', 198, [r1, r1, rr, rr])
     assert ad.flag == True
     assert ad.code == ADFilter.CodeEnum.SIXTYBI
 
 
 def test_path_60bi_noset():
-    ad = ADFilter('_')
+    ad = ADFilter()
     rr = copy.deepcopy(r)
     rr.flag = rr.flag | 0x10
-    ad.test(150, [r, r, rr, rr])
+    ad.test('_', 150, [r, r, rr, rr])
     assert ad.flag == False
     assert ad.code == ADFilter.CodeEnum.SIXTYBI

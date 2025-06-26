@@ -141,9 +141,11 @@ class ADFilter(FilterData[ADFCodes]):
     @override
     def test(
         self,
+        alt: str,
         variant_start: int,
         variant_reads: Sequence[AlignedSegment],
     ) -> None:
+        self.alt = alt
 
         if len(variant_reads) < 1:
             self.code = self.CodeEnum.INSUFFICIENT_READS
@@ -260,8 +262,11 @@ class ALFilter(FilterData[ALFCodes]):
     @override
     def test(
         self,
+        alt: str,
         variant_reads: Sequence[AlignedSegment]
     ) -> None:
+        self.alt = alt
+
         if len(variant_reads) < 1:
             self.code = self.CodeEnum.INSUFFICIENT_READS
             return
@@ -335,11 +340,13 @@ class DVFilter(FilterData[DVFCodes]):
     @override
     def test(
         self,
+        alt: str,
         variant_reads_by_sample: dict[str, list[AlignedSegment]]
     ) -> dict[str, list[AlignedSegment]]:
         """
         A naive algorithm using start/end co-ordinates of read pairs to identify likely stutter duplicate reads missed by traditional dupmarking.
         """
+        self.alt = alt
         nsamples_with_duplication = 0
         if not any([len(reads) > 1 for reads in variant_reads_by_sample.values()]):
             self.code = self.CodeEnum.INSUFFICIENT_READS
