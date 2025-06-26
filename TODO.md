@@ -1,0 +1,2 @@
+- document DVFilter
+- document modular filter approach, both scientifically and with respect to typing magic

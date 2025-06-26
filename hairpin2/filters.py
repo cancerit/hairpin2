@@ -7,24 +7,52 @@ from hairpin2 import ref2seq as r2s
 from enum import IntEnum, auto, EnumMeta
 from statistics import median, stdev
 # pyright: reportExplicitAny=false
+# pyright: reportAny=false
 
 # If you're here just to examine the scientific implementation of each filter,
 # examine the `test` methods for each one
 # the rest is largely boilerplate/typing magic to make the filter implementation modular and robust
-# TODO: if you want to add another filter guide (commented out example minimal definition)
 
-# TODO: method[[...], str] for returning string to write for each filter
-# TODO: provide an explanation of all this strict-typing magic
-# e.g. providing both static and runtime enforcment via Generic[T] and CodeEnum respectively
 T = TypeVar("T", bound=IntEnum)
 @dataclass
 class FilterData(ABC, Generic[T]):
+    """
+    Parent ABClass for VCF filters. All filters should be subclasses inheriting from this class.
+    Defines basic properties that must be shared by all filters:
+        - a 'test' method for testing the filter on the VCF record - subclasses must override this, and implement their own test method.
+        - a 'getinfo' method for returning a string to report to the INFO field of the VCF record - a basic default is provided, but
+          subclasses probably want to override this.
+        - A basic set of instance variables, which may be extended in a subclass as necessary:
+            - name, a string id for the filter to be used in the VCF FILTER field.
+            - a flag, a boolean indicating if the filter is True/False, or None if untested.
+            - a code, an integer code from a set of possibilities, indicating the basis on which the test has returned True/False, or None if untested.
+        - A class variable, CodeEnum, holding an Enum describing the set of possibilites used for the code instance variable.
+
+    The class uses getters and setters to ensure runtime checking of values provided, and has complete type hinting for static analysis.
+    The CodeEnum allows for runtime checking of values provided to the code setter method, and by extension the code instance variable.
+    In other words, the CodeEnum ensures that the code variable may only be set to members of CodeEnum, so you can't set code to something
+    meaningless when testing by accident.
+    This class is generic over T, an IntEnum, such that when a subclass is made it must be made with reference to a specific IntEnum -
+    this is the static equivalent of the runtime checking by CodeEnum. When subclassing, create an appropriate enum of codes and define
+    the subclass like so:
+    ```
+    def XYZCodes(IntEnum):
+        ...
+    ... # decorators if needed
+    class XYZFilter(FilterData[XYZCodes]):
+        CodeEnum: ClassVar[type[XYZCodes]] = XYZCodes
+        ... # the rest of the class body, including the test methods and so on
+    ```
+    The payoff for doing so is complete static and runtime checking of Filter validity, which is helpful when describing complex tests.
+
+    See the ADFFilter definition for a good example of a complete subclass.
+    """
     CodeEnum: ClassVar[EnumMeta]
     name: str
-    alt: str
 
     def __post_init__(self) -> None:
-        self._flag: bool | None = None
+        # variables that should not be initialised at instatiation, as they're meaningless before having run a test
+        self._flag: bool | None = None  # private instance variables managed by getter/setter funcs
         self._code: T | None = None
 
     @property
@@ -54,22 +82,25 @@ class FilterData(ABC, Generic[T]):
         self,
         *args,  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
         **kwargs  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    ) -> None | dict[Any, list[AlignedSegment]]:
+    ) -> Any:
         """
-        Each filter must define a test method via override
+        Each filter must define a test method via override.
         """
 
-    def getinfo(self) -> str | None:
+    def getinfo(self) -> str:
         """
-        Return basic filter info in a string formatted for use in the VCF INFO field.
-        The default format is "<alt>|<flag>|<code>".
+        Return basic filter info in a string formatted for use in the VCF INFO field - "<flag>|<code>".
 
         Each filter must return INFO as it should be formatted for the VCF INFO field, or None if not applicable.
-        Subclasses may override this method to return more specific info
+        Subclasses may override this method to return more specific info.
         """
-        return f"{self.alt}|{self.flag}|{self.code}"
+        return f"{self.flag}|{self.code}"
 
 
+# These filters share some properties not defined in the parent, e.g. the alt field
+# But some future filters won't, so they're excluded from the parent by intention
+# The shared fields could be covered by a mixin
+# But I'm skeptical of overengineering at this time
 class ADFCodes(IntEnum):
     INSUFFICIENT_READS = 0
     SIXTYAI = auto()
@@ -77,8 +108,13 @@ class ADFCodes(IntEnum):
 @final
 @dataclass
 class ADFilter(FilterData[ADFCodes]):
+    """
+    Describe filter
+    """
     CodeEnum: ClassVar[type[ADFCodes]] = ADFCodes
     name: str = field(default='ADF', init=False)
+    _alt: str | None = field(init=False, default=None)
+    # filter thresholds used in the test method:
     edge_definition: float = 0.15  # relative proportion, by percentage, of a read to be considered 'the edge'
     edge_clustering_threshold: float = 0.9  # percentage threshold
     min_MAD_one_strand: int = 0  # exclusive (and subsequent params)
@@ -88,6 +124,17 @@ class ADFilter(FilterData[ADFCodes]):
     min_MAD_both_strand_strong: int = 1
     min_sd_both_strand_strong: float = 10
     min_reads: int = 1  # inclusive
+
+    @property
+    def alt(self) -> str | None:
+        return self._alt
+
+    @alt.setter
+    def alt(self, new_alt: str) -> None:
+        if not isinstance(new_alt, str):  # pyright: ignore[reportUnnecessaryIsInstance]
+            raise ValueError('The alt field may only be set to a str')  # pyright: ignore[reportUnreachable]
+        else:
+            self._alt = new_alt
 
     # per paper, can set hairpin for mutations distant alignment start
     # in the case where both strands have sufficient supporting reads
@@ -125,10 +172,10 @@ class ADFilter(FilterData[ADFCodes]):
         # hairpin conditions from Ellis et al. 2020, Nature Protocols
         # sometimes reported as 2021
         if len(la2ms_f) <= self.min_reads and len(la2ms_r) <= self.min_reads:
-            self.code = self.CodeEnum.INSUFFICIENT_READS  # TODO: make granular
+            self.code = self.CodeEnum.INSUFFICIENT_READS
             self.flag = False
         else:
-            if len(la2ms_f) > self.min_reads:  # if this, then calculate stats
+            if len(la2ms_f) > self.min_reads:  # if true, calculate stats
                 med_f = median(la2ms_f)  # range calculation replaced with true MAD calc (for r strand also)
                 mad_f = median(map(lambda x: abs(x - med_f), la2ms_f))
                 sd_f = stdev(la2ms_f)
@@ -168,6 +215,10 @@ class ADFilter(FilterData[ADFCodes]):
                     self.code = self.CodeEnum.SIXTYBI
                     self.flag = True
 
+    @override
+    def getinfo(self) -> str:
+        return f'{self.alt}|{self.code}|{self.flag}'
+
 
 class ALFCodes(IntEnum):
     INSUFFICIENT_READS = 0
@@ -175,10 +226,25 @@ class ALFCodes(IntEnum):
 @final
 @dataclass
 class ALFilter(FilterData[ALFCodes]):
+    """
+    Describe filter
+    """
     CodeEnum: ClassVar[type[ALFCodes]] = ALFCodes
     name: str = field(default='ALF', init=False)
+    _alt: str | None = field(init=False, default=None)
     _avg_as: float = field(init=False)
     al_thresh: float = 0.93
+
+    @property
+    def alt(self) -> str | None:
+        return self._alt
+
+    @alt.setter
+    def alt(self, new_alt: str) -> None:
+        if not isinstance(new_alt, str):  # pyright: ignore[reportUnnecessaryIsInstance]
+            raise ValueError('The alt field may only be set to a str')  # pyright: ignore[reportUnreachable]
+        else:
+            self._alt = new_alt
 
     @property
     def avg_as(self) -> float:
@@ -244,10 +310,22 @@ class DVFilter(FilterData[DVFCodes]):
     """
     CodeEnum: ClassVar[type[DVFCodes]] = DVFCodes
     name: str = field(default='DVF', init=False)
-    min_boundary_deviation: int = 6  # TODO: can be used to turn off
+    _alt: str | None = field(init=False, default=None)
+    min_boundary_deviation: int = 6  # TODO: can be used to turn off - document
     # TODO: n.b. neither of these options prevent read removal due to duplication, so test still functions as QC (and I think this is fine, just document more)
     read_number_difference_threshhold: int = 0 # change in reads! TODO: express as fraction? discuss with Peter/Phuong
-    nsamples_threshold: int = 1
+    nsamples_threshold: int = 1  # TODO: document
+
+    @property
+    def alt(self) -> str | None:
+        return self._alt
+
+    @alt.setter
+    def alt(self, new_alt: str) -> None:
+        if not isinstance(new_alt, str):  # pyright: ignore[reportUnnecessaryIsInstance]
+            raise ValueError('The alt field may only be set to a str')  # pyright: ignore[reportUnreachable]
+        else:
+            self._alt = new_alt
 
     # detect PCR duplicates previously missed due to slippage
     # this implementation assumes that sorting on first element of each sublist
@@ -261,15 +339,13 @@ class DVFilter(FilterData[DVFCodes]):
     ) -> dict[str, list[AlignedSegment]]:
         """
         A naive algorithm using start/end co-ordinates of read pairs to identify likely stutter duplicate reads missed by traditional dupmarking.
-
         """
         nsamples_with_duplication = 0
         if not any([len(reads) > 1 for reads in variant_reads_by_sample.values()]):
             self.code = self.CodeEnum.INSUFFICIENT_READS
-            self.flag = False
             return variant_reads_by_sample
         else:
-            self.code = self.CodeEnum.DUPLICATION  # testing possible, and this is the only code
+            self.code = self.CodeEnum.DUPLICATION  # testing possible, and this is the only relevant code
             sanitised_reads_by_sample: dict[str, list[AlignedSegment]] = {}
             for sample_key, reads in variant_reads_by_sample.items():
                 if len(reads) > 1:
