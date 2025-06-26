@@ -14,7 +14,7 @@ readme = "README.md"
 dependencies = [
   "pysam>=0.22"
 ]
-requires-python = ">= 3.10"
+requires-python = ">= 3.12"
 
 [project.optional-dependencies]
 dev = ["pytest>=8.2.2"]
