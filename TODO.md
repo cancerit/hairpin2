@@ -3,4 +3,5 @@
 - Complete implementation of unit tests for DVFilter
 - Expose additional args to user from DVFilter
 - Run prerelease over many samples
-- update README
+- update README w.r.t to new filter and changes in filter code reporting
+- bump version w.r.t to new filter, and new archtype - since filter reporting is not backwards compatible, this is probably a bump of a major version
