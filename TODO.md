@@ -2,3 +2,4 @@
 - Collate the scientific discussions to be had with responsible scientists (these are for a future release)
 - Complete testing of DVFilter
 - Run prerelease over many samples
+- update README
