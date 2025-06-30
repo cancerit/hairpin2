@@ -21,7 +21,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from hairpin2.filters import ADFilter
+from hairpin2.filters import ADF
 import pysam
 import copy
 
@@ -44,63 +44,77 @@ r.set_tag('MC', '100M')
 
 
 def test_path_insufficient_reads():
-    ad = ADFilter()
-    ad.test('_', 0, [])
-    assert ad.flag == None
-    assert ad.code == ADFilter.CodeEnum.INSUFFICIENT_READS
+    ad = ADF.Filter(fixed_params=ADF.Params())
+    readsin = []
+    readsout, result = ad.test('_', 0, [])
+    assert result.flag == None
+    assert result.code == ADF.Result.Codes.INSUFFICIENT_READS
+    assert readsin == readsout
 
 
 def test_path_f_60ai_set():
-    ad = ADFilter()
-    ad.test('_', 150, [r, r])
-    assert ad.flag == True
-    assert ad.code == ADFilter.CodeEnum.SIXTYAI
+    ad = ADF.Filter(fixed_params=ADF.Params())
+    readsin =  [r, r]
+    readsout, result = ad.test('_', 150, readsin)
+    assert result.flag == True
+    assert result.code == ADF.Result.Codes.SIXTYAI
+    assert readsin == readsout
 
 
 def test_path_f_60ai_noset():
-    ad = ADFilter()
+    ad = ADF.Filter(fixed_params=ADF.Params())
     r1 = copy.deepcopy(r)
     r1.reference_start = 90
-    ad.test('_', 150, [r, r1])
-    assert ad.flag == False
-    assert ad.code == ADFilter.CodeEnum.SIXTYAI
+    readsin = [r, r1]
+    readsout, result = ad.test('_', 150, readsin)
+    assert result.flag == False
+    assert result.code == ADF.Result.Codes.SIXTYAI
+    assert readsin == readsout
 
 
 def test_path_r_60ai_set():
-    ad = ADFilter()
+    ad = ADF.Filter(fixed_params=ADF.Params())
     rr = copy.deepcopy(r)
     rr.flag = rr.flag | 0x10
-    ad.test('_', 150, [rr, rr])
-    assert ad.flag == True
-    assert ad.code == ADFilter.CodeEnum.SIXTYAI
+    readsin = [rr, rr]
+    readsout, result = ad.test('_', 150, readsin)
+    assert result.flag == True
+    assert result.code == ADF.Result.Codes.SIXTYAI
+    assert readsin == readsout
 
 
 def test_path_r_60ai_noset():
-    ad = ADFilter()
+    ad = ADF.Filter(fixed_params=ADF.Params())
     rr = copy.deepcopy(r)
     rr.flag = rr.flag | 0x10
     rr1 = copy.deepcopy(rr)
     rr1.reference_start = 90
-    ad.test('_', 150, [rr, rr1])
-    assert ad.flag == False
-    assert ad.code == ADFilter.CodeEnum.SIXTYAI
+    readsin = [rr, rr1]
+    readsout, result = ad.test('_', 150, readsin)
+    assert result.flag == False
+    assert result.code == ADF.Result.Codes.SIXTYAI
+    assert readsin == readsout
 
 
 def test_path_60bi_set():
-    ad = ADFilter()
+    ad = ADF.Filter(fixed_params=ADF.Params())
     r1 = copy.deepcopy(r)
     r1.reference_start = 190
     rr = copy.deepcopy(r)
     rr.flag = rr.flag | 0x10
-    ad.test('_', 198, [r1, r1, rr, rr])
-    assert ad.flag == True
-    assert ad.code == ADFilter.CodeEnum.SIXTYBI
+    readsin = [r1, r1, rr, rr]
+    readsout, result = ad.test('_', 198, readsin)
+    assert result.flag == True
+    assert result.code == ADF.Result.Codes.SIXTYBI
+    assert readsin == readsout
 
 
 def test_path_60bi_noset():
-    ad = ADFilter()
+    ad = ADF.Filter(fixed_params=ADF.Params())
     rr = copy.deepcopy(r)
     rr.flag = rr.flag | 0x10
-    ad.test('_', 150, [r, r, rr, rr])
-    assert ad.flag == False
-    assert ad.code == ADFilter.CodeEnum.SIXTYBI
+    readsin = [r, r, rr, rr]
+    readsout, result = ad.test('_', 150, readsin)
+    assert result.flag == False
+    assert result.code == ADF.Result.Codes.SIXTYBI
+    assert readsin == readsout

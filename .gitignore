@@ -16,3 +16,4 @@ poetry.lock
 test/sim-data/
 test/old_*
 scratch.md
+.old/

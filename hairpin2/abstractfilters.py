@@ -9,20 +9,21 @@ The payoff for that verbosity is:
     - strong guarantees about the implementation of any given filter without needing to know about the underlying logic, making filters very easy to use once defined
 """
 from abc import ABC, abstractmethod
+from pydantic import BaseModel, ConfigDict
 from pydantic.dataclasses import dataclass
-from typing import ClassVar, Protocol, Generic, TypeVar, Any, final
-from typing_extensions import dataclass_transform
+from typing import ClassVar, Generic, TypeVar, Any, final, dataclass_transform, override
 from collections.abc import Collection, Mapping
 from pysam import AlignedSegment
 from enum import IntEnum, EnumMeta
 # pyright: reportExplicitAny=false
 # pyright: reportAny=false
 # pyright: reportUnnecessaryIsInstance=false
+# pyright: reportUnsafeMultipleInheritance=false
+# pyright: reportIncompatibleVariableOverride=false
 
 
 CodeEnum_T = TypeVar("CodeEnum_T", bound=IntEnum, covariant=True)
-@dataclass(slots=True, frozen=True)
-class FilterResult(ABC, Generic[CodeEnum_T]):
+class FilterResult(BaseModel, Generic[CodeEnum_T], ABC):
     """
     Parent ABC class defining the implementation that must be followed by subclasses intending to hold results of running a `FilterTester.test()` on a variant
     All filters should use subclasses that inherit from this class to hold their results.
@@ -54,7 +55,10 @@ class FilterResult(ABC, Generic[CodeEnum_T]):
     flag: bool | None
     code: CodeEnum_T | None
 
-    def __post_init_post_parse__(self) -> None:
+    model_config: ConfigDict = ConfigDict(frozen=True)
+
+    @override
+    def model_post_init(self, __context: Any) -> None:
         if self.flag is not None and not self.code:
             raise ValueError('If flag is set a code must be provided')
 
@@ -68,21 +72,24 @@ class FilterResult(ABC, Generic[CodeEnum_T]):
         """
 
 
-class IsDataclass(Protocol):
-    __dataclass_fields__: ClassVar[dict[str, Any]]
+@dataclass(slots=True, frozen=True)
+class FilterParams:
+    pass
 ReadCollection_T = TypeVar("ReadCollection_T", Collection[AlignedSegment], Mapping[Any, Collection[AlignedSegment]])
-FilterParams_T = TypeVar("FilterParams_T", bound=IsDataclass)
+FilterParams_T = TypeVar("FilterParams_T", bound=FilterParams)
 FilterResult_T = TypeVar("FilterResult_T", bound=FilterResult[IntEnum], covariant=True)  # covariant such that a test method that returns a subtype of FilterResult[IntEnum] is accepted where FilterResult[IntEnum] (or FilterResult_T) is expected
 
 
-@dataclass(slots=True, frozen=True)
-class FilterTester(ABC, Generic[ReadCollection_T, FilterParams_T, FilterResult_T]):
-    fixed_params: FilterParams_T
-    # TODO: add explanation as to how the class is generic to the docstring
+class FilterTester(BaseModel, Generic[ReadCollection_T, FilterParams_T, FilterResult_T], ABC):
     """
     Parent ABC class to be inherited from when implementing a filter test on read data for a variant.
     Contains a single abstract class method, `test()`, that must be overridden by subclasses for inidvidual filters.
     """
+    fixed_params: FilterParams_T
+
+    model_config: ConfigDict = ConfigDict(frozen=True)
+
+    # TODO: add explanation as to how the class is generic to the docstring
     @abstractmethod
     def test(
         self,
@@ -92,9 +99,3 @@ class FilterTester(ABC, Generic[ReadCollection_T, FilterParams_T, FilterResult_T
         """
         Each filter must define a test method via override, respecting the method signature.
         """
-
-
-@dataclass_transform(frozen_default=True)
-def concrete(cls: type) -> type:
-    cls = dataclass(slots=True, frozen=True)(cls)
-    return final(cls)

@@ -21,7 +21,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from hairpin2.filters import ALFilter
+from hairpin2.filters import ALF
 import pysam
 import copy
 
@@ -44,26 +44,32 @@ r.set_tag('MC', '100M')
 
 
 def test_path_AL_true_code_2():
-    al = ALFilter()
+    al = ALF.Filter(fixed_params=ALF.Params())
     s1r1 = copy.deepcopy(r)  # no AS, cover except KeyError
     s1r2 = copy.deepcopy(r)
     s1r2.set_tag('AS', 50)  # low AS
-    al.test('_', [s1r1, s1r2])
-    assert al.flag == True
-    assert al.code == al.CodeEnum.ON_THRESHOLD
+    readsin = [s1r1, s1r2]
+    readsout, result = al.test('_', readsin)
+    assert result.flag == True
+    assert result.code == result.Codes.ON_THRESHOLD
+    assert readsin == readsout
 
 
 def test_path_AL_false_code_2():
-    al = ALFilter()
+    al = ALF.Filter(fixed_params=ALF.Params())
     s1r1 = copy.deepcopy(r)
     s1r1.set_tag('AS', 99)  # high AS
-    al.test('_', [s1r1])
-    assert al.flag == False
-    assert al.code == al.CodeEnum.ON_THRESHOLD
+    readsin = [s1r1]
+    readsout, result = al.test('_', readsin)
+    assert result.flag == False
+    assert result.code == result.Codes.ON_THRESHOLD
+    assert readsin == readsout
 
 
 def test_path_AL_false_code_3():
-    al = ALFilter()
-    al.test('_', [])
-    assert al.flag == None
-    assert al.code == al.CodeEnum.INSUFFICIENT_READS
+    al = ALF.Filter(fixed_params=ALF.Params())
+    readsin = []
+    readsout, result = al.test('_', [])
+    assert result.flag == None
+    assert result.code == result.Codes.INSUFFICIENT_READS
+    assert readsin == readsout
