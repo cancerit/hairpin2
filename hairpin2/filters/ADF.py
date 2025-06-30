@@ -1,14 +1,12 @@
 import hairpin2.abstractfilters as haf
-from dataclasses import field
-from typing import ClassVar, override
+from pydantic import Field
+from pydantic.dataclasses import dataclass
+from typing import override
 from collections.abc import Sequence
 from pysam import AlignedSegment
 from hairpin2 import ref2seq as r2s
 from enum import IntEnum, auto
 from statistics import median, stdev
-# pyright: reportExplicitAny=false
-# pyright: reportAny=false
-# # pyright: reportUnnecessaryIsInstance=false
 
 
 class ADCodes(IntEnum):
@@ -16,15 +14,17 @@ class ADCodes(IntEnum):
     SIXTYAI = auto()
     SIXTYBI = auto()
 
+
 class Result(haf.FilterResult[ADCodes]):
-    Codes: ClassVar[type[ADCodes]] = ADCodes
     alt: str
-    name: str = field(default='ADF', init=False)
+    name: str = Field(default='ADF', init=False)
 
     @override
     def getinfo(self) -> str:
         return f'{self.alt}|{self.code}|{self.flag}'
 
+
+@dataclass(slots=True, frozen=True)
 class Params(haf.FilterParams):
     edge_definition: float = 0.15  # relative proportion, by percentage, of a read to be considered 'the edge'
     edge_clustering_threshold: float = 0.9  # percentage threshold
@@ -35,6 +35,7 @@ class Params(haf.FilterParams):
     min_MAD_both_strand_strong: int = 1
     min_sd_both_strand_strong: float = 10
     min_reads: int = 1  # inclusive
+
 
 class Filter(haf.FilterTester[Sequence[AlignedSegment], Params, Result]):
     """
@@ -53,7 +54,7 @@ class Filter(haf.FilterTester[Sequence[AlignedSegment], Params, Result]):
         if len(variant_reads) < 1:
             fresult = Result(
                 flag=None,
-                code=Result.Codes.INSUFFICIENT_READS,
+                code=ADCodes.INSUFFICIENT_READS,
                 alt=alt
             )
         else:
@@ -82,7 +83,7 @@ class Filter(haf.FilterTester[Sequence[AlignedSegment], Params, Result]):
             if len(la2ms_f) <= self.fixed_params.min_reads and len(la2ms_r) <= self.fixed_params.min_reads:
                 fresult = Result(
                     flag=None,
-                    code=Result.Codes.INSUFFICIENT_READS,
+                    code=ADCodes.INSUFFICIENT_READS,
                     alt=alt
                 )
             else:
@@ -94,10 +95,10 @@ class Filter(haf.FilterTester[Sequence[AlignedSegment], Params, Result]):
                         if (((sum(near_start_f) / len(near_start_f)) < self.fixed_params.edge_clustering_threshold) and
                             mad_f > self.fixed_params.min_MAD_one_strand and
                                 sd_f > self.fixed_params.min_sd_one_strand):
-                            code = Result.Codes.SIXTYAI  # 60A(i)
+                            code = ADCodes.SIXTYAI  # 60A(i)
                             flag = False
                         else:
-                            code = Result.Codes.SIXTYAI
+                            code = ADCodes.SIXTYAI
                             flag = True
                 # the nested if statement here makes the combined condition mutually exclusive with the above
                 if len(la2ms_r) > self.fixed_params.min_reads:
@@ -108,10 +109,10 @@ class Filter(haf.FilterTester[Sequence[AlignedSegment], Params, Result]):
                         if (((sum(near_start_r) / len(near_start_r)) < self.fixed_params.edge_clustering_threshold) and
                             mad_r > self.fixed_params.min_MAD_one_strand and
                                 sd_r > self.fixed_params.min_sd_one_strand):
-                            code = Result.Codes.SIXTYAI
+                            code = ADCodes.SIXTYAI
                             flag = False
                         else:
-                            code = Result.Codes.SIXTYAI
+                            code = ADCodes.SIXTYAI
                             flag = True
                 if len(la2ms_f) > self.fixed_params.min_reads and len(la2ms_r) > self.fixed_params.min_reads:
                     frac_lt_thresh = (sum(near_start_f + near_start_r)
@@ -120,10 +121,10 @@ class Filter(haf.FilterTester[Sequence[AlignedSegment], Params, Result]):
                         (mad_f > self.fixed_params.min_MAD_both_strand_weak and mad_r > self.fixed_params.min_MAD_both_strand_weak and sd_f > self.fixed_params.min_sd_both_strand_weak and sd_r > self.fixed_params.min_sd_both_strand_weak) or  # pyright: ignore[reportPossiblyUnboundVariable]
                         (mad_f > self.fixed_params.min_MAD_both_strand_strong and sd_f > self.fixed_params.min_sd_both_strand_strong) or  # pyright: ignore[reportPossiblyUnboundVariable]
                             (mad_r > self.fixed_params.min_MAD_both_strand_strong and sd_r > self.fixed_params.min_sd_both_strand_strong)):  # pyright: ignore[reportPossiblyUnboundVariable]
-                        code = Result.Codes.SIXTYBI  # 60B(i)
+                        code = ADCodes.SIXTYBI  # 60B(i)
                         flag = False
                     else:
-                        code = Result.Codes.SIXTYBI
+                        code = ADCodes.SIXTYBI
                         flag = True
                 fresult = Result(
                     flag=flag,  # pyright: ignore[reportPossiblyUnboundVariable]

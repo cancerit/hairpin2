@@ -11,19 +11,19 @@ The payoff for that verbosity is:
 from abc import ABC, abstractmethod
 from pydantic import BaseModel, ConfigDict
 from pydantic.dataclasses import dataclass
-from typing import ClassVar, Generic, TypeVar, Any, final, dataclass_transform, override
+from typing import Generic, TypeVar, Any, override
 from collections.abc import Collection, Mapping
 from pysam import AlignedSegment
-from enum import IntEnum, EnumMeta
+from enum import IntEnum 
 # pyright: reportExplicitAny=false
 # pyright: reportAny=false
-# pyright: reportUnnecessaryIsInstance=false
 # pyright: reportUnsafeMultipleInheritance=false
 # pyright: reportIncompatibleVariableOverride=false
 
 
 CodeEnum_T = TypeVar("CodeEnum_T", bound=IntEnum, covariant=True)
 class FilterResult(BaseModel, Generic[CodeEnum_T], ABC):
+    # TODO: pydantic now obsoletes the Codes classvar, document
     """
     Parent ABC class defining the implementation that must be followed by subclasses intending to hold results of running a `FilterTester.test()` on a variant
     All filters should use subclasses that inherit from this class to hold their results.
@@ -36,8 +36,6 @@ class FilterResult(BaseModel, Generic[CodeEnum_T], ABC):
             - a code, an integer code from a set of possibilities, indicating the basis on which the test has returned True/False, or None if untested.
         - A class variable, Codes, holding an IntEnum describing the set of possibilites used for the code instance variable.
 
-    Codes allows for runtime checking of values provided to the code instance variable. In other words, the Codes ensures that the code variable
-    may only be set to members of Codes, so you can't set code to something meaningless when testing by accident.
     This class is generic over T, an IntEnum, such that when a subclass is made it must be made with reference to a specific IntEnum -
     this is the static equivalent of the runtime checking by Codes. When subclassing, create an appropriate enum of codes and define
     the subclass like so:
@@ -50,12 +48,11 @@ class FilterResult(BaseModel, Generic[CodeEnum_T], ABC):
         ... # the rest of the class body, e.g. further instance variables to be associated with a particular result
     ```
     """
-    Codes: ClassVar[EnumMeta]
     name: str  # for VCF FILTER field
     flag: bool | None
     code: CodeEnum_T | None
 
-    model_config: ConfigDict = ConfigDict(frozen=True)
+    model_config: ConfigDict = ConfigDict(frozen=True, strict=True)
 
     @override
     def model_post_init(self, __context: Any) -> None:
@@ -87,7 +84,7 @@ class FilterTester(BaseModel, Generic[ReadCollection_T, FilterParams_T, FilterRe
     """
     fixed_params: FilterParams_T
 
-    model_config: ConfigDict = ConfigDict(frozen=True)
+    model_config: ConfigDict = ConfigDict(frozen=True, strict=True)
 
     # TODO: add explanation as to how the class is generic to the docstring
     @abstractmethod

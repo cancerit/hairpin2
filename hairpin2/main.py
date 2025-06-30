@@ -26,7 +26,8 @@
 # pyright: reportExplicitAny=false
 
 import pysam
-from hairpin2 import ref2seq as r2s, constants as cnst, helpers as hlp, filters as fl
+from hairpin2 import ref2seq as r2s, constants as cnst, helpers as hlp
+from hairpin2.filters import ADF, ALF, DVF, AnyResultCollection
 import hairpin2
 from statistics import mean
 import argparse
@@ -168,18 +169,10 @@ def test_record_all_alts(
     min_mapqual: int,
     min_clipqual: int,
     min_basequal: int,
-    max_span: int,
-    al_thresh: float,
-    edge_def: float,
-    edge_frac: float,
-    mos: int,
-    sos: float,
-    mbsw: int,
-    sbsw: float,
-    mbss: int,
-    sbss: float,
-    min_reads: int,
-) -> dict[str, fl.AnyFilterSequence]:
+    adf_params: ADF.Params,
+    alf_params: ALF.Params,
+    dvf_params: DVF.Params
+) -> dict[str, AnyResultCollection]:
 
     if vcf_rec.alts is None:
         raise cnst.NoAlts
@@ -215,7 +208,7 @@ def test_record_all_alts(
 
     # the ability to handle complex mutations would be a potentially interesting future feature
     # for extending to more varied artifacts
-    alt_filters: dict[str, fl.AnyFilterSequence] = {}
+    alt_filters: dict[str, AnyResultCollection] = {}
     for alt in vcf_rec.alts:
         if (vcf_rec.rlen == len(alt)
                 and set(alt).issubset(set(['A', 'C', 'T', 'G', 'N', '*']))):
@@ -248,30 +241,16 @@ def test_record_all_alts(
             ]
 
         # instantiate filters to test the QC'd reads
-        ad = fl.ADFilter(
-            edge_def,
-            edge_frac,
-            mos,
-            sos,
-            mbsw,
-            sbsw,
-            mbss,
-            sbss,
-            min_reads
-        )
-        al = fl.ALFilter(
-            al_thresh
-        )
-        dv = fl.DVFilter(
-            max_span
-        )  # TODO: fill out
+        ad = ADF.Filter(fixed_params=adf_params)
+        al = ALF.Filter(fixed_params=alf_params)
+        dv = DVF.Filter(fixed_params=dvf_params)
 
         # run the tests
-        dup_qc_region_reads = dv.test(alt, alt_qc_region_reads)
+        dup_qc_region_reads, dv_result = dv.test(alt, alt_qc_region_reads)
         testing_reads = list(chain.from_iterable(dup_qc_region_reads.values()))
-        al.test(alt, testing_reads)
-        ad.test(alt, vcf_rec.start, testing_reads)
-        alt_filters[alt] = (al, ad, dv)
+        testing_reads, al_result = al.test(alt, testing_reads)
+        testing_reads, ad_result = ad.test(alt, vcf_rec.start, testing_reads)
+        alt_filters[alt] = (al_result, ad_result, dv_result)
     return alt_filters
 
 
@@ -476,6 +455,25 @@ def main_cli() -> None:
         logging.error('extended arg out of range, check helptext for ranges')
         sys.exit(cnst.EXIT_FAILURE)
 
+    # set up filter params based on inputs TODO: move validation there, rather than above validation check
+    al_params = ALF.Params(
+        args.al_filter_threshold
+    )
+    ad_params = ADF.Params(
+        args.edge_definition,
+        args.edge_fraction,
+        args.min_MAD_one_strand,
+        args.min_sd_one_strand,
+        args.min_mad_both_strand_weak,
+        args.min_sd_both_strand_weak,
+        args.min_MAD_both_strand_strong,
+        args.min_sd_both_strand_strong,
+        args.min_reads
+    )
+    dv_params = DVF.Params(
+        args.max_read_span
+    )
+
     try:
         vcf_in_handle = pysam.VariantFile(args.vcf_in)
     except Exception as er:
@@ -517,8 +515,8 @@ def main_cli() -> None:
 
     vcf_sample_to_alignment_map: dict[str, pysam.AlignmentFile] = {}
     if args.name_mapping:
-        vcf_mapflag = []
-        alignment_mapflag = []
+        vcf_mapflag: list[str] = []
+        alignment_mapflag: list[str] = []
         if len(args.name_mapping) <= len(args.alignments) and all(m.count(':') == 1 for m in args.name_mapping) and not any("," in m for m in args.name_mapping):
             for pair in args.name_mapping:
                 kv_split = pair.split(':')  # VCF:aln
@@ -616,23 +614,15 @@ def main_cli() -> None:
 
     for record in vcf_in_handle.fetch():  # type: ignore - program ensures not unbound
         try:
-            filter_d: dict[str, fl.AnyFilterSequence] = test_record_all_alts(
+            filter_d: dict[str, AnyResultCollection] = test_record_all_alts(
                 vcf_sample_to_alignment_map,
                 record,
                 args.min_mapping_quality,
                 args.min_clip_quality,
                 args.min_base_quality,
-                args.max_read_span,
-                args.al_filter_threshold,
-                args.edge_definition,
-                args.edge_fraction,
-                args.min_MAD_one_strand,
-                args.min_sd_one_strand,
-                args.min_MAD_both_strand_weak,
-                args.min_sd_both_strand_weak,
-                args.min_MAD_both_strand_strong,
-                args.min_sd_both_strand_strong,
-                args.min_reads,
+                adf_params=ad_params,
+                alf_params=al_params,
+                dvf_params=dv_params
             )
         except cnst.NoAlts:
             logging.warning('{0: <7}:{1: >12} ¦ no alts for this record'.format(

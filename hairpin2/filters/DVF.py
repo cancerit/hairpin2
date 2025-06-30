@@ -1,34 +1,35 @@
 import hairpin2.abstractfilters as haf
-from dataclasses import field
-from typing import ClassVar, override, cast
+from pydantic import Field
+from pydantic.dataclasses import dataclass
+from typing import override, cast
 from pysam import AlignedSegment
 from hairpin2 import ref2seq as r2s
 from enum import IntEnum, auto
-# pyright: reportExplicitAny=false
-# pyright: reportAny=false
-# # pyright: reportUnnecessaryIsInstance=false
 
 
 class DVCodes(IntEnum):
     INSUFFICIENT_READS = 0
     DUPLICATION = auto()
 
-class DVResult(haf.FilterResult[DVCodes]):
-    Codes: ClassVar[type[DVCodes]] = DVCodes
+
+class Result(haf.FilterResult[DVCodes]):
     alt: str
-    name: str = field(default='DVF', init=False)
+    name: str = Field(default='DVF', init=False)
 
     @override
     def getinfo(self) -> str:
         return f"{self.alt}|{self.flag}|{self.code}"  # TODO: report which samples?
 
-class DVParams(haf.FilterParams):
+
+@dataclass(slots=True, frozen=True)
+class Params(haf.FilterParams):
     min_boundary_deviation: int = 6  # TODO: can be used to turn off - document
     # TODO: n.b. neither of these options prevent read removal due to duplication, so test still functions as QC (and I think this is fine, just document more)
     read_number_difference_threshhold: int = 0 # change in reads! TODO: express as fraction? discuss with Peter/Phuong
     nsamples_threshold: int = 1  # TODO: document
 
-class DVFilter(haf.FilterTester[dict[str, list[AlignedSegment]], DVParams, DVResult]):
+
+class Filter(haf.FilterTester[dict[str, list[AlignedSegment]], Params, Result]):
     """
     duplication variant filter - a portion of the reads supporting the variant
     are suspected to arise from duplicated reads that have escaped dupmarking.
@@ -53,7 +54,7 @@ class DVFilter(haf.FilterTester[dict[str, list[AlignedSegment]], DVParams, DVRes
         self,
         alt: str,
         variant_reads_by_sample: dict[str, list[AlignedSegment]]
-    ) -> tuple[dict[str, list[AlignedSegment]], DVResult]:
+    ) -> tuple[dict[str, list[AlignedSegment]], Result]:
         """
         A naive algorithm using start/end co-ordinates of read pairs to identify likely stutter duplicate reads missed by traditional dupmarking.
         """
@@ -61,14 +62,14 @@ class DVFilter(haf.FilterTester[dict[str, list[AlignedSegment]], DVParams, DVRes
         sanitised_reads_by_sample: dict[str, list[AlignedSegment]] = {}
 
         if not any([len(reads) > 1 for reads in variant_reads_by_sample.values()]):
-            fresult = DVResult(
+            fresult = Result(
                 flag=None,
-                code=DVResult.Codes.INSUFFICIENT_READS,
+                code=DVCodes.INSUFFICIENT_READS,
                 alt=alt
             )
             sanitised_reads_by_sample = variant_reads_by_sample
         else:
-            code = DVResult.Codes.DUPLICATION  # testing possible, and this is the only relevant code
+            code = DVCodes.DUPLICATION  # testing possible, and this is the only relevant code
             for sample_key, reads in variant_reads_by_sample.items():
                 if len(reads) > 1:
                     # prep data
@@ -119,7 +120,7 @@ class DVFilter(haf.FilterTester[dict[str, list[AlignedSegment]], DVParams, DVRes
                 flag = True
             else:
                 flag = False
-            fresult = DVResult(
+            fresult = Result(
                 flag=flag,
                 code=code,
                 alt=alt

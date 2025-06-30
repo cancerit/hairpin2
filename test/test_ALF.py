@@ -43,7 +43,7 @@ r.cigarstring = '100M'
 r.set_tag('MC', '100M')
 
 
-def test_path_AL_true_code_2():
+def test_low_AS():
     al = ALF.Filter(fixed_params=ALF.Params())
     s1r1 = copy.deepcopy(r)  # no AS, cover except KeyError
     s1r2 = copy.deepcopy(r)
@@ -51,25 +51,35 @@ def test_path_AL_true_code_2():
     readsin = [s1r1, s1r2]
     readsout, result = al.test('_', readsin)
     assert result.flag == True
-    assert result.code == result.Codes.ON_THRESHOLD
+    assert result.code == ALF.ALCodes.ON_THRESHOLD
     assert readsin == readsout
 
 
-def test_path_AL_false_code_2():
+def test_high_AS():
     al = ALF.Filter(fixed_params=ALF.Params())
     s1r1 = copy.deepcopy(r)
     s1r1.set_tag('AS', 99)  # high AS
     readsin = [s1r1]
     readsout, result = al.test('_', readsin)
     assert result.flag == False
-    assert result.code == result.Codes.ON_THRESHOLD
+    assert result.code == ALF.ALCodes.ON_THRESHOLD
     assert readsin == readsout
 
 
-def test_path_AL_false_code_3():
+def test_insufficient_AS():
+    al = ALF.Filter(fixed_params=ALF.Params())
+    s1r1 = copy.deepcopy(r)
+    readsin = [s1r1]
+    readsout, result = al.test('_', readsin)
+    assert result.flag == None
+    assert result.code == ALF.ALCodes.INSUFFICIENT_AS_TAGS
+    assert readsin == readsout
+
+
+def test_insufficient_reads():
     al = ALF.Filter(fixed_params=ALF.Params())
     readsin = []
     readsout, result = al.test('_', [])
     assert result.flag == None
-    assert result.code == result.Codes.INSUFFICIENT_READS
+    assert result.code == ALF.ALCodes.INSUFFICIENT_READS
     assert readsin == readsout

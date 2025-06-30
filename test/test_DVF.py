@@ -23,7 +23,7 @@
 # SOFTWARE.
 import pysam
 
-from hairpin2.filters import DVFilter
+from hairpin2.filters import DVF
 
 
 # BASIS PATH TESTING (ish)
@@ -44,9 +44,11 @@ r.set_tag('MC', '100M')
 
 
 def test_path_insufficient_reads():
-    dv = DVFilter()
-    _ = dv.test('_', {'_': []})
-    assert dv.code == dv.CodeEnum.INSUFFICIENT_READS
-    assert dv.flag == None
+    dv = DVF.Filter(fixed_params=DVF.Params())
+    readsin = {'_': []}
+    readsout, result = dv.test('_', {'_': []})
+    assert result.code == DVF.DVCodes.INSUFFICIENT_READS
+    assert result.flag == None
+    assert readsin == readsout
 
 

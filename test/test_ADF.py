@@ -48,7 +48,7 @@ def test_path_insufficient_reads():
     readsin = []
     readsout, result = ad.test('_', 0, [])
     assert result.flag == None
-    assert result.code == ADF.Result.Codes.INSUFFICIENT_READS
+    assert result.code == ADF.ADCodes.INSUFFICIENT_READS
     assert readsin == readsout
 
 
@@ -57,7 +57,7 @@ def test_path_f_60ai_set():
     readsin =  [r, r]
     readsout, result = ad.test('_', 150, readsin)
     assert result.flag == True
-    assert result.code == ADF.Result.Codes.SIXTYAI
+    assert result.code == ADF.ADCodes.SIXTYAI
     assert readsin == readsout
 
 
@@ -68,7 +68,7 @@ def test_path_f_60ai_noset():
     readsin = [r, r1]
     readsout, result = ad.test('_', 150, readsin)
     assert result.flag == False
-    assert result.code == ADF.Result.Codes.SIXTYAI
+    assert result.code == ADF.ADCodes.SIXTYAI
     assert readsin == readsout
 
 
@@ -79,7 +79,7 @@ def test_path_r_60ai_set():
     readsin = [rr, rr]
     readsout, result = ad.test('_', 150, readsin)
     assert result.flag == True
-    assert result.code == ADF.Result.Codes.SIXTYAI
+    assert result.code == ADF.ADCodes.SIXTYAI
     assert readsin == readsout
 
 
@@ -92,7 +92,7 @@ def test_path_r_60ai_noset():
     readsin = [rr, rr1]
     readsout, result = ad.test('_', 150, readsin)
     assert result.flag == False
-    assert result.code == ADF.Result.Codes.SIXTYAI
+    assert result.code == ADF.ADCodes.SIXTYAI
     assert readsin == readsout
 
 
@@ -105,7 +105,7 @@ def test_path_60bi_set():
     readsin = [r1, r1, rr, rr]
     readsout, result = ad.test('_', 198, readsin)
     assert result.flag == True
-    assert result.code == ADF.Result.Codes.SIXTYBI
+    assert result.code == ADF.ADCodes.SIXTYBI
     assert readsin == readsout
 
 
@@ -116,5 +116,5 @@ def test_path_60bi_noset():
     readsin = [r, r, rr, rr]
     readsout, result = ad.test('_', 150, readsin)
     assert result.flag == False
-    assert result.code == ADF.Result.Codes.SIXTYBI
+    assert result.code == ADF.ADCodes.SIXTYBI
     assert readsin == readsout
