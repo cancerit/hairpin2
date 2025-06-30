@@ -80,13 +80,15 @@ class Filter(haf.FilterTester[dict[str, list[AlignedSegment]], Params, Result]):
                             raise ValueError(f"read {read.query_name} has no reference end coordinate. all reads must be fully described.")
                         else:
                             pair_endpoints: tuple[int, int, int, int] = cast(
-                                tuple[int, int, int, int],
-                                (sorted([
-                                    read.reference_start,
-                                    read.reference_end,
-                                    read.next_reference_start,
-                                    next_ref_end
-                                ]),)
+                            tuple[int, int, int, int],
+                                tuple(
+                                    sorted([
+                                        read.reference_start,
+                                        read.reference_end,
+                                        read.next_reference_start,
+                                        next_ref_end
+                                    ])
+                                )
                             )
                             sample_pair_endpoints.append((idx, pair_endpoints))
                     sample_pair_endpoints = sorted(sample_pair_endpoints, key=lambda x: x[1][0])
@@ -101,7 +103,8 @@ class Filter(haf.FilterTester[dict[str, list[AlignedSegment]], Params, Result]):
                         testing_endpoints: tuple[int, int, int, int] = sample_pair_endpoints[i][1]
                         max_diff_per_comparison: list[int] = []
                         for comparison_endpoints in dup_endpoint_test_pool:
-                            endpoint_diffs: tuple[int, int, int, int] = cast(tuple[int, int, int, int], tuple([abs(x - y) for x, y in zip(comparison_endpoints, testing_endpoints)]))
+                            # breakpoint()
+                            endpoint_diffs: tuple[int, int, int, int] = tuple([abs(x - y) for x, y in zip(comparison_endpoints, testing_endpoints)])
                             max_diff_per_comparison.append(max(endpoint_diffs))
                         if all([x <= self.fixed_params.min_boundary_deviation for x in max_diff_per_comparison]):
                             # then the read pair being examined is a duplicate of the others in the pool

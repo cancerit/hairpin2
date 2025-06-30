@@ -37,6 +37,7 @@ from itertools import tee, chain
 from typing import Literal, Any
 from collections.abc import Iterable
 import sys
+from tqdm import tqdm
 
 
 def qc_read_broad(
@@ -129,11 +130,11 @@ def qc_read_alt_specific(
             invalid_flag |= cnst.ValidatorFlags.NOT_ALIGNED
         else:
             if mut_type == 'S':  # SUB
-                if read.query_sequence[mut_pos:mut_pos + len(alt)] != alt:  # type: ignore - can't be none
+                if read.query_sequence[mut_pos:mut_pos + len(alt)] != alt:
                     invalid_flag |= cnst.ValidatorFlags.NOT_ALT
                 if any([bq < min_basequal
                         for bq
-                        in read.query_qualities[mut_pos:mut_pos + len(alt)]]):  # type: ignore - can't be none
+                        in read.query_qualities[mut_pos:mut_pos + len(alt)]]):
                     invalid_flag |= cnst.ValidatorFlags.BASEQUAL
             if mut_type == 'I':  # INS - mut_pos is position immediately before insertion
                 if mut_pos + len(alt) > read.query_length:
@@ -145,7 +146,7 @@ def qc_read_alt_specific(
                                 if q in range(mut_pos + 1, mut_pos + len(alt) + 1)]
                     if any([r is not None for _, r in mut_alns]):
                         invalid_flag |= cnst.ValidatorFlags.BAD_OP
-                    if read.query_sequence[mut_pos + 1:mut_pos + len(alt) + 1] != alt:  # type: ignore - can't be none
+                    if read.query_sequence[mut_pos + 1:mut_pos + len(alt) + 1] != alt:
                         invalid_flag |= cnst.ValidatorFlags.NOT_ALT
     # DEL
     if mut_type == 'D':
@@ -256,22 +257,22 @@ def test_record_all_alts(
 
 def main_cli() -> None:
     logging.basicConfig(
-                    level=logging.INFO,
-                    format='%(asctime)s ¦ %(levelname)-8s ¦ %(message)s',
-                    datefmt='%I:%M:%S'
-                )
+        level=logging.INFO,
+        format='%(asctime)s ¦ %(levelname)-8s ¦ %(message)s',
+        datefmt='%I:%M:%S'
+    ) # TODO: optionally log to config
     parser = argparse.ArgumentParser(
-                                prog="hairpin2",
-                                description='cruciform artefact flagging algorithm based on Ellis et al. 2020 (DOI: 10.1038/s41596-020-00437-6). See README for further explanation of parameters.'
-                            )
+        prog="hairpin2",
+        description='cruciform artefact flagging algorithm based on Ellis et al. 2020 (DOI: 10.1038/s41596-020-00437-6). See README for further explanation of parameters.'
+    )
     parser._optionals.title = 'info'
     parser.add_argument(
-                    '-v',
-                    '--version',
-                    help='print version',
-                    action='version',
-                    version=hairpin2.__version__
-                )
+        '-v',
+        '--version',
+        help='print version',
+        action='version',
+        version=hairpin2.__version__
+    )
     req = parser.add_argument_group('mandatory')
     req.add_argument(
                 '-i',
@@ -381,36 +382,41 @@ def main_cli() -> None:
                     type=float
                 )
     opt_fc.add_argument(
-                    '-mr',
-                    '--min-reads',
-                    help='ADF; number of reads at and below which the hairpin filtering logic considers a strand to have insufficient reads for testing - default: 1, range: 0-, inclusive',
-                    type=int
-                )
+        '-mr',
+        '--min-reads',
+        help='ADF; number of reads at and below which the hairpin filtering logic considers a strand to have insufficient reads for testing - default: 1, range: 0-, inclusive',
+        type=int
+    )
     proc = parser.add_argument_group('procedural')
     proc.add_argument(
-                    '-r',
-                    '--cram-reference',
-                    help="path to FASTA format CRAM reference, overrides $REF_PATH and UR tags - ignored if --format is not CRAM",
-                    type=str
-                )
+        '-r',
+        '--cram-reference',
+        help="path to FASTA format CRAM reference, overrides $REF_PATH and UR tags - ignored if --format is not CRAM",
+        type=str
+    )
     proc.add_argument(
-                    '-m',
-                    '--name-mapping',
-                    help='key to map samples in a multisample VCF to alignment/s provided to -a. Uses VCF sample names per VCF header and alignment SM tags. With multiple alignments to -a, accepts a space separated list of sample:SM pairs. With a single alignment, also accepts a comma separated string of one or more possible sample-of-interest names like TUMOR,TUMOUR',
-                    nargs='+'
-                )
+        '-m',
+        '--name-mapping',
+        help='key to map samples in a multisample VCF to alignment/s provided to -a. Uses VCF sample names per VCF header and alignment SM tags. With multiple alignments to -a, accepts a space separated list of sample:SM pairs. With a single alignment, also accepts a comma separated string of one or more possible sample-of-interest names like TUMOR,TUMOUR',
+        nargs='+'
+    )
     proc.add_argument(
-                    '-ji',
-                    '--input-json',
-                    help='path to JSON of command line parameters, from which arguments will be loaded - overridden by arguments provided at runtime',
-                    type=str
-                )
+        '-ji',
+        '--input-json',
+        help='path to JSON of command line parameters, from which arguments will be loaded - overridden by arguments provided at runtime',
+        type=str
+    )
     proc.add_argument(
-                    '-jo',
-                    '--output-json',
-                    help='log command line arguments to JSON',
-                    type=str
-                )
+        '-jo',
+        '--output-json',
+        help='log command line arguments to JSON',
+        type=str
+    )
+    proc.add_argument(
+        '--no-prog',
+        help='disable progress bar',
+        action='store_true'
+    )
     args = parser.parse_args()
 
     json_config: dict[str, Any] | None = None
@@ -464,7 +470,7 @@ def main_cli() -> None:
         args.edge_fraction,
         args.min_MAD_one_strand,
         args.min_sd_one_strand,
-        args.min_mad_both_strand_weak,
+        args.min_MAD_both_strand_weak,
         args.min_sd_both_strand_weak,
         args.min_MAD_both_strand_strong,
         args.min_sd_both_strand_strong,
@@ -479,7 +485,7 @@ def main_cli() -> None:
     except Exception as er:
         logging.error(f'failed to open input VCF, reporting {er}')
         sys.exit(cnst.EXIT_FAILURE)
-    vcf_names: list[str] = list(vcf_in_handle.header.samples)  # type:ignore
+    vcf_names: list[str] = list(vcf_in_handle.header.samples)
     if len(set(vcf_names)) != len(vcf_names):
         logging.error('duplicate sample names in input VCF')
         sys.exit(cnst.EXIT_FAILURE)
@@ -500,7 +506,7 @@ def main_cli() -> None:
     for path in args.alignments:
         try:
             alignment = pysam.AlignmentFile(path,
-                                            mode,  # type: ignore - argparse ensures not unbound
+                                            mode,
                                             reference_filename=(args.cram_reference
                                                                 if args.cram_reference
                                                                 and args.format == "c"
@@ -535,7 +541,7 @@ def main_cli() -> None:
                 logging.error(msg='duplicate aligment sample names provided to name mapping flag')
                 sys.exit(cnst.EXIT_FAILURE)
 
-            if not hlp.collection_equal(alignment_mapflag, sm_to_aln_map.keys()):  # type: ignore - dicts are stable
+            if not hlp.collection_equal(alignment_mapflag, sm_to_aln_map.keys()):
                 logging.error(msg='SM tags provided to name mapping flag {} are not equal to SM tag list from alignment files {} - flag recieved {}'.format(
                         alignment_mapflag,
                         set(sm_to_aln_map.keys()),
@@ -564,7 +570,6 @@ def main_cli() -> None:
             else:
                 logging.info('matched alignment to sample {} in VCF'.format(matches[0]))
                 vcf_sample_to_alignment_map[matches[0]] = alignment  # pyright: ignore[reportPossiblyUnboundVariable] | since length of alignments == 1, can just reuse this variable
-                sys.exit(cnst.EXIT_FAILURE)
 
         else:
             logging.error(msg='name mapping misformatted, see helptext for expectations - flag recieved: {}'.format(args.name_mapping))
@@ -587,18 +592,20 @@ def main_cli() -> None:
                 set(vcf_names) - vcf_sample_to_alignment_map.keys()
             )
         )
-        sys.exit(cnst.EXIT_FAILURE)
 
-    # init output
-    out_head = vcf_in_handle.header  # type:ignore
+    # init output  TODO: put these in filter modules as funcs
+    out_head = vcf_in_handle.header
     out_head.add_line("##FILTER=<ID=ALF,Description=\"Median alignment score of reads reporting variant less than {}, using samples {}\">".format(
         args.al_filter_threshold, ', '.join(vcf_sample_to_alignment_map.keys())))
     out_head.add_line("##FILTER=<ID=ADF,Description=\"Variant arises from hairpin artefact, using samples {}\">".format(
         ', '.join(vcf_sample_to_alignment_map.keys())))
+    out_head.add_line('##FILTER=<ID=DVF,Description="PLACEHOLDER">')  # BUG: placeholder!
     out_head.add_line(
         "##INFO=<ID=ADF,Number=1,Type=String,Description=\"alt|code for each alt indicating hairpin filter decision code\">")
     out_head.add_line(
         "##INFO=<ID=ALF,Number=1,Type=String,Description=\"alt|code|score for each alt indicating AL filter conditions\">")
+    out_head.add_line(
+        "##INFO=<ID=DVF,Number=1,Type=String,Description=\"alt|code|score for each alt indicating DV filter conditions\">")  # BUG: placeholder!
     out_head.add_line(
         "##hairpin2-python_version={}-{}".format(hairpin2.__version__, sys.version.split()[0])
     )
@@ -611,8 +618,7 @@ def main_cli() -> None:
     except Exception as e:
         logging.error(msg='failed to open VCF output, reporting: {}'.format(e))
         sys.exit(cnst.EXIT_FAILURE)
-
-    for record in vcf_in_handle.fetch():  # type: ignore - program ensures not unbound
+    for record in vcf_in_handle.fetch() if args.no_prog else tqdm(vcf_in_handle.fetch(), total=None, unit='records'):
         try:
             filter_d: dict[str, AnyResultCollection] = test_record_all_alts(
                 vcf_sample_to_alignment_map,
@@ -640,7 +646,7 @@ def main_cli() -> None:
                     if finfo := filter.getinfo():
                         record.info.update({filter.name: finfo})  # pyright: ignore[reportArgumentType]
             try:
-                vcf_out_handle.write(record)  # type:ignore
+                vcf_out_handle.write(record)
             except Exception as e:
                 logging.error(msg='failed to write to vcf, reporting: {}'.format(e))
                 sys.exit(cnst.EXIT_FAILURE)
