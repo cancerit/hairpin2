@@ -2,9 +2,9 @@
 concrete implementations of abstract filters
 """
 import hairpin2.abstractfilters as haf
-from pydantic.dataclasses import dataclass, field
-from typing import ClassVar, override, final, cast, Any
-from collections.abc import Sequence
+from pydantic.dataclasses import field
+from typing import ClassVar, Collection, override, cast, Any
+from collections.abc import Sequence, Mapping
 from pysam import AlignedSegment
 from hairpin2 import ref2seq as r2s
 from enum import IntEnum, auto
@@ -21,8 +21,8 @@ from statistics import median, stdev
 class ALCodes(IntEnum):
     INSUFFICIENT_READS = 0
     ON_THRESHOLD = auto()
-@final
-@dataclass(slots=True, frozen=True)
+
+@haf.concrete
 class ALResult(haf.FilterResult[ALCodes]):
     Codes: ClassVar[type[ALCodes]] = ALCodes
     alt: str
@@ -32,12 +32,12 @@ class ALResult(haf.FilterResult[ALCodes]):
     @override
     def getinfo(self) -> str:
         return f"{self.alt}|{self.flag}|{self.code}|{self.avg_as}"
-@final
-@dataclass
-class ALParams(haf.IsDataclass):
+
+@haf.concrete
+class ALParams:
     al_thresh: float = 0.93
-@final
-@dataclass(slots=True, frozen=True)
+
+@haf.concrete
 class ALFilter(haf.FilterTester[Sequence[AlignedSegment], ALParams, ALResult]):  # n.b. you can retain the broadest generic nature by reusing the TypeVar and not specifying a concrete type for any of the type arguments to FilterTester
     """
     Describe filter
@@ -91,13 +91,13 @@ class ALFilter(haf.FilterTester[Sequence[AlignedSegment], ALParams, ALResult]): 
 
 
 
+
 class ADCodes(IntEnum):
     INSUFFICIENT_READS = 0
     SIXTYAI = auto()
     SIXTYBI = auto()
 
-@final
-@dataclass(slots=True, frozen=True)
+@haf.concrete
 class ADResult(haf.FilterResult[ADCodes]):
     Codes: ClassVar[type[ADCodes]] = ADCodes
     alt: str
@@ -107,9 +107,7 @@ class ADResult(haf.FilterResult[ADCodes]):
     def getinfo(self) -> str:
         return f'{self.alt}|{self.code}|{self.flag}'
 
-
-@final
-@dataclass(slots=True, frozen=True)
+@haf.concrete
 class ADParams:
     edge_definition: float = 0.15  # relative proportion, by percentage, of a read to be considered 'the edge'
     edge_clustering_threshold: float = 0.9  # percentage threshold
@@ -121,9 +119,7 @@ class ADParams:
     min_sd_both_strand_strong: float = 10
     min_reads: int = 1  # inclusive
 
-
-@final
-@dataclass(slots=True,frozen=True)
+@haf.concrete
 class ADFilter(haf.FilterTester[Sequence[AlignedSegment], ADParams, ADResult]):
     """
     Describe filter
@@ -224,13 +220,30 @@ class ADFilter(haf.FilterTester[Sequence[AlignedSegment], ADParams, ADResult]):
 
 
 
-
-class DVFCodes(IntEnum):
+class DVCodes(IntEnum):
     INSUFFICIENT_READS = 0
     DUPLICATION = auto()
-@final
-@dataclass
-class DVFilter(FilterData[DVFCodes]):
+
+@haf.concrete
+class DVResult(haf.FilterResult[DVCodes]):
+    Codes: ClassVar[type[DVCodes]] = DVCodes
+    alt: str
+    name: str = field(default='DVF', init=False)
+
+    @override
+    def getinfo(self) -> str:
+        return f"{self.alt}|{self.flag}|{self.code}"  # TODO: report which samples?
+    
+
+@haf.concrete
+class DVParams:
+    min_boundary_deviation: int = 6  # TODO: can be used to turn off - document
+    # TODO: n.b. neither of these options prevent read removal due to duplication, so test still functions as QC (and I think this is fine, just document more)
+    read_number_difference_threshhold: int = 0 # change in reads! TODO: express as fraction? discuss with Peter/Phuong
+    nsamples_threshold: int = 1  # TODO: document
+
+@haf.concrete
+class DVFilter(haf.FilterTester[dict[str, list[AlignedSegment]], DVParams, DVResult]):
     """
     duplication variant filter - a portion of the reads supporting the variant
     are suspected to arise from duplicated reads that have escaped dupmarking.
@@ -245,25 +258,6 @@ class DVFilter(FilterData[DVFCodes]):
     `read_number_difference_threshold` sets the the threshold for absolute difference between the number of reads supporting the variant
     with and without duplicates removed. If this threshold is exceeded, the flag will be set.
     """
-    CodeEnum: ClassVar[type[DVFCodes]] = DVFCodes
-    name: str = field(default='DVF', init=False)
-    _alt: str | None = field(init=False, default=None)
-    min_boundary_deviation: int = 6  # TODO: can be used to turn off - document
-    # TODO: n.b. neither of these options prevent read removal due to duplication, so test still functions as QC (and I think this is fine, just document more)
-    read_number_difference_threshhold: int = 0 # change in reads! TODO: express as fraction? discuss with Peter/Phuong
-    nsamples_threshold: int = 1  # TODO: document
-
-    @property
-    def alt(self) -> str | None:
-        return self._alt
-
-    @alt.setter
-    def alt(self, new_alt: str) -> None:
-        if not isinstance(new_alt, str):  # pyright: ignore[reportUnnecessaryIsInstance]
-            raise ValueError('The alt field may only be set to a str')  # pyright: ignore[reportUnreachable]
-        else:
-            self._alt = new_alt
-
     # detect PCR duplicates previously missed due to slippage
     # this implementation assumes that sorting on first element of each sublist
     # is appropriate, per Peter's initial implementation.
@@ -274,18 +268,22 @@ class DVFilter(FilterData[DVFCodes]):
         self,
         alt: str,
         variant_reads_by_sample: dict[str, list[AlignedSegment]]
-    ) -> dict[str, list[AlignedSegment]]:
+    ) -> tuple[dict[str, list[AlignedSegment]], DVResult]:
         """
         A naive algorithm using start/end co-ordinates of read pairs to identify likely stutter duplicate reads missed by traditional dupmarking.
         """
-        self.alt = alt
         nsamples_with_duplication = 0
+        sanitised_reads_by_sample: dict[str, list[AlignedSegment]] = {}
+
         if not any([len(reads) > 1 for reads in variant_reads_by_sample.values()]):
-            self.code = self.CodeEnum.INSUFFICIENT_READS
-            return variant_reads_by_sample
+            fresult = DVResult(
+                flag=None,
+                code=DVResult.Codes.INSUFFICIENT_READS,
+                alt=alt
+            )
+            sanitised_reads_by_sample = variant_reads_by_sample
         else:
-            self.code = self.CodeEnum.DUPLICATION  # testing possible, and this is the only relevant code
-            sanitised_reads_by_sample: dict[str, list[AlignedSegment]] = {}
+            code = DVResult.Codes.DUPLICATION  # testing possible, and this is the only relevant code
             for sample_key, reads in variant_reads_by_sample.items():
                 if len(reads) > 1:
                     # prep data
@@ -319,7 +317,7 @@ class DVFilter(FilterData[DVFCodes]):
                         for comparison_endpoints in dup_endpoint_test_pool:
                             endpoint_diffs: tuple[int, int, int, int] = cast(tuple[int, int, int, int], tuple([abs(x - y) for x, y in zip(comparison_endpoints, testing_endpoints)]))
                             max_diff_per_comparison.append(max(endpoint_diffs))
-                        if all([x <= self.min_boundary_deviation for x in max_diff_per_comparison]):
+                        if all([x <= self.fixed_params.min_boundary_deviation for x in max_diff_per_comparison]):
                             # then the read pair being examined is a duplicate of the others in the pool
                             dup_endpoint_test_pool.append(testing_endpoints)
                             dup_idcs.append(original_index)  # store original index of this duplicate
@@ -328,18 +326,22 @@ class DVFilter(FilterData[DVFCodes]):
                             # start again, test read at i against reads subsequent from i in ends_sorted
                             dup_endpoint_test_pool = [testing_endpoints]
                     sanitised_reads = [read for i, read in enumerate(reads) if i not in dup_idcs]
-                    if (len(sanitised_reads) - len(reads)) > self.read_number_difference_threshhold:
+                    if (len(sanitised_reads) - len(reads)) > self.fixed_params.read_number_difference_threshhold:
                         nsamples_with_duplication += 1
                     sanitised_reads_by_sample[sample_key] = sanitised_reads
 
-            if nsamples_with_duplication > self.nsamples_threshold:
-                self.flag = True
+            if nsamples_with_duplication > self.fixed_params.nsamples_threshold:
+                flag = True
+            else:
+                flag = False
+            fresult = DVResult(
+                flag=flag,
+                code=code,
+                alt=alt
+            )
 
-            return sanitised_reads_by_sample
+        return sanitised_reads_by_sample, fresult
 
-    @override
-    def getinfo(self) -> str:
-        return f"{self.alt}|{self.flag}|{self.code}"  # TODO: report which samples?
 
 
 
@@ -353,4 +355,4 @@ class DVFilter(FilterData[DVFCodes]):
 
 
 # useful aliases
-type AnyFilterSequence = Sequence[FilterData[Any]]
+type AnyResultCollection = Collection[haf.FilterResult[Any]]

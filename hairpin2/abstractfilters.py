@@ -10,8 +10,9 @@ The payoff for that verbosity is:
 """
 from abc import ABC, abstractmethod
 from pydantic.dataclasses import dataclass
-from typing import ClassVar, Protocol, Generic, TypeVar, Any
-from collections.abc import Collection
+from typing import ClassVar, Protocol, Generic, TypeVar, Any, final
+from typing_extensions import dataclass_transform
+from collections.abc import Collection, Mapping
 from pysam import AlignedSegment
 from enum import IntEnum, EnumMeta
 # pyright: reportExplicitAny=false
@@ -69,7 +70,7 @@ class FilterResult(ABC, Generic[CodeEnum_T]):
 
 class IsDataclass(Protocol):
     __dataclass_fields__: ClassVar[dict[str, Any]]
-ReadCollection_T = TypeVar("ReadCollection_T", bound=Collection[AlignedSegment])
+ReadCollection_T = TypeVar("ReadCollection_T", Collection[AlignedSegment], Mapping[Any, Collection[AlignedSegment]])
 FilterParams_T = TypeVar("FilterParams_T", bound=IsDataclass)
 FilterResult_T = TypeVar("FilterResult_T", bound=FilterResult[IntEnum], covariant=True)  # covariant such that a test method that returns a subtype of FilterResult[IntEnum] is accepted where FilterResult[IntEnum] (or FilterResult_T) is expected
 
@@ -93,3 +94,7 @@ class FilterTester(ABC, Generic[ReadCollection_T, FilterParams_T, FilterResult_T
         """
 
 
+@dataclass_transform(frozen_default=True)
+def concrete(cls: type) -> type:
+    cls = dataclass(slots=True, frozen=True)(cls)
+    return final(cls)
