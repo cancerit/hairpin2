@@ -65,7 +65,11 @@ class Filter(haf.FilterTester[Sequence[AlignedSegment], Params, Result]):
             near_start_r: list[bool] = []
 
             for read in variant_reads:
-                mut_qpos = r2s.ref2querypos(read, variant_start)
+                try:
+                    mut_qpos = r2s.ref2querypos(read, variant_start)
+                except ValueError as er:
+                    raise ValueError(f'read {read.query_name} does not cover variant')
+
                 if read.flag & 0x10:
                     # +1 to include last base in length
                     la2m = read.query_alignment_end - mut_qpos + 1

@@ -21,22 +21,10 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
 from enum import IntEnum, Flag
-import logging
-import sys
-from hairpin2 import constants as cnst
 from typing import Any
 from collections.abc import Collection
 # pyright: reportExplicitAny=false
-
-
-def cleanup(code: int = cnst.EXIT_FAILURE, msg: None | str = None) -> None:
-    if code != cnst.EXIT_SUCCESS and msg:
-        logging.error(msg)
-    if code == cnst.EXIT_SUCCESS:
-        logging.info('hairpin complete')
-    sys.exit(code)
 
 
 def has_duplicates(

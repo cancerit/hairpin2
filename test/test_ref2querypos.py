@@ -43,8 +43,8 @@ r.cigarstring = '10M'
 r.set_tag('MC', '10M')
 
 
-def test_path_indexerror():
-    with raises(IndexError):
+def test_path_error():
+    with raises(ValueError):
         _ = ref2querypos(r, 1000)
 
 

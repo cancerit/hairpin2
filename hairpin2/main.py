@@ -126,7 +126,7 @@ def qc_read_alt_specific(
     if mut_type in ['S', 'I']:
         try:
             mut_pos = r2s.ref2querypos(read, vcf_start)
-        except IndexError:
+        except ValueError:
             invalid_flag |= cnst.ValidatorFlags.NOT_ALIGNED
         else:
             if mut_type == 'S':  # SUB
@@ -260,7 +260,7 @@ def main_cli() -> None:
         level=logging.INFO,
         format='%(asctime)s ¦ %(levelname)-8s ¦ %(message)s',
         datefmt='%I:%M:%S'
-    ) # TODO: optionally log to config
+    ) # TODO: optionally log to file
     parser = argparse.ArgumentParser(
         prog="hairpin2",
         description='cruciform artefact flagging algorithm based on Ellis et al. 2020 (DOI: 10.1038/s41596-020-00437-6). See README for further explanation of parameters.'
@@ -275,112 +275,112 @@ def main_cli() -> None:
     )
     req = parser.add_argument_group('mandatory')
     req.add_argument(
-                '-i',
-                '--vcf-in',
-                help="path to input VCF",
-                required=True
-            )
+        '-i',
+        '--vcf-in',
+        help="path to input VCF",
+        required=True
+    )
     req.add_argument(
-                '-o',
-                '--vcf-out',
-                help="path to write output VCF",
-                required=True
-            )
+        '-o',
+        '--vcf-out',
+        help="path to write output VCF",
+        required=True
+    )
     req.add_argument(
-                '-a',
-                '--alignments',
-                help="list of paths to (S/B/CR)AMs (indicated by --format) for samples in input VCF, whitespace separated - (s/b/cr)ai expected in same directories",
-                nargs='+',
-                required=True
-            )
+        '-a',
+        '--alignments',
+        help="list of paths to (S/B/CR)AMs (indicated by --format) for samples in input VCF, whitespace separated - (s/b/cr)ai expected in same directories",
+        nargs='+',
+        required=True
+    )
     req.add_argument(
-                '-f',
-                "--format",
-                help="format of alignment files; s indicates SAM, b indicates BAM, and c indicates CRAM",
-                choices=["s", "b", "c"],
-                type=str,
-                required=True
-            )
+        '-f',
+        "--format",
+        help="format of alignment files; s indicates SAM, b indicates BAM, and c indicates CRAM",
+        choices=["s", "b", "c"],
+        type=str,
+        required=True
+    )
     opt_rv = parser.add_argument_group('read validation')
     opt_rv.add_argument(
-                    '-mc',
-                    '--min-clip-quality',
-                    help='discard reads with mean base quality of aligned bases below this value, if they have soft-clipped bases - default: 35, range: 0-93, exclusive',
-                    type=int
-                )
+        '-mc',
+        '--min-clip-quality',
+        help='discard reads with mean base quality of aligned bases below this value, if they have soft-clipped bases - default: 35, range: 0-93, exclusive',
+        type=int
+    )
     opt_rv.add_argument(
-                    '-mq',
-                    '--min-mapping-quality',
-                    help='discard reads with mapping quality below this value - default: 11, range: 0-60, exclusive',
-                    type=int
-                )
+        '-mq',
+        '--min-mapping-quality',
+        help='discard reads with mapping quality below this value - default: 11, range: 0-60, exclusive',
+        type=int
+    )
     opt_rv.add_argument(
-                    '-mb',
-                    '--min-base-quality',
-                    help='discard reads with base quality at variant position below this value - default: 25, range: 0-93, exclusive',
-                    type=int
-                )
+        '-mb',
+        '--min-base-quality',
+        help='discard reads with base quality at variant position below this value - default: 25, range: 0-93, exclusive',
+        type=int
+    )
     opt_rv.add_argument(
-                    '-ms',
-                    '--max-read-span',
-                    help='maximum +- position to use when detecting PCR duplicates. -1 will disable duplicate detection - default: 6, range: -1-, inclusive',
-                    type=int
-                )
+        '-dw',
+        '--duplication-window-size',
+        help='maximum window size, in number of bases to use when detecting PCR duplicates. -1 will disable duplicate detection - default: 6, range: -1-, inclusive',
+        type=int
+    )  # TODO: consider keeping -ms --max-read-span as a deprecated option for backwards compat
     opt_fc = parser.add_argument_group('filter conditions')
     opt_fc.add_argument(
-                    '-al',
-                    '--al-filter-threshold',
-                    help='ALF; threshold for median of read alignment score per base of all relevant reads, at and below which a variant is flagged as ALF - default: 0.93, range: 0-, inclusive',
-                    type=float
-                )
+        '-al',
+        '--al-filter-threshold',
+        help='ALF; threshold for median of read alignment score per base of all relevant reads, at and below which a variant is flagged as ALF - default: 0.93, range: 0-, inclusive',
+        type=float
+    )
     opt_fc.add_argument(
-                    '-ed',
-                    '--edge-definition',
-                    help='ADF; percentage of a read that is considered to be "the edge" for the purposes of assessing variant location distribution - default: 0.15, range: 0-0.99, inclusive',
-                    type=float
-                )
+        '-ed',
+        '--edge-definition',
+        help='ADF; percentage of a read that is considered to be "the edge" for the purposes of assessing variant location distribution - default: 0.15, range: 0-0.99, inclusive',
+        type=float
+    )
     opt_fc.add_argument(
-                    '-ef',
-                    '--edge-fraction',
-                    help='ADF; percentage of variants must occur within EDGE_FRACTION of read edges to allow ADF flag - default: 0.15, range: 0-0.99, exclusive',
-                    type=float
-                )
+        '-ef',
+        '--edge-fraction',
+        help='ADF; percentage of variants must occur within EDGE_FRACTION of read edges to allow ADF flag - default: 0.15, range: 0-0.99, exclusive',
+        type=float
+    )
     opt_fc.add_argument(
-                    '-mos',
-                    '--min-MAD-one-strand',
-                    help='ADF; min range of distances between variant position and read start for valid reads when only one strand has sufficient valid reads for testing - default: 0, range: 0-, exclusive',
-                    type=int
-                )
+        '-mos',
+        '--min-MAD-one-strand',
+        help='ADF; min range of distances between variant position and read start for valid reads when only one strand has sufficient valid reads for testing - default: 0, range: 0-, exclusive',
+        type=int
+    )
     opt_fc.add_argument(
-                    '-sos',
-                    '--min-sd-one-strand',
-                    help='ADF; min stdev of variant position and read start for valid reads when only one strand has sufficient valid reads for testing - default: 4, range: 0-, exclusive',
-                    type=float
-                )
+        '-sos',
+        '--min-sd-one-strand',
+        help='ADF; min stdev of variant position and read start for valid reads when only one strand has sufficient valid reads for testing - default: 4, range: 0-, exclusive',
+        type=float
+    )
     opt_fc.add_argument(
-                    '-mbsw',
-                    '--min-MAD-both-strand-weak',
-                    help='ADF; min range of distances between variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -sbsw is true - default: 2, range: 0-, exclusive',
-                    type=int
-                )
+        '-mbsw',
+        '--min-MAD-both-strand-weak',
+        help='ADF; min range of distances between variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -sbsw is true - default: 2, range: 0-, exclusive',
+        type=int
+    )
     opt_fc.add_argument(
-                    '-sbsw',
-                    '--min-sd-both-strand-weak',
-                    help='ADF; min stdev of variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -mbsw is true- default: 2, range: 0-, exclusive',
-                    type=float
-                )
+        '-sbsw',
+        '--min-sd-both-strand-weak',
+        help='ADF; min stdev of variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -mbsw is true- default: 2, range: 0-, exclusive',
+        type=float
+    )
     opt_fc.add_argument(
-                    '-mbss',
-                    '--min-MAD-both-strand-strong',
-                    help='ADF; min range of distances between variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -sbss is true - default: 1, range: 0-, exclusive',
-                    type=int
-                )
+        '-mbss',
+        '--min-MAD-both-strand-strong',
+        help='ADF; min range of distances between variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -sbss is true - default: 1, range: 0-, exclusive',
+        type=int
+    )
     opt_fc.add_argument(
-                    '-sbss',
-                    '--min-sd-both-strand-strong',
-                    help='ADF; min stdev of variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -mbss is true - default: 10, range: 0-, exclusive',
-                    type=float
-                )
+        '-sbss',
+        '--min-sd-both-strand-strong',
+        help='ADF; min stdev of variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -mbss is true - default: 10, range: 0-, exclusive',
+        type=float
+    )
     opt_fc.add_argument(
         '-mr',
         '--min-reads',
@@ -447,7 +447,7 @@ def main_cli() -> None:
     if not any([(0 <= args.min_clip_quality <= 93),
                 (0 <= args.min_mapping_quality <= 60),
                 (0 <= args.min_base_quality <= 93),
-                (args.max_read_span >= -1),
+                (args.duplication_window_size >= -1),
                 (args.al_filter_threshold >= 0),
                 (0 <= args.edge_definition <= 0.99),
                 (0 <= args.edge_fraction <= 0.99),
@@ -477,7 +477,7 @@ def main_cli() -> None:
         args.min_reads
     )
     dv_params = DVF.Params(
-        args.max_read_span
+        args.duplication_window_size
     )
 
     try:
@@ -502,7 +502,7 @@ def main_cli() -> None:
             mode = "rc"
             logging.info("CRAM format specified")
         case _:
-            raise ValueError('Unknown mode {args.format} found in args.format')
+            raise ValueError(f'Unknown mode {args.format} found in args.format')
     for path in args.alignments:
         try:
             alignment = pysam.AlignmentFile(path,
@@ -595,22 +595,29 @@ def main_cli() -> None:
 
     # init output  TODO: put these in filter modules as funcs
     out_head = vcf_in_handle.header
-    out_head.add_line("##FILTER=<ID=ALF,Description=\"Median alignment score of reads reporting variant less than {}, using samples {}\">".format(
-        args.al_filter_threshold, ', '.join(vcf_sample_to_alignment_map.keys())))
-    out_head.add_line("##FILTER=<ID=ADF,Description=\"Variant arises from hairpin artefact, using samples {}\">".format(
-        ', '.join(vcf_sample_to_alignment_map.keys())))
-    out_head.add_line('##FILTER=<ID=DVF,Description="PLACEHOLDER">')  # BUG: placeholder!
     out_head.add_line(
-        "##INFO=<ID=ADF,Number=1,Type=String,Description=\"alt|code for each alt indicating hairpin filter decision code\">")
-    out_head.add_line(
-        "##INFO=<ID=ALF,Number=1,Type=String,Description=\"alt|code|score for each alt indicating AL filter conditions\">")
-    out_head.add_line(
-        "##INFO=<ID=DVF,Number=1,Type=String,Description=\"alt|code|score for each alt indicating DV filter conditions\">")  # BUG: placeholder!
-    out_head.add_line(
-        "##hairpin2-python_version={}-{}".format(hairpin2.__version__, sys.version.split()[0])
+        f'##FILTER=<ID=ALF,Description="Median alignment score of reads reporting variant less than {args.al_filter_threshold}, using samples {vcf_sample_to_alignment_map.keys()!r}">'
     )
     out_head.add_line(
-        "##hairpin2_params=[{}]".format(", ".join(f"{k}={arg_d[k]}" for k in rec_args))
+        f'##FILTER=<ID=ADF,Description="Variant arises from hairpin artefact, using samples {vcf_sample_to_alignment_map.keys()}">'
+    )
+    out_head.add_line(
+        '##FILTER=<ID=DVF,Description="PLACEHOLDER">'
+    )  # TODO: placeholder!
+    out_head.add_line(
+        '##INFO=<ID=ADF,Number=1,Type=String,Description="alt|code for each alt indicating hairpin filter decision code">'
+    )
+    out_head.add_line(
+        '##INFO=<ID=ALF,Number=1,Type=String,Description="alt|code|score for each alt indicating AL filter conditions">'
+    )
+    out_head.add_line(
+        '##INFO=<ID=DVF,Number=1,Type=String,Description="alt|code|score for each alt indicating DV filter conditions">'
+    )  # TODO: placeholder!
+    out_head.add_line(
+        f'##hairpin2_version={hairpin2.__version__}'
+    )
+    out_head.add_line(
+        f'##hairpin2_params=[{json.dumps({k: arg_d[k] for k in rec_args})}]'
     )
 
     try:

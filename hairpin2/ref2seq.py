@@ -26,16 +26,16 @@ import pysam
 
 
 def ref2querypos(
-            bam_record: pysam.AlignedSegment,
-            ref_pos: int,
+    read: pysam.AlignedSegment,
+    ref_pos: int,
 ) -> int:
-    pos_aln = bam_record.get_aligned_pairs()
+    pos_aln = read.get_aligned_pairs()
     query_pos = None
     for aln_pair in pos_aln:
         if aln_pair[1] == ref_pos:
             query_pos = aln_pair[0]
     if query_pos is None or len(pos_aln) == 0:
-        raise IndexError('reference position not covered by read')
+        raise ValueError('reference position not covered by read')
     return query_pos
 
 

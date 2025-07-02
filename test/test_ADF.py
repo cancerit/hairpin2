@@ -26,9 +26,6 @@ import pysam
 import copy
 
 
-# BASIS PATH TESTING (ish)
-# test every node and edge at least once
-# ----
 # perfect read pair:
 r = pysam.AlignedSegment()
 r.query_name = 'read1'
@@ -43,10 +40,23 @@ r.cigarstring = '100M'
 r.set_tag('MC', '100M')
 
 
+# BASIS PATH TESTING (ish)
+# test every node and edge at least once
 def test_path_insufficient_reads():
     ad = ADF.Filter(fixed_params=ADF.Params())
     readsin = []
-    readsout, result = ad.test('_', 0, [])
+    readsout, result = ad.test('_', 150, readsin)
+    assert result.flag == None
+    assert result.code == ADF.ADCodes.INSUFFICIENT_READS
+    assert readsin == readsout
+
+
+def test_path_insufficient_reads_2():
+    ad = ADF.Filter(fixed_params=ADF.Params())
+    rr = copy.deepcopy(r)
+    rr.flag = rr.flag | 0x10
+    readsin = [r, rr]
+    readsout, result = ad.test('_', 150, readsin)
     assert result.flag == None
     assert result.code == ADF.ADCodes.INSUFFICIENT_READS
     assert readsin == readsout

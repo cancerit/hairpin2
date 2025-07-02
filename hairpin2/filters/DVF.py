@@ -23,10 +23,12 @@ class Result(haf.FilterResult[DVCodes]):
 
 @dataclass(slots=True, frozen=True)
 class Params(haf.FilterParams):
-    min_boundary_deviation: int = 6  # TODO: can be used to turn off - document
+    # TODO: docstrings
+    # TODO: document inclusivity/exclusivity of parameters
+    duplication_window_size: int = 6  # TODO: can be used to turn off - document
     # TODO: n.b. neither of these options prevent read removal due to duplication, so test still functions as QC (and I think this is fine, just document more)
-    read_number_difference_threshhold: int = 0 # change in reads! TODO: express as fraction? discuss with Peter/Phuong
-    nsamples_threshold: int = 1  # TODO: document
+    read_number_difference_threshold: int = 0 # change in reads! TODO: express as fraction of available reads? makes more sense to me. discuss with Peter/Phuong
+    nsamples_threshold: int = 0  # TODO: document - I'm not sure this param makes sense. I guess in a multi sample VCF it would imply less confidence in the call if only 1 sample reported duplication. Discuss with Peter
 
 
 class Filter(haf.FilterTester[dict[str, list[AlignedSegment]], Params, Result]):
@@ -103,10 +105,15 @@ class Filter(haf.FilterTester[dict[str, list[AlignedSegment]], Params, Result]):
                         testing_endpoints: tuple[int, int, int, int] = sample_pair_endpoints[i][1]
                         max_diff_per_comparison: list[int] = []
                         for comparison_endpoints in dup_endpoint_test_pool:
-                            # breakpoint()
-                            endpoint_diffs: tuple[int, int, int, int] = tuple([abs(x - y) for x, y in zip(comparison_endpoints, testing_endpoints)])
+                            endpoint_diffs: tuple[int, int, int, int] = cast(
+                                tuple[int, int, int, int],
+                                tuple(
+                                    [abs(x - y) for x, y in zip(comparison_endpoints, testing_endpoints)]
+                                )
+                            )
                             max_diff_per_comparison.append(max(endpoint_diffs))
-                        if all([x <= self.fixed_params.min_boundary_deviation for x in max_diff_per_comparison]):
+                        # breakpoint()
+                        if all([x <= self.fixed_params.duplication_window_size for x in max_diff_per_comparison]):
                             # then the read pair being examined is a duplicate of the others in the pool
                             dup_endpoint_test_pool.append(testing_endpoints)
                             dup_idcs.append(original_index)  # store original index of this duplicate
@@ -115,7 +122,7 @@ class Filter(haf.FilterTester[dict[str, list[AlignedSegment]], Params, Result]):
                             # start again, test read at i against reads subsequent from i in ends_sorted
                             dup_endpoint_test_pool = [testing_endpoints]
                     sanitised_reads = [read for i, read in enumerate(reads) if i not in dup_idcs]
-                    if (len(sanitised_reads) - len(reads)) > self.fixed_params.read_number_difference_threshhold:
+                    if abs(len(sanitised_reads) - len(reads)) > self.fixed_params.read_number_difference_threshold:
                         nsamples_with_duplication += 1
                     sanitised_reads_by_sample[sample_key] = sanitised_reads
 
