@@ -6,3 +6,6 @@
 - bump version w.r.t to new filter, and new archtype - since filter reporting is not backwards compatible, this is probably a bump of a major version
 - report (accidental) bugfix of variants with only one supporting read being missed for ALF testing due to incorrect return in alt_filter_reads() - hence higher reports of ALF in new version
 - look for boundary conditions which are untested, or other untested paths which should be tested
+- go through all TODOs in code
+- consider argument names - probably last chance to change them
+- decide whether to switch to click
