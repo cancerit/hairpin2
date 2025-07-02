@@ -33,7 +33,6 @@ from itertools import tee, chain
 from typing import Any
 from collections.abc import Iterable
 import sys
-from tqdm import tqdm
 # pyright: reportUnusedCallResult=false
 # pyright: reportAny=false
 # pyright: reportExplicitAny=false

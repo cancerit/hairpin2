@@ -2,9 +2,12 @@
 requires = ["setuptools >= 77.0.3"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools]
+packages = ["hairpin2"]
+
 [project]
 name = "hairpin2"
-version = "1.2.0"
+version = "2.0.0"
 description = "CLI implementation of the artefact detection algorithm concieved by Ellis et al, 2020."
 authors = [
   {name = "Alex Byrne"}
@@ -12,12 +15,16 @@ authors = [
 license = "MIT"
 readme = "README.md"
 dependencies = [
-  "pysam>=0.22"
+  "pysam>=0.22, ==0.*",
+  "pydantic>=2.11.7, ==2.*"
 ]
 requires-python = ">= 3.12"
 
 [project.optional-dependencies]
-dev = ["pytest>=8.2.2"]
+dev = [
+  "pytest==8.*",
+  "pytest-cov==6.*"
+]
 
 [project.scripts]
 hairpin2 = "hairpin2.main:main_cli"
