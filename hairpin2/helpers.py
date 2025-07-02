@@ -22,22 +22,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 from enum import IntEnum, Flag
-from typing import Any
-from collections.abc import Collection
 # pyright: reportExplicitAny=false
-
-
-def has_duplicates(
-    l: list[Any]
-) -> bool:
-    return len(l) != len(set(l))
-
-
-def collection_equal(
-    l1: Collection[Any],
-    l2: Collection[Any]
-) -> bool:
-    return sorted(l1) == sorted(l2)
 
 
 def print_flag(

@@ -21,238 +21,22 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-# pyright: reportUnusedCallResult=false
-# pyright: reportAny=false
-# pyright: reportExplicitAny=false
-
 import pysam
-from hairpin2 import ref2seq as r2s, constants as cnst, helpers as hlp
-from hairpin2.filters import ADF, ALF, DVF, AnyResultCollection
-import hairpin2
-from statistics import mean
+from hairpin2 import constants as cnst, __version__
+from hairpin2.abstractfilters import FilterResult
+from hairpin2.filters import ADF, ALF, DVF
+from hairpin2.readqc import qc_read_broad, qc_read_alt_specific
 import argparse
 import logging
 import json
 from itertools import tee, chain
-from typing import Literal, Any
+from typing import Any
 from collections.abc import Iterable
 import sys
 from tqdm import tqdm
-
-
-def qc_read_broad(
-    read: pysam.AlignedSegment,
-    vcf_start: int,
-    min_mapqual: int,
-    min_clipqual: int,
-) -> cnst.ValidatorFlags:
-    """
-    When testing variants, test a read for various general - i.e. not specific to a
-    particular variant - features identifying the read as a poor source of support
-    for a variant. Used to disqualify reads for use in testing a variant.
-    
-    does not check for the following, as pysam already guards against:
-        - quality and seq length mismatch
-        - reference id is none
-    """
-    invalid_flag = cnst.ValidatorFlags.CLEAR  # 0 - evaluates false
-
-    try:
-        mate_cig = str(read.get_tag('MC'))
-    except KeyError:
-        mate_cig = None
-    if any(flg is None for flg in
-            [read.reference_end,
-                read.query_sequence,
-                read.query_qualities,
-                read.query_alignment_qualities,
-                read.cigarstring,
-                read.cigartuples,
-                mate_cig]):
-        invalid_flag |= cnst.ValidatorFlags.READ_FIELDS_MISSING
-    else:
-        if not (read.flag & 0x2) or read.flag & 0xE00:
-            invalid_flag |= cnst.ValidatorFlags.FLAG
-
-        if read.mapping_quality < min_mapqual:
-            invalid_flag |= cnst.ValidatorFlags.MAPQUAL
-
-        if ('S' in read.cigarstring and  # pyright: ignore[reportOperatorIssue]
-                mean(read.query_alignment_qualities) < min_clipqual):  # pyright: ignore[reportUnknownMemberType, reportArgumentType]
-            invalid_flag |= cnst.ValidatorFlags.CLIPQUAL
-
-        # avoid analysing both read1 and mate if they both cover the variant
-        if (not (invalid_flag & cnst.ValidatorFlags.FLAG)
-                and not (read.flag & 0x40)):
-            read_range = range(read.reference_start,
-                               read.reference_end)  # pyright: ignore[reportArgumentType]
-            mate_range = range(read.next_reference_start,
-                               r2s.ref_end_via_cigar(mate_cig,  # pyright: ignore[reportArgumentType]
-                                                     read.next_reference_start))
-            ref_overlap = set(read_range).intersection(mate_range)
-            if vcf_start in ref_overlap:
-                invalid_flag |= cnst.ValidatorFlags.OVERLAP
-
-    return invalid_flag
-
-
-def qc_read_alt_specific(
-    read: pysam.AlignedSegment,
-    vcf_start: int,
-    vcf_stop: int,
-    alt: str,
-    mut_type: Literal['S', 'D', 'I'],
-    min_basequal: int
-) -> cnst.ValidatorFlags:
-    """
-    When testing a variant, test a read for various features specific to the variant
-    at hand which would identify that read as a poor source of support for that
-    variant. Used to disqualify reads for use in testing a variant.
-    """
-    if mut_type not in ['S', 'D', 'I']:
-        raise ValueError(
-            'unsupported mut_type: {} - supports \'S\' (SUB) \'D\' (DEL) \'I\' (INS)'.format(mut_type))
-    if read.query_sequence is None:
-        raise ValueError(
-            'read must have query sequence'
-        )
-    if read.query_qualities is None:
-        raise ValueError(
-            'read must have query qualities'
-        )
-
-    invalid_flag = cnst.ValidatorFlags.CLEAR
-
-    if mut_type in ['S', 'I']:
-        try:
-            mut_pos = r2s.ref2querypos(read, vcf_start)
-        except ValueError:
-            invalid_flag |= cnst.ValidatorFlags.NOT_ALIGNED
-        else:
-            if mut_type == 'S':  # SUB
-                if read.query_sequence[mut_pos:mut_pos + len(alt)] != alt:
-                    invalid_flag |= cnst.ValidatorFlags.NOT_ALT
-                if any([bq < min_basequal
-                        for bq
-                        in read.query_qualities[mut_pos:mut_pos + len(alt)]]):
-                    invalid_flag |= cnst.ValidatorFlags.BASEQUAL
-            if mut_type == 'I':  # INS - mut_pos is position immediately before insertion
-                if mut_pos + len(alt) > read.query_length:
-                    invalid_flag |= cnst.ValidatorFlags.SHORT
-                else:
-                    mut_alns = [(q, r)
-                                for q, r
-                                in read.get_aligned_pairs()
-                                if q in range(mut_pos + 1, mut_pos + len(alt) + 1)]
-                    if any([r is not None for _, r in mut_alns]):
-                        invalid_flag |= cnst.ValidatorFlags.BAD_OP
-                    if read.query_sequence[mut_pos + 1:mut_pos + len(alt) + 1] != alt:
-                        invalid_flag |= cnst.ValidatorFlags.NOT_ALT
-    # DEL
-    if mut_type == 'D':
-        rng = list(range(vcf_start, vcf_stop + 1))
-        mut_alns = [q
-                    for q, r
-                    in read.get_aligned_pairs()
-                    if r in rng]
-        if len(mut_alns) != len(rng):
-            invalid_flag |= cnst.ValidatorFlags.SHORT
-        if (any([x is not None for x in mut_alns[1:-1]]) or
-            any([x is None for x in [mut_alns[0], mut_alns[-1]]])):
-                invalid_flag |= cnst.ValidatorFlags.BAD_OP
-
-    return invalid_flag
-
-
-def test_record_all_alts(
-    alignments: dict[str, pysam.AlignmentFile],
-    vcf_rec: pysam.VariantRecord,
-    min_mapqual: int,
-    min_clipqual: int,
-    min_basequal: int,
-    adf_params: ADF.Params,
-    alf_params: ALF.Params,
-    dvf_params: DVF.Params
-) -> dict[str, AnyResultCollection]:
-
-    if vcf_rec.alts is None:
-        raise cnst.NoAlts
-    samples_w_mutants = [name
-                         for name
-                         in vcf_rec.samples
-                         if vcf_rec.samples[name]["GT"] != (0, 0)]
-    if len(samples_w_mutants) == 0:
-        raise cnst.NoMutants
-
-    region_reads_by_sample: dict[str, Iterable[pysam.AlignedSegment]] = {}
-    for k, v in alignments.items():
-        if k in samples_w_mutants:
-            read_iter, test_iter = tee(v.fetch(vcf_rec.chrom,
-                                               vcf_rec.start,
-                                               (vcf_rec.start + 1)))
-            try:
-                _ = next(test_iter)
-            except StopIteration:
-                continue
-            else:
-                broad_qc_region_reads = (
-                    read for read in read_iter
-                    if not qc_read_broad(
-                        read,
-                        vcf_rec.start,
-                        min_mapqual,
-                        min_clipqual
-                    )
-                )
-                # doesn't check for overwrite
-                region_reads_by_sample[k] = broad_qc_region_reads
-
-    # the ability to handle complex mutations would be a potentially interesting future feature
-    # for extending to more varied artifacts
-    alt_filters: dict[str, AnyResultCollection] = {}
-    for alt in vcf_rec.alts:
-        if (vcf_rec.rlen == len(alt)
-                and set(alt).issubset(set(['A', 'C', 'T', 'G', 'N', '*']))):
-            mut_type = 'S'
-        elif (len(alt) < vcf_rec.rlen
-                and set(alt).issubset(set(['A', 'C', 'T', 'G', 'N', '*']))):  # DEL - DOES NOT SUPPORT <DEL> TYPE IDS OR .
-            mut_type = 'D'
-        elif (vcf_rec.rlen == 1
-                and set(alt).issubset(set(['A', 'C', 'T', 'G', 'N', '*']))):  # INS - DOES NOT SUPPORT <INS> TYPE IDS
-            mut_type = 'I'
-        else:
-            logging.warning('could not infer mutation type, POS={} REF={} ALT={}, skipping variant'.format(
-                vcf_rec.pos, vcf_rec.ref, alt))
-            continue
-
-        alt_qc_region_reads: dict[str, list[pysam.AlignedSegment]] = {
-            key: [] for key in region_reads_by_sample
-        }
-        for mut_sample, read_iter in region_reads_by_sample.items():
-            alt_qc_region_reads[mut_sample] = [
-                read for read in read_iter
-                if not qc_read_alt_specific(
-                    read,
-                    vcf_rec.start,
-                    vcf_rec.stop,
-                    alt,
-                    mut_type,
-                    min_basequal
-                )
-            ]
-
-        # instantiate filters to test the QC'd reads
-        ad = ADF.Filter(fixed_params=adf_params)
-        al = ALF.Filter(fixed_params=alf_params)
-        dv = DVF.Filter(fixed_params=dvf_params)
-
-        # run the tests
-        dup_qc_region_reads, dv_result = dv.test(alt, alt_qc_region_reads)
-        testing_reads = list(chain.from_iterable(dup_qc_region_reads.values()))
-        testing_reads, al_result = al.test(alt, testing_reads)
-        testing_reads, ad_result = ad.test(alt, vcf_rec.start, testing_reads)
-        alt_filters[alt] = (al_result, ad_result, dv_result)
-    return alt_filters
+# pyright: reportUnusedCallResult=false
+# pyright: reportAny=false
+# pyright: reportExplicitAny=false
 
 
 def main_cli() -> None:
@@ -271,7 +55,7 @@ def main_cli() -> None:
         '--version',
         help='print version',
         action='version',
-        version=hairpin2.__version__
+        version=__version__
     )
     req = parser.add_argument_group('mandatory')
     req.add_argument(
@@ -413,8 +197,8 @@ def main_cli() -> None:
         type=str
     )
     proc.add_argument(
-        '--no-prog',
-        help='disable progress bar',
+        '--prog',
+        help='display progress bar',
         action='store_true'
     )
     args = parser.parse_args()
@@ -436,6 +220,9 @@ def main_cli() -> None:
             if (json_config and k
                 in json_config.keys()):
                 setattr(args, k, json_config[k])
+            elif json_config and k in cnst.DEFAULTS.keys():
+                logging.info(f'arg {k!r} not found in json config, falling back to standard default {cnst.DEFAULTS[k]}')
+                setattr(args, k, cnst.DEFAULTS[k])
             elif k in cnst.DEFAULTS.keys():
                 setattr(args, k, cnst.DEFAULTS[k])
 
@@ -529,7 +316,7 @@ def main_cli() -> None:
                 vcf_mapflag.append(kv_split[0])
                 alignment_mapflag.append(kv_split[1])
 
-            if hlp.has_duplicates(vcf_mapflag):
+            if len(vcf_mapflag) != len(set(vcf_mapflag)):
                 logging.error('duplicate VCF sample names provided to --name-mapping flag')
                 sys.exit(cnst.EXIT_FAILURE)
 
@@ -537,11 +324,11 @@ def main_cli() -> None:
                 logging.error(f'VCF sample names provided to --name-mapping flag {vcf_mapflag!r} are not equal to or a subset of VCF samples from input VCF {vcf_names!r}')
                 sys.exit(cnst.EXIT_FAILURE)
 
-            if hlp.has_duplicates(alignment_mapflag):
+            if len(alignment_mapflag) != len(set(alignment_mapflag)):
                 logging.error(msg='duplicate aligment sample names provided to name mapping flag')
                 sys.exit(cnst.EXIT_FAILURE)
 
-            if not hlp.collection_equal(alignment_mapflag, sm_to_aln_map.keys()):
+            if not sorted(alignment_mapflag) == sorted(sm_to_aln_map.keys()):  # check equal
                 logging.error(msg='SM tags provided to name mapping flag {} are not equal to SM tag list from alignment files {} - flag recieved {}'.format(
                         alignment_mapflag,
                         set(sm_to_aln_map.keys()),
@@ -614,7 +401,7 @@ def main_cli() -> None:
         '##INFO=<ID=DVF,Number=1,Type=String,Description="alt|code|score for each alt indicating DV filter conditions">'
     )  # TODO: placeholder!
     out_head.add_line(
-        f'##hairpin2_version={hairpin2.__version__}'
+        f'##hairpin2_version={__version__}'
     )
     out_head.add_line(
         f'##hairpin2_params=[{json.dumps({k: arg_d[k] for k in rec_args})}]'
@@ -625,40 +412,113 @@ def main_cli() -> None:
     except Exception as e:
         logging.error(msg='failed to open VCF output, reporting: {}'.format(e))
         sys.exit(cnst.EXIT_FAILURE)
-    for record in vcf_in_handle.fetch() if args.no_prog else tqdm(vcf_in_handle.fetch(), total=None, unit='records'):
-        try:
-            filter_d: dict[str, AnyResultCollection] = test_record_all_alts(
-                vcf_sample_to_alignment_map,
-                record,
-                args.min_mapping_quality,
-                args.min_clip_quality,
-                args.min_base_quality,
-                adf_params=ad_params,
-                alf_params=al_params,
-                dvf_params=dv_params
-            )
-        except cnst.NoAlts:
-            logging.warning('{0: <7}:{1: >12} ¦ no alts for this record'.format(
-                record.chrom, record.pos))
-            sys.exit(cnst.EXIT_FAILURE)
-        except cnst.NoMutants:
-            logging.warning('{0: <7}:{1: >12} ¦ no samples exhibit alts associated with this record'.format(
-                record.chrom, record.pos))  # should this be recorded in the VCF?
-            sys.exit(cnst.EXIT_FAILURE)
-        else:
-            for _, filter_bundle in filter_d.items():
-                for filter in filter_bundle:
-                    if filter.flag:
-                        record.filter.add(filter.name)
-                    if finfo := filter.getinfo():
-                        record.info.update({filter.name: finfo})  # pyright: ignore[reportArgumentType]
-            try:
-                vcf_out_handle.write(record)
-            except Exception as e:
-                logging.error(msg='failed to write to vcf, reporting: {}'.format(e))
-                sys.exit(cnst.EXIT_FAILURE)
 
-    # write args once all verified
+    # test records
+    prog_bar_counter = 0
+    for record in vcf_in_handle.fetch():
+        record_filters: dict[type[FilterResult[Any]], list[FilterResult[Any]]] = {ALF.Result: [], ADF.Result: [], DVF.Result: []}
+        if record.alts is None:
+            logging.warning('{0: <7}:{1: >12} ¦ no alts for this record, skipping'.format(
+                record.chrom, record.pos))
+        else:
+            samples_w_mutants = [name
+                                 for name
+                                 in record.samples
+                                 if record.samples[name]["GT"] != (0, 0)]
+            if len(samples_w_mutants) == 0:
+                logging.warning('{0: <7}:{1: >12} ¦ no samples exhibit alts associated with this record, skipping'.format(
+                    record.chrom, record.pos))
+            else:
+                region_reads_by_sample: dict[str, Iterable[pysam.AlignedSegment]] = {}
+                for k, v in vcf_sample_to_alignment_map.items():
+                    if k in samples_w_mutants:
+                        read_iter, test_iter = tee(v.fetch(record.chrom,
+                                                           record.start,
+                                                           (record.start + 1)))
+                        try:
+                            _ = next(test_iter)
+                        except StopIteration:
+                            continue
+                        else:
+                            broad_qc_region_reads = [
+                                read for read in read_iter
+                                if not qc_read_broad(
+                                    read,
+                                    record.start,
+                                    args.min_mapping_quality,
+                                    args.min_clip_quality
+                                )
+                            ]
+                            # doesn't check for overwrite
+                            region_reads_by_sample[k] = broad_qc_region_reads
+
+                # TODO: put mutation type detection under testing
+                # the ability to handle complex mutations would be a potentially interesting future feature
+                # for extending to more varied artifacts
+                for alt in record.alts:
+                    if (record.rlen == len(alt)
+                            and set(alt).issubset(set(['A', 'C', 'T', 'G', 'N', '*']))):
+                        mut_type = 'S'
+                    elif (len(alt) < record.rlen
+                            and set(alt).issubset(set(['A', 'C', 'T', 'G', 'N', '*']))):  # DEL - DOES NOT SUPPORT <DEL> TYPE IDS OR .
+                        mut_type = 'D'
+                    elif (record.rlen == 1
+                            and set(alt).issubset(set(['A', 'C', 'T', 'G', 'N', '*']))):  # INS - DOES NOT SUPPORT <INS> TYPE IDS
+                        mut_type = 'I'
+                    else:
+                        logging.warning('could not infer mutation type, POS={} REF={} ALT={}, skipping variant'.format(
+                            record.pos, record.ref, alt))
+                        continue
+
+                    alt_qc_region_reads: dict[str, list[pysam.AlignedSegment]] = {
+                        key: [] for key in region_reads_by_sample
+                    }
+                    for mut_sample, read_iter in region_reads_by_sample.items():
+                        alt_qc_region_reads[mut_sample] = [
+                            read for read in read_iter
+                            if not qc_read_alt_specific(
+                                read,
+                                record.start,
+                                record.stop,
+                                alt,
+                                mut_type,
+                                args.min_base_quality
+                            )
+                        ]
+
+                    # instantiate filters to test the QC'd reads
+                    ad = ADF.Filter(fixed_params=ad_params)
+                    al = ALF.Filter(fixed_params=al_params)
+                    dv = DVF.Filter(fixed_params=dv_params)
+
+                    # run the tests
+                    dup_qc_region_reads, dv_result = dv.test(alt, alt_qc_region_reads)
+                    testing_reads = list(chain.from_iterable(dup_qc_region_reads.values()))
+                    testing_reads, al_result = al.test(alt, testing_reads)
+                    testing_reads, ad_result = ad.test(alt, record.start, testing_reads)
+                    for res in (al_result, ad_result, dv_result):
+                        record_filters[type(res)].append(res)
+
+        if any(lst for lst in record_filters.values()):
+            for ftype in record_filters:
+                if any(fres.flag == True for fres in record_filters[ftype]):
+                    record.filter.add(ftype.Name)
+                record.info.update({ftype.Name: ','.join([fl.getinfo() for fl in record_filters[ftype]])})  # pyright: ignore[reportArgumentType]
+
+        try:
+            vcf_out_handle.write(record)
+        except Exception as e:
+            logging.error(msg='failed to write to vcf, reporting: {}'.format(e))
+            sys.exit(cnst.EXIT_FAILURE)
+
+        if args.prog:
+            if not prog_bar_counter % 100:
+                print(f'\rchr: {record.chrom}, pos: {record.pos}', end='', flush=True, file=sys.stderr)
+            prog_bar_counter += 1
+    else:
+        if args.prog:
+            print(file=sys.stderr)
+
     if args.output_json:
         try:
             with open(args.output_json, "w") as output_json:

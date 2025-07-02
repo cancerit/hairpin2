@@ -26,9 +26,6 @@ from hairpin2.ref2seq import ref_end_via_cigar
 from pytest import raises
 
 
-# BASIS PATH TESTING (ish)
-# test every node and edge at least once
-# ----
 def test_path_valueerror():
     with raises(ValueError):
         _ = ref_end_via_cigar('30M2I* ,', 0)

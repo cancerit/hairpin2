@@ -26,9 +26,6 @@ import pysam
 import copy
 
 
-# BASIS PATH TESTING (ish)
-# test every node and edge at least once
-# ----
 # perfect read pair:
 r = pysam.AlignedSegment()
 r.query_name = 'read1'

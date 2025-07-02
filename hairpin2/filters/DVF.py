@@ -1,9 +1,31 @@
+# hairpin2
+#
+# Copyright (C) 2024 Genome Research Ltd.
+#
+# Author: Alex Byrne <ab63@sanger.ac.uk>
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 import hairpin2.abstractfilters as haf
-from pydantic import Field
-from pydantic.dataclasses import dataclass
-from typing import override, cast
-from pysam import AlignedSegment
 from hairpin2 import ref2seq as r2s
+from pydantic.dataclasses import dataclass
+from typing import ClassVar, override, cast
+from pysam import AlignedSegment
 from enum import IntEnum, auto
 
 
@@ -13,8 +35,8 @@ class DVCodes(IntEnum):
 
 
 class Result(haf.FilterResult[DVCodes]):
+    Name: ClassVar[str] = 'DVF'
     alt: str
-    name: str = Field(default='DVF', init=False)
 
     @override
     def getinfo(self) -> str:
@@ -27,7 +49,6 @@ class Params(haf.FilterParams):
     # TODO: document inclusivity/exclusivity of parameters
     duplication_window_size: int = 6  # TODO: can be used to turn off - document
     # TODO: n.b. neither of these options prevent read removal due to duplication, so test still functions as QC (and I think this is fine, just document more)
-    read_number_difference_threshold: int = 0 # change in reads! TODO: express as fraction of available reads? makes more sense to me. discuss with Peter/Phuong
     nsamples_threshold: int = 0  # TODO: document - I'm not sure this param makes sense. I guess in a multi sample VCF it would imply less confidence in the call if only 1 sample reported duplication. Discuss with Peter
 
 
@@ -122,9 +143,12 @@ class Filter(haf.FilterTester[dict[str, list[AlignedSegment]], Params, Result]):
                             # start again, test read at i against reads subsequent from i in ends_sorted
                             dup_endpoint_test_pool = [testing_endpoints]
                     sanitised_reads = [read for i, read in enumerate(reads) if i not in dup_idcs]
-                    if abs(len(sanitised_reads) - len(reads)) > self.fixed_params.read_number_difference_threshold:
+                    if len(sanitised_reads) < 2:  # total collapse
                         nsamples_with_duplication += 1
-                    sanitised_reads_by_sample[sample_key] = sanitised_reads
+                else:
+                    sanitised_reads = reads
+
+                sanitised_reads_by_sample[sample_key] = sanitised_reads
 
             if nsamples_with_duplication > self.fixed_params.nsamples_threshold:
                 flag = True

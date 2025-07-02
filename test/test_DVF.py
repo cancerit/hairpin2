@@ -23,7 +23,6 @@
 # SOFTWARE.
 from copy import deepcopy
 import pysam
-
 from hairpin2.filters import DVF
 
 
@@ -57,24 +56,13 @@ def test_path_duplicated():
     r1 = deepcopy(r)
     r1.reference_start -= boundary_wobble
     r1.next_reference_start -= boundary_wobble
-    readsin: dict[str, list[pysam.AlignedSegment]] = {'_': [r, r, r1], '_2': [r]}
+    readsin: dict[str, list[pysam.AlignedSegment]] = {'_': [r, r], '_2': [r], '_3': [r, r, r1]}
     readsout, result = dv.test('_', readsin)
     assert result.code == DVF.DVCodes.DUPLICATION
     assert result.flag == True
     assert readsin != readsout
-    assert len(readsout.keys()) == 1
-    assert len(readsout.values()) == 1
-
-
-def test_path_duplicated_below_threshold():
-    dv = DVF.Filter(fixed_params=DVF.Params(read_number_difference_threshold=1, nsamples_threshold=1))
-    readsin: dict[str, list[pysam.AlignedSegment]] = {'_': [r, r]}
-    readsout, result = dv.test('_', readsin)
-    assert result.code == DVF.DVCodes.DUPLICATION
-    assert result.flag == False
-    assert readsin != readsout
-    assert len(readsout.keys()) == 1
-    assert len(readsout.values()) == 1
+    assert len(readsout.keys()) == 3
+    assert len(readsout.values()) == 3
 
 
 # test parameters behave as intended

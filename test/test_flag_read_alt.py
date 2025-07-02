@@ -21,7 +21,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from hairpin2.main import qc_read_alt_specific
+from hairpin2.readqc import qc_read_alt_specific
 from hairpin2 import constants as cnst
 import pysam
 from pysam.libcalignedsegment import SAM_FLAGS as s
@@ -29,9 +29,6 @@ import copy
 from pytest import raises
 
 
-# BASIS PATH TESTING (ish)
-# test every node and edge at least once
-# ----
 # perfect read pair:
 r = pysam.AlignedSegment()
 r.query_name = 'read1'

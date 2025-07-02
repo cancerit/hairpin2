@@ -26,6 +26,7 @@ import pysam
 import copy
 
 
+# TODO: parameter meaning testing (and elsewhere)
 # perfect read pair:
 r = pysam.AlignedSegment()
 r.query_name = 'read1'
@@ -40,8 +41,6 @@ r.cigarstring = '100M'
 r.set_tag('MC', '100M')
 
 
-# BASIS PATH TESTING (ish)
-# test every node and edge at least once
 def test_path_insufficient_reads():
     ad = ADF.Filter(fixed_params=ADF.Params())
     readsin = []

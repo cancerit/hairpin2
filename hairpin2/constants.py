@@ -21,7 +21,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
 from enum import IntEnum, Flag, auto
 
 EXIT_SUCCESS = 0
@@ -31,7 +30,7 @@ DEFAULTS: dict[str, int | float] = dict((('al_filter_threshold', 0.93),
                                          ('min_clip_quality', 35),
                                          ('min_mapping_quality', 11),
                                          ('min_base_quality', 25),
-                                         ('max_read_span', 6),
+                                         ('duplication_window_size', 6),
                                          ('edge_definition', 0.15),
                                          ('edge_fraction', 0.9),
                                          ('min_MAD_one_strand', 0),

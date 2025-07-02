@@ -1,10 +1,32 @@
+# hairpin2
+#
+# Copyright (C) 2024 Genome Research Ltd.
+#
+# Author: Alex Byrne <ab63@sanger.ac.uk>
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 import hairpin2.abstractfilters as haf
-from pydantic import Field
+from hairpin2 import ref2seq as r2s
 from pydantic.dataclasses import dataclass
-from typing import override
+from typing import ClassVar, override
 from collections.abc import Sequence
 from pysam import AlignedSegment
-from hairpin2 import ref2seq as r2s
 from enum import IntEnum, auto
 from statistics import median, stdev
 
@@ -16,8 +38,8 @@ class ADCodes(IntEnum):
 
 
 class Result(haf.FilterResult[ADCodes]):
+    Name: ClassVar[str] = 'ADF'
     alt: str
-    name: str = Field(default='ADF', init=False)
 
     @override
     def getinfo(self) -> str:
@@ -67,7 +89,7 @@ class Filter(haf.FilterTester[Sequence[AlignedSegment], Params, Result]):
             for read in variant_reads:
                 try:
                     mut_qpos = r2s.ref2querypos(read, variant_start)
-                except ValueError as er:
+                except ValueError:
                     raise ValueError(f'read {read.query_name} does not cover variant')
 
                 if read.flag & 0x10:
