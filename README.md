@@ -1,17 +1,20 @@
 # hairpin2
-`hairpin2` – CLI implementation of the hairpin detection algorithm concieved by [Ellis et al, 2020](https://www.nature.com/articles/s41596-020-00437-6).
+`hairpin2` – a CLI tool for anomalous variant flagging
 
-`hairpin2` is designed to flag variants with anomalous distributions indicating that they are likely artefactual. Initially, it was concieved to flag possible cruciform artefacts for LCM sequence data, but the concept has been extended to other artefacts including artefactual indels. It operates on a VCF file containing one or more samples, and alignment files for all samples to be tested.
+`hairpin2` is designed to flag variants that are likely artefactual via series of tests performed upon the read data associated with each variant. Initially, it was concieved to flag possible cruciform artefacts for LCM sequence data, but the concept has been extended and can detect a wide variety of potentially spurious variants (including indels). The tool operates on a VCF file containing one or more samples, and alignment files for all samples to be tested.
 
-Given a VCF, and BAM files for the samples of that VCF, return a VCF with variants flagged with `ADF` if variants have anomalous distributions indicating that they are likely to be artefactual, and `ALF` if relevant reads have lower median alignment score per base than a specified threshold.
+Given a VCF, and BAM files for the samples of that VCF, return a VCF with variants flagged with `ADF` if variants have anomalous distributions indicating that they are likely to be artefactual, `ALF` if relevant reads have lower median alignment score per base than a specified threshold, and `DVF` if variants appear to be the result of PCR error.
 
-The `ALF` filter indicates variants which occur with poor signal-to-noise, and also provides additional confidence in the `ADF` filter – artefacts with anomalous distributions often cause a marked decrease in alignment score, as is the case for cruciform artefacts.
+The `ADF ` filter is an implementation of [Ellis et al, 2020](https://www.nature.com/articles/s41596-020-00437-6). It detects variants which appear with anomalously regular positional distribution in supportin reads.
+The `ALF` filter indicates variants which are supported by reads with poor signal-to-noise, per the alignment score. It is complementary to the `ADF` filter – artefacts with anomalous distributions often cause a marked decrease in alignment score.
+The `DVF` filter is a naive but effective algorithm for detecting variants which are the result of PCR error - in regions of low complexity, short repeats and homopolymer tract can cause PCR stuttering. PCR stuttering can lead to, for example, an erroneous additional A on the read when amplifying a tract of As. If duplicated reads contain stutter, this can lead to variation of read length and alignment to reference between reads that are in fact duplicates. Because of this, these duplicates both evade dupmarking and give rise to spurious variants when calling.
 
+All filters are extremely tunable such that their parameters can be configured to a variety of use cases and sequencing methods
 
 ### DEPENDENCIES
-* `Python >= 3.10`
-* `pysam >= 0.22.1` – installed automatically during install process (tested with 0.22.1 only)
-* `pytest >= 0.8.2.2` - optional, only necessary to run tests
+* `Python >= 3.12`
+
+further dependencies (pysam, pydantic, and optionally pytest and pytest-cov) are detailed in `pyproject.toml`, and will be downloaded automatically if following the recommend install process
 
 ### INSTALLATION
 The easiest end-user approach is to install into a virtual environment:
@@ -22,9 +25,15 @@ pip install .
 hairpin -h
 ```
 
+for development, substitute:
+```
+pip install -e ".[dev]"
+```
+to install testing dependencies
+
+
 ### ASSUMPTIONS & LIMITATIONS
 `hairpin2` is designed for paired data where alignment records have the `MC` tag and the complete CIGAR string is present in the `CIGAR` field (rather than the `CG:B,I` tag). If the `MC` tag is not present in your data, it can be added using `samtools fixmate` or `biobambam2 bamsormadup`. The tool can handle substitions, insertions, and deletions formatted per the VCF specification. At this time, the tool will not investigate mutations notated with angle brackets, e.g. `<DEL>`, complex mutations, or monomorphic reference. No further assumptions are made – other alignment tags and VCF fields are used, however they are mandatory per the relevant format specifications. If these requirements are limiting and you need the tool to be extended in some way, please request it.
-
 
 ### USAGE
 ```
@@ -174,7 +183,11 @@ The code has been written with the intention of clarity and extensibility – ag
 
 
 ### TESTING
-A test suite has been provided with the algorithm implementation. To run these tests run `pytest -m "validate"` from within the install directory. `hairpin2` must have been installed from that same directory, and be available on path (for example in a virtual environment). The tests can be found in the `test` directory. The basic premise is basis path testing. This approach means the focus is on testing all nodes (statements) and edges (paths between statements), rather than trying every possible input combination. Since all input possibilities will pass via the same network/graph, if we prove that each part of that network functions correctly, we can be more confident that the program functions as it claims to. The tests are simple, and, once you have read them, it should be very easy to add your own further tests should you feel the need to confirm any behaviour.
+A test suite has been provided with the algorithm implementation. To run these tests run `pytest .` from within the install directory. `hairpin2` must have been installed from that same directory, and be available on path (for example in a virtual environment). The tests can be found in the `test` directory. The focus is on testing all nodes (statements) and edges (paths between statements) for key scientific logic, rather than trying every possible input combination, in addition to testing critical boundary conditions. Since all input possibilities will pass via the same network/graph, if we prove that each part of that network functions correctly, we can be more confident that the program functions as it claims to. The tests are simple, and, once you have read them, it should be very easy to add your own further tests should you feel the need to confirm any behaviour.
+
+
+### TODO
+- automated regression testing
 
 
 ### LICENCE

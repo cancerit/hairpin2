@@ -55,8 +55,9 @@ class Params(haf.FilterParams):
 
 
 class Filter(haf.FilterTester[Sequence[AlignedSegment], Params, Result]):
+    # TODO: docstring
     """
-    Describe filter
+    ALignment score Filter
     """
     @override
     def test[T: Sequence[AlignedSegment]](

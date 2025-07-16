@@ -27,5 +27,5 @@ dev = [
 ]
 
 [project.scripts]
-hairpin2 = "hairpin2.main:main_cli"
+hairpin2 = "hairpin2.main:hairpin2"
 

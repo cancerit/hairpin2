@@ -48,8 +48,10 @@ class Params(haf.FilterParams):
     # TODO: docstrings
     # TODO: document inclusivity/exclusivity of parameters
     duplication_window_size: int = 6  # TODO: can be used to turn off - document
-    # TODO: n.b. neither of these options prevent read removal due to duplication, so test still functions as QC (and I think this is fine, just document more)
-    nsamples_threshold: int = 0  # TODO: document - I'm not sure this param makes sense. I guess in a multi sample VCF it would imply less confidence in the call if only 1 sample reported duplication. Discuss with Peter
+    # TODO: n.b. neither of these options prevent read removal due to duplication,
+    # so `DVF.test()` always functions as QC and may still drop reads
+    # - I think this is fine, just document more
+    nsamples_threshold: int = 0  # TODO: document - I'm not sure this param makes sense. I guess in a multi sample VCF it would imply less confidence in the call if only 1 sample reported duplication. But you'd still probably want to know about that sample? Discuss with Peter
 
 
 class Filter(haf.FilterTester[dict[str, list[AlignedSegment]], Params, Result]):

@@ -21,7 +21,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-# TODO: give example in docstring?
 """
 A set of Parent Abstract Base Classes that together completely describe the expected implementation of a scientific test
 for recording FILTER entry for a variant record in a VCF
@@ -37,19 +36,21 @@ from pydantic.dataclasses import dataclass
 from typing import Generic, TypeVar, Any, override, ClassVar
 from collections.abc import Collection, Mapping
 from pysam import AlignedSegment
-from enum import IntEnum 
+from enum import IntEnum
 # pyright: reportExplicitAny=false
 # pyright: reportAny=false
 # pyright: reportUnsafeMultipleInheritance=false
 # pyright: reportIncompatibleVariableOverride=false
 
 
+### READ FilterTester First and work backwards! ###
+
 CodeEnum_T = TypeVar("CodeEnum_T", bound=IntEnum, covariant=True)
 class FilterResult(BaseModel, Generic[CodeEnum_T], ABC):
-    # TODO: pydantic now obsoletes the Codes classvar, change docstring
     """
-    Parent ABC class defining the implementation that must be followed by subclasses intending to hold results of running a `FilterTester.test()` on a variant
-    All filters should use subclasses that inherit from this class to hold their results.
+    Parent ABC/pydantic BaseModel defining the implementation that must be followed by result subclasses - subclasses to hold results of running
+    the `test()` method of a specific subclass of FilterTester on a variant (e.g. for `FooFilter.test()`, the return value should include an instance of `FooResult`).
+    All filters should use subclasses that inherit from this class to hold their results, as enforced by the FilterTester ABC.
     Defines and guarantees basic properties that must be shared by all filter results:
         - a 'getinfo' method for returning a string to report to the INFO field of the VCF record - a basic default is provided, but
           subclasses probably want to override this.
@@ -57,17 +58,17 @@ class FilterResult(BaseModel, Generic[CodeEnum_T], ABC):
             - name, a string id for the filter to be used in the VCF FILTER field.
             - a flag, a boolean indicating if the filter is True/False, or None if untested.
             - a code, an integer code from a set of possibilities, indicating the basis on which the test has returned True/False, or None if untested.
-        - A class variable, Codes, holding an IntEnum describing the set of possibilites used for the code instance variable.
 
     This class is generic over T, an IntEnum, such that when a subclass is made it must be made with reference to a specific IntEnum -
-    this is the static equivalent of the runtime checking by Codes. When subclassing, create an appropriate enum of codes and define
-    the subclass like so:
+    allowing for static analysis to ensure only the correct codes are set in the result instance. Since this parent class is a pydantic BaseModel,
+    subclasses also have runtime validation of parameters, including these codes.
+
+    When subclassing, create an appropriate enum of codes and define the subclass like so:
     ```
     def XYZCodes(IntEnum):
         ...
     ... # decorators if needed
     class XYZResult(FilterResult[XYZCodes]):
-        Codes: ClassVar[type[XYZCodes]] = XYZCodes
         ... # the rest of the class body, e.g. further instance variables to be associated with a particular result
     ```
     """
@@ -94,7 +95,14 @@ class FilterResult(BaseModel, Generic[CodeEnum_T], ABC):
 
 @dataclass(slots=True, frozen=True)
 class FilterParams:
+    '''
+    parent dataclass to be be inherited from to store specific fixed parameters for a particular subclass of FilterTester,
+    or in other words for a particular filtering test. Using subclasses of this class for the fixed parameters provides
+    type-safety and a consistent interface for implementing filters
+    '''
     pass
+
+
 ReadCollection_T = TypeVar("ReadCollection_T", Collection[AlignedSegment], Mapping[Any, Collection[AlignedSegment]])
 FilterParams_T = TypeVar("FilterParams_T", bound=FilterParams)
 FilterResult_T = TypeVar("FilterResult_T", bound=FilterResult[IntEnum], covariant=True)  # covariant such that a test method that returns a subtype of FilterResult[IntEnum] is accepted where FilterResult[IntEnum] (or FilterResult_T) is expected
@@ -102,14 +110,32 @@ FilterResult_T = TypeVar("FilterResult_T", bound=FilterResult[IntEnum], covarian
 
 class FilterTester(BaseModel, Generic[ReadCollection_T, FilterParams_T, FilterResult_T], ABC):
     """
-    Parent ABC class to be inherited from when implementing a filter test on read data for a variant.
+    Parent ABC/pydantic BaseModel to be inherited from when implementing a filter test on read data for a variant.
     Contains a single abstract class method, `test()`, that must be overridden by subclasses for inidvidual filters.
+
+    The class is Generic over type variables ReadCollection_T (Collection[AlignedSegment]/Mapping[Any, Collection[AlignedSegment]]),
+    FilterParams_T, and FilterResult_t. This means that on implementing a concrete filter by subclassing this class,
+    you must select the specific types to which the filter pertains. For example, if implementing filter FooFilter,
+    the defintion might look something like:
+    `class FooFilter(FilterTester[list[AlignedSegment], FooParams, FooResult])`
+
+    As a result:
+        - static analysis will insist that the `test()` method of FooFilter returns tuple[list[AlignedSegment], FooResult]
+        - static analysis will insist instances of FooFilter pass the correct params upon instantiation
+        - since FilterTester is a pydantic BaseModel,
+          FooFilter will also validate that the correct FilterParams have been passed at runtime
+
+    In total, using this parent class ensures concrete filters obey strict rules, and therefore:
+        - filters are more difficult to implement incorrectly
+        - filters have a sufficiently consistent interface such that adding extra filters into main becomes trivial
     """
     fixed_params: FilterParams_T
 
     model_config: ConfigDict = ConfigDict(frozen=True, strict=True)
 
-    # TODO: add explanation as to how the class is generic to the docstring
+    # I would have prefered to be stricter with the input parameters,
+    # but it's not currently possible to enforce some keyword args (e.g. `reads: ReadCollection_T`)
+    # and allow for other arbitrary keyword args in the same abstract method signature
     @abstractmethod
     def test(
         self,
@@ -117,5 +143,24 @@ class FilterTester(BaseModel, Generic[ReadCollection_T, FilterParams_T, FilterRe
         **kwargs: Any
     ) -> tuple[ReadCollection_T, FilterResult_T]:
         """
+        Abstract filter test method for subclass override.
+        
         Each filter must define a test method via override, respecting the method signature.
+
+        Filter test methods are for applying logic on the read data relevant to a variant, to decide whether to mark
+        the variant in the FILTER field of an output VCF (or use the result in some other way).
+
+        The test method of any subclass must return a tuple containing an object of type ReadCollection_T (Collection[AlignedSegment]
+        or Mapping[Any, AlignedSegment]), and an object of type FilterResult_T (a specific subclass of FilterResult),
+        where the specific types are set according to the FilterTester subclass definition. In simple terms, the test method must
+        return both reads, and the result of testing. The reason for this as follows - since some filters are expected
+        to mutate/drop reads from analysis as to exclude them for analysis in downstream filters, this enforced return type
+        ensures that the returned value of the test method can be used in largely the same way regardless of whether the
+        specific filter mutates the input reads. If a specific test does not need to drop reads from downstream analysis,
+        simply return the input reads unmodified.
+
+        ReadCollection_T is broad over both Collections and Mappings - it is expected that some filters don't need to be
+        aware of which sample (in a multisample VCF) the reads came from, in which case you might make the subclass of
+        FilterTester specific to list[AlignedSegment], and that some filters do need to be aware of which sample the reads
+        came from, in which case you might make the subclass of FilterTester specifc to dict[str, AlignedSegment]
         """

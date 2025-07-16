@@ -135,8 +135,7 @@ def qc_read_alt_specific(
                         invalid_flag |= cnst.ValidatorFlags.BAD_OP
                     if read.query_sequence[mut_pos + 1:mut_pos + len(alt) + 1] != alt:
                         invalid_flag |= cnst.ValidatorFlags.NOT_ALT
-    # DEL
-    if mut_type == 'D':
+    elif mut_type == 'D':  # DEL
         rng = list(range(vcf_start, vcf_stop + 1))
         mut_alns = [q
                     for q, r

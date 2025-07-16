@@ -1,6 +1,6 @@
 # hairpin2
 #
-# Copyright (C) 2024 Genome Research Ltd.
+# Copyright (C) 2024, 2025 Genome Research Ltd.
 #
 # Author: Alex Byrne <ab63@sanger.ac.uk>
 #
@@ -21,193 +21,292 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from pathlib import Path
 import pysam
 from hairpin2 import constants as cnst, __version__
 from hairpin2.abstractfilters import FilterResult
 from hairpin2.filters import ADF, ALF, DVF
 from hairpin2.readqc import qc_read_broad, qc_read_alt_specific
-import argparse
 import logging
 import json
 from itertools import tee, chain
 from typing import Any
 from collections.abc import Iterable
 import sys
+import click
+from click_option_group import optgroup
 # pyright: reportUnusedCallResult=false
 # pyright: reportAny=false
 # pyright: reportExplicitAny=false
+# pyright: reportImplicitStringConcatenation=false
+
+existing_file_path = click.Path(
+    exists=True,
+    file_okay=True,
+    dir_okay=False,
+    readable=True,
+    resolve_path=True,
+    path_type=Path
+)
+
+writeable_file_path = click.Path(
+    dir_okay=False,
+    writable=True,
+    resolve_path=True,
+    path_type=Path
+)
 
 
-def main_cli() -> None:
+def show_full_help(ctx):
+    # Unhide all hidden option groups and options
+    for param in ctx.command.params:
+        if hasattr(param, "hidden"):
+            param.hidden = False
+        # for click-option-group: also unhide the parent group if needed
+        if hasattr(param, "opt_group") and hasattr(param.opt_group, "hidden"):
+            param.opt_group.hidden = False
+
+    click.echo(ctx.get_help())
+    ctx.exit()
+
+
+@click.command(
+    no_args_is_help=True,
+    epilog='see documentation at https://github.com/cancerit/hairpin2 or at tool install location for further information',
+    options_metavar='[-h, --help] [OPTIONS]')
+@click.version_option(__version__, '-v', '--version', message='%(version)s')
+@click.help_option('-h', '--help', help='show helptext')
+@click.option('--help-all', '-hh', is_flag=True, is_eager=False, expose_value=False,
+              callback=lambda ctx, param, value: show_full_help(ctx),
+              help='Show full help including config override options.')
+@click.argument('vcf_in', type=existing_file_path, required=True)
+@click.argument('alignments', nargs=-1, type=existing_file_path, required=True)
+@click.option('-f', '--format', type=click.Choice(['s', 'b', 'c']), required=True,
+              help="format of alignment files; s indicates SAM, b indicates BAM, and c indicates CRAM")  # TODO: surely we can infer this
+
+# Procedural options
+@click.option('-r', '--cram-reference', metavar='FILEPATH', type=existing_file_path,
+              help="path to FASTA format CRAM reference, overrides $REF_PATH and UR tags - ignored if --format is not CRAM")
+@click.option('-m', '--name-mapping', nargs=0, multiple=True,
+              help="key to map samples in a multisample VCF to alignment/s provided to -a. Uses VCF sample names per VCF header "
+                   "and alignment SM tags. With multiple alignments to -a, accepts a space separated list of sample:SM pairs. "
+                   "With a single alignment, also accepts a comma separated string of one or more possible sample-of-interest "
+                   "names like TUMOR,TUMOUR")  # TODO: metavar
+@click.option('-c', '--config', 'config_path', metavar='FILEPATH', type=existing_file_path,  # Validate config and populate subsequent args with click (I think this is a thing)
+              help='path to config JSON from which filter paramters will be loaded - can be overridden by extended arguments provided at runtime')
+@click.option('-o' , '--output_config', 'output_config_path', metavar='FILEPATH', type=writeable_file_path,
+              help='log filter paramaters from run as a config JSON file')
+@click.option('--progess/--no-progess', 'progress_bar', help='display progress bar during run', default=False)
+
+# === Config override groups (hidden by default) ===
+@optgroup.group("\nread validation config overrides", hidden=True)
+@optgroup.option('--min-clip-quality', metavar='INT', type=click.IntRange(0, 93), default=35, show_default=True,
+                 help='discard reads with mean base quality of aligned bases below this value, if they have soft-clipped bases')
+@optgroup.option('--min-mapping-quality', metavar='INT', type=click.IntRange(0, 60), default=11, show_default=True,
+                 help='discard reads with mapping quality below this value')
+@optgroup.option('--min-base-quality', metavar='INT', type=click.IntRange(0, 93), default=25, show_default=True,
+                 help='discard reads with base quality below this value at variant position')
+
+@optgroup.group('DVF config overrides', hidden=True)
+@optgroup.option('--duplication-window-size', metavar='INT', type=click.IntRange(-1), default=6, show_default=True,
+                 help='inclusive maximum window size, in number of bases to use when detecting PCR duplicates. -1 will disable duplicate detection')  # TODO/BUG: is -1 still true?
+
+@optgroup.group("\nALF config overrides", hidden=True)
+@optgroup.option('--al-filter-threshold', metavar='FLOAT', type=click.FloatRange(0.0), default=0.93, show_default=True,
+                 help='ALF; threshold for median of read alignment score per base of all relevant reads, at and below which a variant is flagged as ALF')
+
+@optgroup.group("\nADF config overrides", hidden=True)
+@optgroup.option('--edge-definition', metavar='FLOAT', type=click.FloatRange(0.0, 1.0), default=0.15, show_default=True,
+                 help='ADF; percentage of a read that is considered to be "the edge" for the purposes of assessing variant location distribution')
+@optgroup.option('--edge-fraction', metavar='FLOAT', type=click.FloatRange(0.0, 1.0), default=0.9, show_default=True,
+                 help='ADF; percentage of variants must occur within EDGE_FRACTION of read edges to mark ADF flag')
+@optgroup.option('--min-mad-one-strand', metavar='INT', type=click.IntRange(0), default=0, show_default=True,
+                 help='ADF; min range of distances between variant position and read start for valid reads when only one strand has sufficient valid reads for testing')  # BUG: what?
+@optgroup.option('--min-sd-one-strand', metavar='FLOAT', type=click.FloatRange(0.0), default=4.0, show_default=True,
+                 help='ADF; min stdev of variant position and read start for valid reads when only one strand has sufficient valid reads for testing') # BUG: exclusive?!
+@optgroup.option('--min-mad-both-strand-weak', metavar='INT', type=click.IntRange(0), default=2, show_default=True,
+                 help='ADF; min range of distances between variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -sbsw is true')
+@optgroup.option('--min-sd-both-strand-weak', metavar='FLOAT', type=click.FloatRange(0.0), default=2.0, show_default=True,
+                 help='ADF; min stdev of variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -mbsw is true- default: 2, range: 0-, exclusive')
+@optgroup.option('--min-mad-both-strand-strong', metavar='INT', type=click.IntRange(0), default=1, show_default=True,
+                 help='ADF; min range of distances between variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -sbss is true')
+@optgroup.option('--min-sd-both-strand-strong', metavar='FLOAT', type=click.FloatRange(0.0), default=10, show_default=True,  # TODO: need a defaults dataclass or constants
+                 help='ADF; min stdev of variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -mbss is true')
+@optgroup.option('--min-reads', metavar='INT', type=click.IntRange(0), default=min, show_default=True,
+                 help='ADF; number of reads at and below which the hairpin filtering logic considers a strand to have insufficient reads for testing')
+# TODO: DVF option decorators!
+def hairpin2(
+    input_vcf_path: Path,
+    alignment_paths: list[Path],
+    config_path: Path,  # TODO: take json, load via click decorator?
+    name_mapping: list[str],
+    min_clip_quality: int,
+    min_mapping_quality: int,
+    min_base_quality: int,
+    duplication_window_size: int,
+    al_filter_threshold:  float,
+    edge_definition: float,
+    min_mad_one_strand: int,
+    min_sd_one_strand: float,
+    min_mad_both_strand_weak: int,
+    min_sd_both_strand_weak: float,
+    min_mad_both_strand_strong: int,
+    min_sd_both_strand_strong: float,
+    min_reads: int,
+    cram_reference_path: str | None = None,
+    config_output_path: Path | None = None,
+    progress_bar: bool = False
+) -> None:
+    '''
+    cruciform artefact flagging algorithm based on Ellis et al. 2020 (DOI: 10.1038/s41596-020-00437-6)
+    '''
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s ¦ %(levelname)-8s ¦ %(message)s',
         datefmt='%I:%M:%S'
     ) # TODO: optionally log to file
-    parser = argparse.ArgumentParser(
-        prog="hairpin2",
-        description='cruciform artefact flagging algorithm based on Ellis et al. 2020 (DOI: 10.1038/s41596-020-00437-6). See README for further explanation of parameters.'
-    )
-    parser._optionals.title = 'info'
-    parser.add_argument(
-        '-v',
-        '--version',
-        help='print version',
-        action='version',
-        version=__version__
-    )
-    req = parser.add_argument_group('mandatory')
-    req.add_argument(
-        '-i',
-        '--vcf-in',
-        help="path to input VCF",
-        required=True
-    )
-    req.add_argument(
-        '-o',
-        '--vcf-out',
-        help="path to write output VCF",
-        required=True
-    )
-    req.add_argument(
-        '-a',
-        '--alignments',
-        help="list of paths to (S/B/CR)AMs (indicated by --format) for samples in input VCF, whitespace separated - (s/b/cr)ai expected in same directories",
-        nargs='+',
-        required=True
-    )
-    req.add_argument(
-        '-f',
-        "--format",
-        help="format of alignment files; s indicates SAM, b indicates BAM, and c indicates CRAM",
-        choices=["s", "b", "c"],
-        type=str,
-        required=True
-    )
-    opt_rv = parser.add_argument_group('read validation')
-    opt_rv.add_argument(
-        '-mc',
-        '--min-clip-quality',
-        help='discard reads with mean base quality of aligned bases below this value, if they have soft-clipped bases - default: 35, range: 0-93, exclusive',
-        type=int
-    )
-    opt_rv.add_argument(
-        '-mq',
-        '--min-mapping-quality',
-        help='discard reads with mapping quality below this value - default: 11, range: 0-60, exclusive',
-        type=int
-    )
-    opt_rv.add_argument(
-        '-mb',
-        '--min-base-quality',
-        help='discard reads with base quality at variant position below this value - default: 25, range: 0-93, exclusive',
-        type=int
-    )
-    opt_rv.add_argument(
-        '-dw',
-        '--duplication-window-size',
-        help='maximum window size, in number of bases to use when detecting PCR duplicates. -1 will disable duplicate detection - default: 6, range: -1-, inclusive',
-        type=int
-    )  # TODO: consider keeping -ms --max-read-span as a deprecated option for backwards compat
-    opt_fc = parser.add_argument_group('filter conditions')
-    opt_fc.add_argument(
-        '-al',
-        '--al-filter-threshold',
-        help='ALF; threshold for median of read alignment score per base of all relevant reads, at and below which a variant is flagged as ALF - default: 0.93, range: 0-, inclusive',
-        type=float
-    )
-    opt_fc.add_argument(
-        '-ed',
-        '--edge-definition',
-        help='ADF; percentage of a read that is considered to be "the edge" for the purposes of assessing variant location distribution - default: 0.15, range: 0-0.99, inclusive',
-        type=float
-    )
-    opt_fc.add_argument(
-        '-ef',
-        '--edge-fraction',
-        help='ADF; percentage of variants must occur within EDGE_FRACTION of read edges to allow ADF flag - default: 0.15, range: 0-0.99, exclusive',
-        type=float
-    )
-    opt_fc.add_argument(
-        '-mos',
-        '--min-MAD-one-strand',
-        help='ADF; min range of distances between variant position and read start for valid reads when only one strand has sufficient valid reads for testing - default: 0, range: 0-, exclusive',
-        type=int
-    )
-    opt_fc.add_argument(
-        '-sos',
-        '--min-sd-one-strand',
-        help='ADF; min stdev of variant position and read start for valid reads when only one strand has sufficient valid reads for testing - default: 4, range: 0-, exclusive',
-        type=float
-    )
-    opt_fc.add_argument(
-        '-mbsw',
-        '--min-MAD-both-strand-weak',
-        help='ADF; min range of distances between variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -sbsw is true - default: 2, range: 0-, exclusive',
-        type=int
-    )
-    opt_fc.add_argument(
-        '-sbsw',
-        '--min-sd-both-strand-weak',
-        help='ADF; min stdev of variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -mbsw is true- default: 2, range: 0-, exclusive',
-        type=float
-    )
-    opt_fc.add_argument(
-        '-mbss',
-        '--min-MAD-both-strand-strong',
-        help='ADF; min range of distances between variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -sbss is true - default: 1, range: 0-, exclusive',
-        type=int
-    )
-    opt_fc.add_argument(
-        '-sbss',
-        '--min-sd-both-strand-strong',
-        help='ADF; min stdev of variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -mbss is true - default: 10, range: 0-, exclusive',
-        type=float
-    )
-    opt_fc.add_argument(
-        '-mr',
-        '--min-reads',
-        help='ADF; number of reads at and below which the hairpin filtering logic considers a strand to have insufficient reads for testing - default: 1, range: 0-, inclusive',
-        type=int
-    )
-    proc = parser.add_argument_group('procedural')
-    proc.add_argument(
-        '-r',
-        '--cram-reference',
-        help="path to FASTA format CRAM reference, overrides $REF_PATH and UR tags - ignored if --format is not CRAM",
-        type=str
-    )
-    proc.add_argument(
-        '-m',
-        '--name-mapping',
-        help='key to map samples in a multisample VCF to alignment/s provided to -a. Uses VCF sample names per VCF header and alignment SM tags. With multiple alignments to -a, accepts a space separated list of sample:SM pairs. With a single alignment, also accepts a comma separated string of one or more possible sample-of-interest names like TUMOR,TUMOUR',
-        nargs='+'
-    )
-    proc.add_argument(
-        '-ji',
-        '--input-json',
-        help='path to JSON of command line parameters, from which arguments will be loaded - overridden by arguments provided at runtime',
-        type=str
-    )
-    proc.add_argument(
-        '-jo',
-        '--output-json',
-        help='log command line arguments to JSON',
-        type=str
-    )
-    proc.add_argument(
-        '--prog',
-        help='display progress bar',
-        action='store_true'
-    )
-    args = parser.parse_args()
+    # parser = argparse.ArgumentParser(
+    #     prog="hairpin2",
+    #     description='cruciform artefact flagging algorithm based on Ellis et al. 2020 (DOI: 10.1038/s41596-020-00437-6). See README for further explanation of parameters.'
+    # )
+    # parser._optionals.title = 'info'
+    # parser.add_argument(
+    #     '-v',
+    #     '--version',
+    #     help='print version',
+    #     action='version',
+    #     version=__version__
+    # )
+    # # req = parser.add_argument_group('mandatory')
+    # parser.add_argument(
+    #     'VCF_IN',
+    #     help="path to input VCF"
+    # )
+    # parser.add_argument(
+    #     'ALIGNMENTS',
+    #     help="list of paths to (S/B/CR)AMs (indicated by --format) for samples in input VCF, whitespace separated - (s/b/cr)ai expected in same directories",
+    #     nargs='+',
+    # )
+    # parser.add_argument(
+    #     '-f',
+    #     "--format",
+    #     help="format of alignment files; s indicates SAM, b indicates BAM, and c indicates CRAM",
+    #     choices=["s", "b", "c"],
+    #     type=str,
+    #     required=True
+    # )
+    # proc = parser.add_argument_group('procedural')
+    # proc.add_argument(
+    #     '-r',
+    #     '--cram-reference',
+    #     help="path to FASTA format CRAM reference, overrides $REF_PATH and UR tags - ignored if --format is not CRAM",
+    #     type=str
+    # )
+    # proc.add_argument(
+    #     '-m',
+    #     '--name-mapping',
+    #     help='key to map samples in a multisample VCF to alignment/s provided to -a. Uses VCF sample names per VCF header and alignment SM tags. With multiple alignments to -a, accepts a space separated list of sample:SM pairs. With a single alignment, also accepts a comma separated string of one or more possible sample-of-interest names like TUMOR,TUMOUR',
+    #     nargs='+'
+    # )
+    # proc.add_argument(
+    #     '-ji',
+    #     '--input-json',
+    #     help='path to JSON of command line parameters, from which arguments will be loaded - overridden by arguments provided at runtime',
+    #     type=str
+    # )
+    # proc.add_argument(
+    #     '-jo',
+    #     '--output-json',
+    #     help='log command line arguments to JSON',
+    #     type=str
+    # )
+    # proc.add_argument(
+    #     '--prog',
+    #     help='display progress bar',
+    #     action='store_true'
+    # )
+
+    # opt_rv = parser.add_argument_group('read validation config overrides')
+    # opt_rv.add_argument(
+    #     '--min-clip-quality',
+    #     help='discard reads with mean base quality of aligned bases below this value, if they have soft-clipped bases - default: 35, range: 0-93, exclusive',
+    #     type=int
+    # )
+    # opt_rv.add_argument(
+    #     '--min-mapping-quality',
+    #     help='discard reads with mapping quality below this value - default: 11, range: 0-60, exclusive',
+    #     type=int
+    # )
+    # opt_rv.add_argument(
+    #     '--min-base-quality',
+    #     help='discard reads with base quality at variant position below this value - default: 25, range: 0-93, exclusive',
+    #     type=int
+    # )
+    # opt_rv.add_argument(
+    #     '--duplication-window-size',
+    #     help='maximum window size, in number of bases to use when detecting PCR duplicates. -1 will disable duplicate detection - default: 6, range: -1-, inclusive',
+    #     type=int
+    # )  # TODO: consider keeping -ms --max-read-span as a deprecated option for backwards compat
+
+    # opt_fc = parser.add_argument_group('filter condition config overrides')
+    # opt_fc.add_argument(
+    #     '--al-filter-threshold',
+    #     help='ALF; threshold for median of read alignment score per base of all relevant reads, at and below which a variant is flagged as ALF - default: 0.93, range: 0-, inclusive',
+    #     type=float
+    # )
+    # opt_fc.add_argument(
+    #     '--edge-definition',
+    #     help='ADF; percentage of a read that is considered to be "the edge" for the purposes of assessing variant location distribution - default: 0.15, range: 0-0.99, inclusive',
+    #     type=float
+    # )
+    # opt_fc.add_argument(
+    #     '--edge-fraction',
+    #     help='ADF; percentage of variants must occur within EDGE_FRACTION of read edges to allow ADF flag - default: 0.15, range: 0-0.99, exclusive',
+    #     type=float
+    # )
+    # opt_fc.add_argument(
+    #     '--min-MAD-one-strand',
+    #     help='ADF; min range of distances between variant position and read start for valid reads when only one strand has sufficient valid reads for testing - default: 0, range: 0-, exclusive',
+    #     type=int
+    # )
+    # opt_fc.add_argument(
+    #     '--min-sd-one-strand',
+    #     help='ADF; min stdev of variant position and read start for valid reads when only one strand has sufficient valid reads for testing - default: 4, range: 0-, exclusive',
+    #     type=float
+    # )
+    # opt_fc.add_argument(
+    #     '--min-MAD-both-strand-weak',
+    #     help='ADF; min range of distances between variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -sbsw is true - default: 2, range: 0-, exclusive',
+    #     type=int
+    # )
+    # opt_fc.add_argument(
+    #     '--min-sd-both-strand-weak',
+    #     help='ADF; min stdev of variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -mbsw is true- default: 2, range: 0-, exclusive',
+    #     type=float
+    # )
+    # opt_fc.add_argument(
+    #     '--min-MAD-both-strand-strong',
+    #     help='ADF; min range of distances between variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -sbss is true - default: 1, range: 0-, exclusive',
+    #     type=int
+    # )
+    # opt_fc.add_argument(
+    #     '--min-sd-both-strand-strong',
+    #     help='ADF; min stdev of variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -mbss is true - default: 10, range: 0-, exclusive',
+    #     type=float
+    # )
+    # opt_fc.add_argument(
+    #     '--min-reads',
+    #     help='ADF; number of reads at and below which the hairpin filtering logic considers a strand to have insufficient reads for testing - default: 1, range: 0-, inclusive',
+    #     type=int
+    # )
+    # args = parser.parse_args()
 
     json_config: dict[str, Any] | None = None
-    if args.input_json:
-        logging.info(
-            'args JSON provided, non-path and non-mandatory arguments will be loaded from JSON if not present on command line')
+    if config_json_path:
+        # logging.info(
+            # 'args JSON provided, non-path and non-mandatory arguments will be loaded from JSON if not present on command line')
         try:
-            with open(args.input_json, 'r') as f:
+            with open(config_json_path, 'r') as f:
                 json_config = json.load(f)
         except Exception as er:
             logging.error(f'failed to open input JSON, reporting: {er}')
@@ -267,7 +366,7 @@ def main_cli() -> None:
     )
 
     try:
-        vcf_in_handle = pysam.VariantFile(args.vcf_in)
+        vcf_in_handle = pysam.VariantFile(input_vcf_path)
     except Exception as er:
         logging.error(f'failed to open input VCF, reporting {er}')
         sys.exit(cnst.EXIT_FAILURE)
@@ -289,12 +388,12 @@ def main_cli() -> None:
             logging.info("CRAM format specified")
         case _:
             raise ValueError(f'Unknown mode {args.format} found in args.format')
-    for path in args.alignments:
+    for path in alignment_paths:
         try:
             alignment = pysam.AlignmentFile(path,
                                             mode,
-                                            reference_filename=(args.cram_reference
-                                                                if args.cram_reference
+                                            reference_filename=(cram_reference_path
+                                                                if cram_reference_path
                                                                 and args.format == "c"
                                                                 else None))
         except Exception as er:
@@ -306,11 +405,11 @@ def main_cli() -> None:
         sm_to_aln_map[aln_sm] = alignment
 
     vcf_sample_to_alignment_map: dict[str, pysam.AlignmentFile] = {}
-    if args.name_mapping:
+    if name_mapping:
         vcf_mapflag: list[str] = []
         alignment_mapflag: list[str] = []
-        if len(args.name_mapping) <= len(args.alignments) and all(m.count(':') == 1 for m in args.name_mapping) and not any("," in m for m in args.name_mapping):
-            for pair in args.name_mapping:
+        if len(name_mapping) <= len(alignment_paths) and all(m.count(':') == 1 for m in name_mapping) and not any("," in m for m in name_mapping):
+            for pair in name_mapping:
                 kv_split = pair.split(':')  # VCF:aln
                 vcf_mapflag.append(kv_split[0])
                 alignment_mapflag.append(kv_split[1])
@@ -331,34 +430,34 @@ def main_cli() -> None:
                 logging.error(msg='SM tags provided to name mapping flag {} are not equal to SM tag list from alignment files {} - flag recieved {}'.format(
                         alignment_mapflag,
                         set(sm_to_aln_map.keys()),
-                        args.name_mapping))
+                        name_mapping))
                 sys.exit(cnst.EXIT_FAILURE)
 
             vcf_sample_to_alignment_map = {vcf_mapflag[alignment_mapflag.index(k)]: v
                                             for k, v
                                             in sm_to_aln_map.items()}
-        elif not any(":" in m for m in args.name_mapping) and len(args.alignments) == len(args.name_mapping) == 1:
-            if "," in args.name_mapping[0]:
-                possible_sample_names = args.name_mapping[0].split(',')
+        elif not any(":" in m for m in name_mapping) and len(alignment_paths) == len(name_mapping) == 1:
+            if "," in name_mapping[0]:
+                possible_sample_names = name_mapping[0].split(',')
             else:
-                possible_sample_names = args.name_mapping  # list of len 1
+                possible_sample_names = name_mapping  # list of len 1
             matches = [n for n in possible_sample_names if n in set(vcf_names)]
             if len(matches) > 1:
                 logging.error(msg='More than one of the VCF sample names provided to name mapping flag match any sample names in input VCF {} - flag recieved {}'.format(
                         vcf_names,
-                        args.name_mapping))
+                        name_mapping))
                 sys.exit(cnst.EXIT_FAILURE)
             elif not matches:
                 logging.error(msg='None of the VCF sample names provided to name mapping flag match any sample names in input VCF {} - flag recieved {}'.format(
                         vcf_names,
-                        args.name_mapping))
+                        name_mapping))
                 sys.exit(cnst.EXIT_FAILURE)
             else:
                 logging.info('matched alignment to sample {} in VCF'.format(matches[0]))
                 vcf_sample_to_alignment_map[matches[0]] = alignment  # pyright: ignore[reportPossiblyUnboundVariable] | since length of alignments == 1, can just reuse this variable
 
         else:
-            logging.error(msg='name mapping misformatted, see helptext for expectations - flag recieved: {}'.format(args.name_mapping))
+            logging.error(msg='name mapping misformatted, see helptext for expectations - flag recieved: {}'.format(name_mapping))
             sys.exit(cnst.EXIT_FAILURE)
     else:  # no name mapping flag
         if not sm_to_aln_map.keys() <= set(vcf_names):

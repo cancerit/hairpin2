@@ -43,7 +43,7 @@ class Result(haf.FilterResult[ADCodes]):
 
     @override
     def getinfo(self) -> str:
-        return f'{self.alt}|{self.code}|{self.flag}'
+        return f'{self.alt}|{self.flag}|{self.code}'
 
 
 @dataclass(slots=True, frozen=True)
@@ -60,10 +60,13 @@ class Params(haf.FilterParams):
 
 
 class Filter(haf.FilterTester[Sequence[AlignedSegment], Params, Result]):
+    # TODO: docstring
     """
-    Describe filter
+    Anomalous Distribution Filter
     """
-    # per paper, can set hairpin for mutations distant alignment start
+
+    # NOTE:
+    # per paper, can set hairpin for mutations distant from alignment start
     # in the case where both strands have sufficient supporting reads
     @override
     def test[T: Sequence[AlignedSegment]](
