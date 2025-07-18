@@ -35,7 +35,6 @@ from collections.abc import Iterable
 import sys
 import click
 from click_option_group import optgroup
-from enum import Enum
 from dataclasses import dataclass, fields
 # pyright: reportUnusedCallResult=false
 # pyright: reportAny=false
@@ -58,31 +57,32 @@ class DataclassTupleMixin:
 
 @dataclass(slots=True, frozen=True)
 class MinMax(DataclassTupleMixin):
-    min: int
-    max: int
+    min: int | float
+    max: int | float | None = None
 
 
-class _DEFAULTS(Enum):
-    al_filter_threshold = 0.93
-    min_clip_quality = 35
-    min_mapping_quality = 11
-    min_base_quality = 25
-    duplication_window_size = 6
-    edge_definition = 0.15
-    edge_fraction = 0.9
-    min_MAD_one_strand = 0
-    min_sd_one_strand = 4.0
-    min_MAD_both_strand_weak = 2
-    min_sd_both_strand_weak = 2.0
-    min_MAD_both_strand_strong = 1
-    min_sd_both_strand_strong = 10.0
-    min_reads = 1
+@dataclass(slots=True, frozen=True)
+class ParamConstraint:
+    default: int | float
+    range: MinMax
 
 
-# TODO: parameter _RANGES for read qc params
-# TODO: validation of appropriate params in FilterParams (use pydantic)
-class _RANGES(Enum):
-    ...
+_PARAMS = {
+    'al_filter_threshold': ParamConstraint(0.93, MinMax(0,93)),
+    'min_clip_quality': ParamConstraint(35, MinMax(0, 60)),
+    'min_mapping_quality': ParamConstraint(11, MinMax(0, 93)),
+    'min_base_quality': ParamConstraint(25, MinMax(-1)),
+    'duplication_window_size': ParamConstraint(6, MinMax(0)),
+    'edge_definition': ParamConstraint(0.15, MinMax(0.0, 0.99)),
+    'edge_fraction': ParamConstraint(0.9, MinMax(0.0, 0.99)),
+    'min_mad_one_strand': ParamConstraint(0, MinMax(0)),
+    'min_sd_one_strand': ParamConstraint(4.0, MinMax(0.0)),
+    'min_mad_both_strand_weak': ParamConstraint(2, MinMax(0)),
+    'min_sd_both_strand_weak': ParamConstraint(2.0, MinMax(0.0)),
+    'min_mad_both_strand_strong': ParamConstraint(1, MinMax(0)),
+    'min_sd_both_strand_strong': ParamConstraint(10.0, MinMax(0.0)),
+    'min_reads': ParamConstraint(1, MinMax(1)),
+}
 
 
 existing_file_path = click.Path(
@@ -108,100 +108,187 @@ def show_full_help(ctx):
         # for click-option-group: also unhide the parent group if needed
         if hasattr(param, "opt_group") and hasattr(param.opt_group, "hidden"):
             param.opt_group.hidden = False
-
     click.echo(ctx.get_help())
     ctx.exit()
 
 
 @click.command(
-    no_args_is_help=True,
     epilog='see documentation at https://github.com/cancerit/hairpin2 or at tool install location for further information',
-    options_metavar='[-h, --help] [OPTIONS]')
+    options_metavar='[-h, --help] [OPTIONS]'
+)
 @click.version_option(__version__, '-v', '--version', message='%(version)s')
 @click.help_option('-h', '--help', help='show helptext')
-@click.option('--help-all', '-hh', is_flag=True, is_eager=False, expose_value=False,
-              callback=lambda ctx, param, value: show_full_help(ctx),
-              help='Show full help including config override options.')
-@click.argument('vcf_in', type=existing_file_path, required=True)
-@click.argument('alignments', nargs=-1, type=existing_file_path, required=True)
-@click.option('-f', '--format', type=click.Choice(['s', 'b', 'c']), required=True,
-              help="format of alignment files; s indicates SAM, b indicates BAM, and c indicates CRAM")  # TODO: surely we can infer this
+@click.option(
+    '-hh',
+    '--help-all',
+    is_flag=True,
+    is_eager=True,
+    expose_value=False,
+    default=False,
+    callback=lambda ctx, param, value: show_full_help(ctx) if value else None,
+    help='Show further help including config override options'
+)
+@click.argument(
+    'vcf_in',
+    type=existing_file_path,
+    required=True
+)
+@click.argument(
+    'alignments',
+    nargs=-1,
+    type=existing_file_path,
+    required=True
+)
 
 # Procedural options
-@click.option('-r', '--cram-reference', metavar='FILEPATH', type=existing_file_path,
-              help="path to FASTA format CRAM reference, overrides $REF_PATH and UR tags - ignored if --format is not CRAM")
-@click.option('-m', '--name-mapping', nargs=0, multiple=True,
-              help="key to map samples in a multisample VCF to alignment/s provided to -a. Uses VCF sample names per VCF header "
-                   "and alignment SM tags. With multiple alignments to -a, accepts a space separated list of sample:SM pairs. "
-                   "With a single alignment, also accepts a comma separated string of one or more possible sample-of-interest "
-                   "names like TUMOR,TUMOUR")  # TODO: metavar
-@click.option('-c', '--config', 'config_path', metavar='FILEPATH', type=existing_file_path,  # Validate config and populate subsequent args with click (I think this is a thing)
-              help='path to config JSON from which filter paramters will be loaded - can be overridden by extended arguments provided at runtime')
-@click.option('-o' , '--output_config', 'output_config_path', metavar='FILEPATH', type=writeable_file_path,
-              help='log filter paramaters from run as a config JSON file')
-@click.option('--progess/--no-progess', 'progress_bar', help='display progress bar during run', default=False)
+@click.option(
+    '-r',
+    '--cram-reference',
+    metavar='FILEPATH',
+    type=existing_file_path,
+    help="path to FASTA format CRAM reference, overrides $REF_PATH and UR tags - ignored if --format is not CRAM"
+)
+@click.option(
+    '-m',
+    '--name-mapping',
+    metavar= 'S:SM S:SM...',
+    help="key to map samples in a multisample VCF to alignment/s provided to -a. Uses VCF sample names from VCF header "
+    "and alignment SM tags. With multiple alignments to -a, accepts a space separated list of sample:SM pairs. "
+    "When only a single alignment provided, also accepts a comma separated string of one or more possible sample-of-interest "
+    "names like TUMOR,TUMOUR"
+)
+@click.option(
+    '-c',
+    '--config',
+    'config_path',
+    metavar='FILEPATH',
+    type=existing_file_path,
+    help='path to config JSON from which filter paramters will be loaded - can be overridden by extended arguments provided at runtime'
+)
+@click.option(
+    '-o',
+    '--output_config',
+    'output_config_path',
+    metavar='FILEPATH',
+    type=writeable_file_path,
+    help='log filter paramaters from run as a config JSON file'
+)
+@click.option('--progess/--no-progess', 'progress_bar', help='display progress bar on stderr during run', default=False)
 
 # === Config override groups (hidden by default) ===
 @optgroup.group("\nread validation config overrides", hidden=True)
-@optgroup.option('--min-clip-quality', metavar='INT', type=click.IntRange(0, 93), default=None, show_default=str(_DEFAULTS.min_clip_quality),
-                 help='discard reads with mean base quality of aligned bases below this value, if they have soft-clipped bases')
-@optgroup.option('--min-mapping-quality', metavar='INT', type=click.IntRange(0, 60), default=11, show_default=str(_DEFAULTS.min_mapping_quality),
-                 help='discard reads with mapping quality below this value')
-@optgroup.option('--min-base-quality', metavar='INT', type=click.IntRange(0, 93), default=25, show_default=str(_DEFAULTS.min_base_quality),
-                 help='discard reads with base quality below this value at variant position')
+@optgroup.option(
+    '--min-clip-quality',
+    metavar='INT',
+    type=click.IntRange(*_PARAMS['min_clip_quality'].range),
+    show_default=str(_PARAMS['min_clip_quality'].default),
+    help='discard reads with mean base quality of aligned bases below this value, if they have soft-clipped bases'
+)
+@optgroup.option(
+    '--min-mapping-quality',
+    metavar='INT',
+    type=click.IntRange(*_PARAMS['min_mapping_quality'].range),
+    show_default=str(_PARAMS['min_mapping_quality'].default),
+    help='discard reads with mapping quality below this value'
+)
+@optgroup.option(
+    '--min-base-quality',
+    metavar='INT',
+    type=click.IntRange(*_PARAMS['min_base_quality'].range),
+    show_default=str(_PARAMS['min_base_quality'].default),
+    help='discard reads with base quality below this value at variant position'
+)
 
 @optgroup.group('DVF config overrides', hidden=True)
-@optgroup.option('--duplication-window-size', metavar='INT', type=click.IntRange(-1), default=6, show_default=str(_DEFAULTS.duplication_window_size),
-                 help='inclusive maximum window size, in number of bases to use when detecting PCR duplicates. -1 will disable duplicate detection')  # TODO/BUG: is -1 still true?
+@optgroup.option(
+    '--duplication-window-size',
+    metavar='INT',
+    type=click.IntRange(*_PARAMS['duplication_window_size'].range),
+    show_default=str(_PARAMS['duplication_window_size'].default),
+    help='inclusive maximum window size, in number of bases to use when detecting PCR duplicates. -1 will disable duplicate detection'
+)  # TODO/BUG: is -1 still true?
 
 @optgroup.group("\nALF config overrides", hidden=True)
-@optgroup.option('--al-filter-threshold', metavar='FLOAT', type=click.FloatRange(0.0), default=0.93, show_default=str(_DEFAULTS.al_filter_threshold),
-                 help='ALF; threshold for median of read alignment score per base of all relevant reads, at and below which a variant is flagged as ALF')
+@optgroup.option(
+    '--al-filter-threshold',
+    metavar='FLOAT',
+    type=click.FloatRange(*_PARAMS['al_filter_threshold'].range),
+    show_default=str(_PARAMS['al_filter_threshold'].default),
+    help='ALF; threshold for median of read alignment score per base of all relevant reads, at and below which a variant is flagged as ALF'
+)
 
 @optgroup.group("\nADF config overrides", hidden=True)
-@optgroup.option('--edge-definition', metavar='FLOAT', type=click.FloatRange(0.0, 1.0), default=0.15, show_default=str(_DEFAULTS.edge_definition),
-                 help='ADF; percentage of a read that is considered to be "the edge" for the purposes of assessing variant location distribution')
-@optgroup.option('--edge-fraction', metavar='FLOAT', type=click.FloatRange(0.0, 1.0), default=0.9, show_default=str(_DEFAULTS.edge_fraction),
-                 help='ADF; percentage of variants must occur within EDGE_FRACTION of read edges to mark ADF flag')
-@optgroup.option('--min-mad-one-strand', metavar='INT', type=click.IntRange(0), default=0, show_default=str(_DEFAULTS.min_MAD_one_strand),
-                 help='ADF; min range of distances between variant position and read start for valid reads when only one strand has sufficient valid reads for testing')  # BUG: what?
-@optgroup.option('--min-sd-one-strand', metavar='FLOAT', type=click.FloatRange(0.0), default=4.0, show_default=str(_DEFAULTS.min_sd_one_strand),
-                 help='ADF; min stdev of variant position and read start for valid reads when only one strand has sufficient valid reads for testing') # BUG: exclusive?!
-@optgroup.option('--min-mad-both-strand-weak', metavar='INT', type=click.IntRange(0), default=2, show_default=str(_DEFAULTS.min_MAD_both_strand_weak),
-                 help='ADF; min range of distances between variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -sbsw is true')
-@optgroup.option('--min-sd-both-strand-weak', metavar='FLOAT', type=click.FloatRange(0.0), default=2.0, show_default=str(_DEFAULTS.min_sd_both_strand_weak),
-                 help='ADF; min stdev of variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -mbsw is true- default: 2, range: 0-, exclusive')
-@optgroup.option('--min-mad-both-strand-strong', metavar='INT', type=click.IntRange(0), default=1, show_default=str(_DEFAULTS.min_MAD_both_strand_strong),
-                 help='ADF; min range of distances between variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -sbss is true')
-@optgroup.option('--min-sd-both-strand-strong', metavar='FLOAT', type=click.FloatRange(0.0), default=10, show_default=str(_DEFAULTS.min_sd_both_strand_strong),  # TODO: need a defaults dataclass or constants
-                 help='ADF; min stdev of variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -mbss is true')
-@optgroup.option('--min-reads', metavar='INT', type=click.IntRange(0), default=min, show_default=_DEFAULTS.min_reads,
-                 help='ADF; number of reads at and below which the hairpin filtering logic considers a strand to have insufficient reads for testing')
-# TODO: DVF option decorators!
+@optgroup.option(
+    '--edge-definition',
+    metavar='FLOAT',
+    type=click.FloatRange(*_PARAMS['edge_definition'].range),
+    show_default=str(_PARAMS['edge_definition'].default),
+    help='ADF; percentage of a read that is considered to be "the edge" for the purposes of assessing variant location distribution'
+)
+@optgroup.option(
+    '--edge-fraction',
+    metavar='FLOAT',
+    type=click.FloatRange(*_PARAMS['edge_fraction'].range),
+    show_default=str(_PARAMS['edge_fraction'].default),
+    help='ADF; percentage of variants must occur within EDGE_FRACTION of read edges to mark ADF flag'
+)
+@optgroup.option(
+    '--min-mad-one-strand',
+    metavar='INT',
+    type=click.IntRange(*_PARAMS['min_mad_one_strand'].range),
+    show_default=str(_PARAMS['min_mad_one_strand'].default),
+    help='ADF; min range of distances between variant position and read start for valid reads when only one strand has sufficient valid reads for testing'
+)  # BUG: what on earth does this helptext mean?
+@optgroup.option(
+    '--min-sd-one-strand',
+    metavar='FLOAT',
+    type=click.FloatRange(*_PARAMS['min_sd_one_strand'].range),
+    show_default=str(_PARAMS['min_sd_one_strand'].default),
+    help='ADF; min stdev of variant position and read start for valid reads when only one strand has sufficient valid reads for testing'
+) # BUG: exclusive or not?!
+@optgroup.option(
+    '--min-mad-both-strand-weak',
+    metavar='INT',
+    type=click.IntRange(*_PARAMS['min_mad_both_strand_weak'].range),
+    show_default=str(_PARAMS['min_mad_both_strand_weak'].default),
+    help='ADF; min range of distances between variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -sbsw is true'
+)
+@optgroup.option(
+    '--min-sd-both-strand-weak',
+    metavar='FLOAT',
+    type=click.FloatRange(*_PARAMS['min_sd_both_strand_weak'].range),
+    show_default=str(_PARAMS['min_sd_both_strand_weak'].default),
+    help='ADF; min stdev of variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -mbsw is true- default: 2, range: 0-, exclusive'
+)
+@optgroup.option(
+    '--min-mad-both-strand-strong',
+    metavar='INT',
+    type=click.IntRange(*_PARAMS['min_mad_both_strand_strong'].range),
+    show_default=str(_PARAMS['min_mad_both_strand_strong']),
+    help='ADF; min range of distances between variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -sbss is true'
+)
+@optgroup.option(
+    '--min-sd-both-strand-strong',
+    metavar='FLOAT',
+    type=click.FloatRange(*_PARAMS['min_sd_both_strand_strong'].range),
+    show_default=str(_PARAMS['min_sd_both_strand_strong'].default),
+    help='ADF; min stdev of variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -mbss is true'
+)
+@optgroup.option(
+    '--min-reads',
+    metavar='INT',
+    type=click.IntRange(*_PARAMS['min_reads'].range),
+    show_default=_PARAMS['min_reads'].default,
+    help='ADF; number of reads at and below which the hairpin filtering logic considers a strand to have insufficient reads for testing'
+)
 def hairpin2(
-    input_vcf_path: str,
-    alignment_paths: list[str],
-    format: str,
-    config_path: str | None = None,  # TODO: take json, load via click decorator?
+    vcf_in: str,
+    alignments: list[str],
+    config_path: str | None = None,
     progress_bar: bool = False,
     cram_reference_path: str | None = None,
-    config_output_path: Path | None = None,
+    config_output_path: str | None = None,
     **kwargs: Any,
-    # name_mapping: list[str] | None = None,
-    # min_clip_quality: int | None = None,
-    # min_mapping_quality: int | None = None,
-    # min_base_quality: int | None = None,
-    # duplication_window_size: int | None = None,
-    # al_filter_threshold:  float | None = None,
-    # edge_definition: float | None = None,
-    # edge_fraction: float | None = None,
-    # min_mad_one_strand: int | None = None,
-    # min_sd_one_strand: float | None = None,
-    # min_mad_both_strand_weak: int | None = None,
-    # min_sd_both_strand_weak: float | None = None,
-    # min_mad_both_strand_strong: int | None = None,
-    # min_sd_both_strand_strong: float | None = None,
-    # min_reads: int | None = None,
 ) -> None:
     '''
     cruciform artefact flagging algorithm based on Ellis et al. 2020 (DOI: 10.1038/s41596-020-00437-6)
@@ -210,7 +297,7 @@ def hairpin2(
         level=logging.INFO,
         format='%(asctime)s ¦ %(levelname)-8s ¦ %(message)s',
         datefmt='%I:%M:%S'
-    ) # TODO: optionally log to file since this may contain warnings about variants? Or to VCF...?
+    )
 
     configd: dict[str, Any] = {}
     if config_path:
@@ -222,57 +309,45 @@ def hairpin2(
             sys.exit(EXIT_FAILURE)
 
     # override from config and ensure all args are set
-    for key in kwargs:
-        if not kwargs[key]:
-            if key in configd.keys():
-                setattr(kwargs, key, configd[key])
-            elif str(key) in _DEFAULTS.__members__:
-                logging.info(f'arg {key!r} not found in config or present on command line, falling back to standard default {_DEFAULTS(key)}')
-                setattr(kwargs, key, _DEFAULTS(key))
-            elif str(key) in _DEFAULTS.__members__:
-                setattr(kwargs, key, _DEFAULTS(key))
-
     # test args are sensible, exit if not
     # unfortunately necessary duplication with options since the config remains unverified
-    # but can move most of these to validation of FilterParams, where there should be full validation anyway
-    if not any([(0 <= min_clip_quality <= 93),
-                (0 <= min_mapping_quality <= 60),
-                (0 <= min_base_quality <= 93),
-                (duplication_window_size >= -1),
-                (al_filter_threshold >= 0),
-                (0 <= edge_definition <= 0.99),
-                (0 <= edge_fraction <= 0.99),
-                (min_mad_one_strand >= 0),
-                (min_sd_one_strand >= 0),
-                (min_mad_both_strand_weak >= 0),
-                (min_sd_both_strand_weak >= 0),
-                (min_mad_both_strand_strong >= 0),
-                (min_sd_both_strand_strong >= 0),
-                (min_reads >= 0)]):
-        logging.error('extended arg out of range, check helptext for ranges')
-        sys.exit(EXIT_FAILURE)
+    # TODO: move to validation of FilterParams with pydantic, where there should be full validation anyway
+    # TODO: forbid extra config params (pydantic?)
+    for key in kwargs:
+        if kwargs[key] is None:
+            if key in configd.keys():
+                kwargs[key] = configd[key]
+            elif key in _PARAMS:
+                logging.info(f'parameter {key!r} not found in config or present on command line, falling back to standard default {_PARAMS[key].default}')
+                kwargs[key] = _PARAMS[key].default
+        if key in _PARAMS:
+            assert kwargs[key] is not None
+            pmin, pmax = _PARAMS[key].range
+            if (pmin is not None and pmin > kwargs[key]) or (pmax is not None and kwargs[key] > pmax):
+                logging.error(f'value {kwargs[key]!r} for parameter {key!r} out of range {pmin}<=x<={pmax}')
+                sys.exit(EXIT_FAILURE)
 
-    # set up filter params based on inputs TODO: move validation there, rather than above validation check
+    # set up filter params based on inputs
     al_params = ALF.Params(
-        al_filter_threshold
+        kwargs['al_filter_threshold']
     )
     ad_params = ADF.Params(
-        edge_definition,
-        edge_fraction,
-        min_mad_one_strand,
-        min_sd_one_strand,
-        min_mad_both_strand_weak,
-        min_sd_both_strand_weak,
-        min_mad_both_strand_strong,
-        min_sd_both_strand_strong,
-        min_reads
+        kwargs['edge_definition'],
+        kwargs['edge_fraction'],
+        kwargs['min_mad_one_strand'],
+        kwargs['min_sd_one_strand'],
+        kwargs['min_mad_both_strand_weak'],
+        kwargs['min_sd_both_strand_weak'],
+        kwargs['min_mad_both_strand_strong'],
+        kwargs['min_sd_both_strand_strong'],
+        kwargs['min_reads']
     )
     dv_params = DVF.Params(
-        duplication_window_size
+        kwargs['duplication_window_size']
     )
 
     try:
-        vcf_in_handle = pysam.VariantFile(input_vcf_path)
+        vcf_in_handle = pysam.VariantFile(vcf_in)
     except Exception as er:
         logging.error(f'failed to open input VCF, reporting {er}')
         sys.exit(EXIT_FAILURE)
@@ -282,26 +357,29 @@ def hairpin2(
         sys.exit(EXIT_FAILURE)
 
     sm_to_aln_map: dict[str, pysam.AlignmentFile] = {}
-    match format:
-        case "s":
-            mode = "r"
-            logging.info("SAM format specified")
-        case "b":
-            mode = "rb"
-            logging.info("BAM format specified")
-        case "c":
-            mode = "rc"
-            logging.info("CRAM format specified")
-        case _:
-            raise ValueError(f'Unknown mode {format} found in format')
-    for path in alignment_paths:
+    for path_str in alignments:
+        path = Path(path_str)
         try:
-            alignment = pysam.AlignmentFile(path,
-                                            mode,
-                                            reference_filename=(cram_reference_path
-                                                                if cram_reference_path
-                                                                and format == "c"
-                                                                else None))
+            match path.suffix[1]:
+                case ch if ch in 'sS':
+                    mode = "r"
+                case ch if ch in 'bB':
+                    mode = "rb"
+                case ch if ch in 'cC':
+                    mode = "rc"
+                case _:
+                    raise ValueError
+        except (IndexError, ValueError):
+            logging.error(f'Could not infer alignment format from suffix {path.suffix!r} of file {path_str!r}')
+            sys.exit(EXIT_FAILURE)
+        if cram_reference_path and mode != 'rc':
+            logging.error(f'CRAM reference provided, but alignment at {path_str!r} not inferred as cram from suffix {path.suffix!r}')
+        try:
+            alignment = pysam.AlignmentFile(
+                str(path),
+                         mode,
+                         reference_filename=(cram_reference_path if cram_reference_path else None)
+            )
         except Exception as er:
             logging.error(f'failed to read alignment file {path!r}, reporting {er}')
             sys.exit(EXIT_FAILURE)
@@ -311,10 +389,11 @@ def hairpin2(
         sm_to_aln_map[aln_sm] = alignment
 
     vcf_sample_to_alignment_map: dict[str, pysam.AlignmentFile] = {}
-    if name_mapping:
+    if kwargs['name_mapping']:
+        name_mapping: list[str] = kwargs['name_mapping'].split(' ')
         vcf_mapflag: list[str] = []
         alignment_mapflag: list[str] = []
-        if len(name_mapping) <= len(alignment_paths) and all(m.count(':') == 1 for m in name_mapping) and not any("," in m for m in name_mapping):
+        if len(name_mapping) <= len(alignments) and all(m.count(':') == 1 for m in name_mapping) and not any("," in m for m in name_mapping):
             for pair in name_mapping:
                 kv_split = pair.split(':')  # VCF:aln
                 vcf_mapflag.append(kv_split[0])
@@ -342,7 +421,7 @@ def hairpin2(
             vcf_sample_to_alignment_map = {vcf_mapflag[alignment_mapflag.index(k)]: v
                                             for k, v
                                             in sm_to_aln_map.items()}
-        elif not any(":" in m for m in name_mapping) and len(alignment_paths) == len(name_mapping) == 1:
+        elif not any(":" in m for m in name_mapping) and len(alignments) == len(name_mapping) == 1:
             if "," in name_mapping[0]:
                 possible_sample_names = name_mapping[0].split(',')
             else:
@@ -363,6 +442,7 @@ def hairpin2(
                 vcf_sample_to_alignment_map[matches[0]] = alignment  # pyright: ignore[reportPossiblyUnboundVariable] | since length of alignments == 1, can just reuse this variable
 
         else:
+            breakpoint()
             logging.error(msg='name mapping misformatted, see helptext for expectations - flag recieved: {}'.format(name_mapping))
             sys.exit(EXIT_FAILURE)
     else:  # no name mapping flag
@@ -387,32 +467,35 @@ def hairpin2(
     # init output  TODO: put these in filter modules as funcs
     out_head = vcf_in_handle.header
     out_head.add_line(
-        f'##FILTER=<ID=ALF,Description="Median alignment score of reads reporting variant less than {al_filter_threshold}, using samples {vcf_sample_to_alignment_map.keys()!r}">'
+        f'##FILTER=<ID=ALF,Description="Median alignment score of reads reporting variant less than {kwargs['al_filter_threshold']}">'
     )
     out_head.add_line(
-        f'##FILTER=<ID=ADF,Description="Variant arises from hairpin artefact, using samples {vcf_sample_to_alignment_map.keys()}">'
+        f'##FILTER=<ID=ADF,Description="Variant shows anomalous distribution in supporting reads">'
     )
     out_head.add_line(
-        '##FILTER=<ID=DVF,Description="PLACEHOLDER">'
-    )  # TODO: placeholder!
-    out_head.add_line(
-        '##INFO=<ID=ADF,Number=1,Type=String,Description="alt|code for each alt indicating hairpin filter decision code">'
+        '##FILTER=<ID=DVF,Description="Variant consistent with PCR stuttering on supporting reads">'
     )
     out_head.add_line(
-        '##INFO=<ID=ALF,Number=1,Type=String,Description="alt|code|score for each alt indicating AL filter conditions">'
+        '##INFO=<ID=ADF,Number=1,Type=String,Description="alt|[True,False]|code indicating decision reason for each alt">'
     )
     out_head.add_line(
-        '##INFO=<ID=DVF,Number=1,Type=String,Description="alt|code|score for each alt indicating DV filter conditions">'
+        '##INFO=<ID=ALF,Number=1,Type=String,Description="alt|[True,False]|code|score indicating decision reason and average AS of supporting reads for each alt "">'
+    )
+    out_head.add_line(
+        '##INFO=<ID=DVF,Number=1,Type=String,Description="alt|[True,False]|code indicating decision reason for each alt"">'
     )  # TODO: placeholder!
     out_head.add_line(
         f'##hairpin2_version={__version__}'
     )
     out_head.add_line(
-        f'##hairpin2_params=[{json.dumps({k: arg_d[k] for k in rec_args})}]'
+        f'##hairpin2_params=[{json.dumps({k: kwargs[k] for k in _PARAMS})}]'
+    )
+    out_head.add_line(
+        f'##hairpin2_samples={vcf_sample_to_alignment_map.keys()}'
     )
 
     try:
-        vcf_out_handle = pysam.VariantFile(sys.stdout, 'w', header=out_head)  # TODO: check stdout works here
+        vcf_out_handle = pysam.VariantFile(sys.stdout, 'w', header=out_head)
     except Exception as e:
         logging.error(msg='failed to open VCF output, reporting: {}'.format(e))
         sys.exit(EXIT_FAILURE)
@@ -449,11 +532,11 @@ def hairpin2(
                                 if not qc_read_broad(
                                     read,
                                     record.start,
-                                    min_mapping_quality,
-                                    min_clip_quality
+                                    kwargs['min_mapping_quality'],
+                                    kwargs['min_clip_quality']
                                 )
                             ]
-                            # doesn't check for overwrite
+                            # TODO: doesn't check for overwrite
                             region_reads_by_sample[k] = broad_qc_region_reads
 
                 # TODO: put mutation type detection under testing
@@ -486,7 +569,7 @@ def hairpin2(
                                 record.stop,
                                 alt,
                                 mut_type,
-                                min_base_quality
+                                kwargs['min_base_quality']
                             )
                         ]
 
@@ -523,14 +606,14 @@ def hairpin2(
         if progress_bar:
             print(file=sys.stderr)
 
-    if output_json:
+    if config_output_path:
         try:
-            with open(output_json, "w") as output_json:
+            with open(config_output_path, "w") as output_json:
                 json.dump(
                     {
-                        k: arg_d[k]
+                        k: kwargs[k]
                         for k
-                        in rec_args
+                        in _PARAMS
                     },
                     output_json, indent="")
         except Exception as e:

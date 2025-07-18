@@ -21,8 +21,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from hairpin2.readqc import qc_read_broad
-from hairpin2 import constants as cnst
+from hairpin2.readqc import qc_read_broad, ValidatorFlags
 import pysam
 from pysam.libcalignedsegment import SAM_FLAGS as s
 import copy
@@ -43,7 +42,7 @@ r.set_tag('MC', '10M')
 
 
 def test_path_clear():
-    expected = cnst.ValidatorFlags.CLEAR
+    expected = ValidatorFlags.CLEAR
     result = qc_read_broad(read=r,
                              vcf_start=99,
                              min_mapqual=11,
@@ -52,7 +51,7 @@ def test_path_clear():
 
 
 def test_path_missing_mc():
-    expected = cnst.ValidatorFlags.READ_FIELDS_MISSING
+    expected = ValidatorFlags.READ_FIELDS_MISSING
     rc = copy.deepcopy(r)
     rc.set_tag('MC', None)
     result = qc_read_broad(read=rc,
@@ -63,7 +62,7 @@ def test_path_missing_mc():
 
 
 def test_path_missing_field():
-    expected = cnst.ValidatorFlags.READ_FIELDS_MISSING
+    expected = ValidatorFlags.READ_FIELDS_MISSING
     rc = copy.deepcopy(r)
     rc.cigarstring = None
     result = qc_read_broad(read=rc,
@@ -74,9 +73,9 @@ def test_path_missing_field():
 
 
 def test_path_set_flag_mapqual_clipqual():
-    expected = (cnst.ValidatorFlags.FLAG
-                | cnst.ValidatorFlags.MAPQUAL
-                | cnst.ValidatorFlags.CLIPQUAL)
+    expected = (ValidatorFlags.FLAG
+                | ValidatorFlags.MAPQUAL
+                | ValidatorFlags.CLIPQUAL)
     rc = copy.deepcopy(r)
     rc.flag = s.FQCFAIL  # 0x200
     rc.cigarstring = '1S9M'
@@ -88,7 +87,7 @@ def test_path_set_flag_mapqual_clipqual():
 
 
 def test_path_overlap():
-    expected = cnst.ValidatorFlags.OVERLAP
+    expected = ValidatorFlags.OVERLAP
     rc = copy.deepcopy(r)
     rc.flag = s.FPAIRED | s.FPROPER_PAIR | s.FREAD2  # 0x80
     result = qc_read_broad(read=rc,
@@ -99,7 +98,7 @@ def test_path_overlap():
 
 
 def test_path_no_overlap():
-    expected = cnst.ValidatorFlags.CLEAR
+    expected = ValidatorFlags.CLEAR
     rc = copy.deepcopy(r)
     rc.flag = s.FPAIRED | s.FPROPER_PAIR | s.FREAD2  # 0x80
     rc.set_tag('MC', '3M')

@@ -21,8 +21,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from hairpin2.readqc import qc_read_alt_specific
-from hairpin2 import constants as cnst
+from hairpin2.readqc import qc_read_alt_specific, ValidatorFlags
 import pysam
 from pysam.libcalignedsegment import SAM_FLAGS as s
 import copy
@@ -54,7 +53,7 @@ def test_path_unsupported_mut_type():
 
 
 def test_path_sub_not_aligned():
-    expected = cnst.ValidatorFlags.NOT_ALIGNED
+    expected = ValidatorFlags.NOT_ALIGNED
     result = qc_read_alt_specific(read=r,
                            vcf_start=200,
                            vcf_stop=100,
@@ -65,8 +64,8 @@ def test_path_sub_not_aligned():
 
 
 def test_path_bad_sub():
-    expected = (cnst.ValidatorFlags.NOT_ALT
-                | cnst.ValidatorFlags.BASEQUAL)
+    expected = (ValidatorFlags.NOT_ALT
+                | ValidatorFlags.BASEQUAL)
     result = qc_read_alt_specific(read=r,
                            vcf_start=99,
                            vcf_stop=100,
@@ -77,7 +76,7 @@ def test_path_bad_sub():
 
 
 def test_path_good_sub():
-    expected = cnst.ValidatorFlags.CLEAR
+    expected = ValidatorFlags.CLEAR
     result = qc_read_alt_specific(read=r,
                            vcf_start=99,
                            vcf_stop=100,
@@ -88,7 +87,7 @@ def test_path_good_sub():
 
 
 def test_path_del_short():
-    expected = cnst.ValidatorFlags.SHORT
+    expected = ValidatorFlags.SHORT
     result = qc_read_alt_specific(read=r,
                            vcf_start=99,
                            vcf_stop=110,
@@ -99,7 +98,7 @@ def test_path_del_short():
 
 
 def test_path_del_bad_op():
-    expected = cnst.ValidatorFlags.BAD_OP
+    expected = ValidatorFlags.BAD_OP
     result = qc_read_alt_specific(read=r,
                            vcf_start=99,
                            vcf_stop=101,
@@ -111,7 +110,7 @@ def test_path_del_bad_op():
 
 # 2bp del
 def test_path_good_del():
-    expected = cnst.ValidatorFlags.CLEAR
+    expected = ValidatorFlags.CLEAR
     rc = copy.deepcopy(r)
     rc.cigarstring = '4M2D6M'
     result = qc_read_alt_specific(read=rc,
@@ -124,7 +123,7 @@ def test_path_good_del():
 
 
 def test_path_ins_not_aligned():
-    expected = cnst.ValidatorFlags.NOT_ALIGNED
+    expected = ValidatorFlags.NOT_ALIGNED
     result = qc_read_alt_specific(read=r,
                            vcf_start=200,
                            vcf_stop=100,
@@ -135,7 +134,7 @@ def test_path_ins_not_aligned():
 
 
 def test_path_ins_short():
-    expected = cnst.ValidatorFlags.SHORT
+    expected = ValidatorFlags.SHORT
     result = qc_read_alt_specific(read=r,
                            vcf_start=99,
                            vcf_stop=100,
@@ -146,7 +145,7 @@ def test_path_ins_short():
 
 
 def test_path_bad_ins():
-    expected = (cnst.ValidatorFlags.BAD_OP | cnst.ValidatorFlags.NOT_ALT)
+    expected = (ValidatorFlags.BAD_OP | ValidatorFlags.NOT_ALT)
     result = qc_read_alt_specific(read=r,
                            vcf_start=99,
                            vcf_stop=100,
@@ -157,7 +156,7 @@ def test_path_bad_ins():
 
 
 def test_path_good_ins():
-    expected = cnst.ValidatorFlags.CLEAR
+    expected = ValidatorFlags.CLEAR
     rc = copy.deepcopy(r)
     rc.cigarstring = '5M2I3M'
     result = qc_read_alt_specific(read=rc,
