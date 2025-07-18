@@ -100,33 +100,34 @@ writeable_file_path = click.Path(
 )
 
 
-def show_full_help(ctx):
-    # Unhide all hidden option groups and options
-    for param in ctx.command.params:
-        if hasattr(param, "hidden"):
-            param.hidden = False
-        # for click-option-group: also unhide the parent group if needed
-        if hasattr(param, "opt_group") and hasattr(param.opt_group, "hidden"):
-            param.opt_group.hidden = False
+def show_help(ctx, value):
+    if value > 1:
+        # unhide hidden
+        for param in ctx.command.params:
+            if hasattr(param, "hidden"):
+                param.hidden = False
+            # for click-option-group: also unhide the parent group if needed
+            if hasattr(param, "opt_group") and hasattr(param.opt_group, "hidden"):
+                param.opt_group.hidden = False
     click.echo(ctx.get_help())
     ctx.exit()
 
 
 @click.command(
     epilog='see documentation at https://github.com/cancerit/hairpin2 or at tool install location for further information',
-    options_metavar='[-h, --help] [OPTIONS]'
+    options_metavar='[-h, --help] [OPTIONS]',
+    add_help_option=False,
 )
 @click.version_option(__version__, '-v', '--version', message='%(version)s')
-@click.help_option('-h', '--help', help='show helptext')
+# @click.help_option('-h', '--help', help='show helptext')
 @click.option(
-    '-hh',
-    '--help-all',
-    is_flag=True,
+    '-h',
+    '--help',
+    count=True,
     is_eager=True,
     expose_value=False,
-    default=False,
-    callback=lambda ctx, param, value: show_full_help(ctx) if value else None,
-    help='Show further help including config override options'
+    callback=lambda ctx, param, value: show_help(ctx, value) if value else None,
+    help='show help (-h for basic, -hh for extended including config override options)'
 )
 @click.argument(
     'vcf',
@@ -151,7 +152,7 @@ def show_full_help(ctx):
 )
 @click.option(
     '-o',
-    '--output_config',
+    '--output-config',
     'output_config_path',
     metavar='FILEPATH',
     type=writeable_file_path,
@@ -161,9 +162,9 @@ def show_full_help(ctx):
     '-m',
     '--name-mapping',
     metavar= 'S:SM S:SM...',
-    help="key to map samples in a multisample VCF to alignment/s provided to -a. Uses VCF sample names from VCF header "
-    "and alignment SM tags. With multiple alignments to -a, accepts a space separated list of sample:SM pairs. "
-    "When only a single alignment provided, also accepts a comma separated string of one or more possible sample-of-interest "
+    help="If sample names in VCF differ from SM tags in alignment files, provide a key here to map them. "
+    "When multiple alignments are provided, accepts a space separated list of sample:SM pairs. "
+    "When only a single alignment is provided, also accepts a comma separated string of one or more possible sample-of-interest "
     "names like TUMOR,TUMOUR"
 )
 @click.option(
@@ -172,13 +173,13 @@ def show_full_help(ctx):
     'cram_reference_path',
     metavar='FILEPATH',
     type=existing_file_path,
-    help="path to FASTA format CRAM reference, overrides $REF_PATH and UR tags - ignored if --format is not CRAM"
+    help="path to FASTA format CRAM reference, overrides $REF_PATH and UR tags for CRAM alignments"
 )
 @click.option(
     '-q',
     '--quiet',
     count=True,
-    help='-q=Do not log INFO level messages, -qq=Additionally do not log WARN',
+    help='be quiet (-q to not log INFO level messages, -qq to additionally not log WARN)',
     default=False
 )
 @click.option(
@@ -215,7 +216,7 @@ def show_full_help(ctx):
     help='discard reads with base quality below this value at variant position'
 )
 
-@optgroup.group('DVF config overrides', hidden=True)
+@optgroup.group('\nDVF config overrides', hidden=True)
 @optgroup.option(
     '--duplication-window-size',
     metavar='INT',
@@ -230,7 +231,7 @@ def show_full_help(ctx):
     metavar='FLOAT',
     type=click.FloatRange(*_PARAMS['al_filter_threshold'].range),
     show_default=str(_PARAMS['al_filter_threshold'].default),
-    help='ALF; threshold for median of read alignment score per base of all relevant reads, at and below which a variant is flagged as ALF'
+    help='threshold for median of read alignment score per base of all relevant reads, at and below which a variant is flagged as ALF'
 )
 
 @optgroup.group("\nADF config overrides", hidden=True)
@@ -239,63 +240,63 @@ def show_full_help(ctx):
     metavar='FLOAT',
     type=click.FloatRange(*_PARAMS['edge_definition'].range),
     show_default=str(_PARAMS['edge_definition'].default),
-    help='ADF; percentage of a read that is considered to be "the edge" for the purposes of assessing variant location distribution'
+    help='percentage of a read that is considered to be "the edge" for the purposes of assessing variant location distribution'
 )
 @optgroup.option(
     '--edge-fraction',
     metavar='FLOAT',
     type=click.FloatRange(*_PARAMS['edge_fraction'].range),
     show_default=str(_PARAMS['edge_fraction'].default),
-    help='ADF; percentage of variants must occur within EDGE_FRACTION of read edges to mark ADF flag'
+    help='percentage of variants must occur within EDGE_FRACTION of read edges to mark ADF flag'
 )
 @optgroup.option(
     '--min-mad-one-strand',
     metavar='INT',
     type=click.IntRange(*_PARAMS['min_mad_one_strand'].range),
     show_default=str(_PARAMS['min_mad_one_strand'].default),
-    help='ADF; min range of distances between variant position and read start for valid reads when only one strand has sufficient valid reads for testing'
+    help='min range of distances between variant position and read start for valid reads when only one strand has sufficient valid reads for testing'
 )  # BUG: what on earth does this helptext mean?
 @optgroup.option(
     '--min-sd-one-strand',
     metavar='FLOAT',
     type=click.FloatRange(*_PARAMS['min_sd_one_strand'].range),
     show_default=str(_PARAMS['min_sd_one_strand'].default),
-    help='ADF; min stdev of variant position and read start for valid reads when only one strand has sufficient valid reads for testing'
+    help='min stdev of variant position and read start for valid reads when only one strand has sufficient valid reads for testing'
 ) # BUG: exclusive or not?!
 @optgroup.option(
     '--min-mad-both-strand-weak',
     metavar='INT',
     type=click.IntRange(*_PARAMS['min_mad_both_strand_weak'].range),
     show_default=str(_PARAMS['min_mad_both_strand_weak'].default),
-    help='ADF; min range of distances between variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -sbsw is true'
+    help='min range of distances between variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -sbsw is true'
 )
 @optgroup.option(
     '--min-sd-both-strand-weak',
     metavar='FLOAT',
     type=click.FloatRange(*_PARAMS['min_sd_both_strand_weak'].range),
     show_default=str(_PARAMS['min_sd_both_strand_weak'].default),
-    help='ADF; min stdev of variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -mbsw is true- default: 2, range: 0-, exclusive'
+    help='min stdev of variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -mbsw is true- default: 2, range: 0-, exclusive'
 )
 @optgroup.option(
     '--min-mad-both-strand-strong',
     metavar='INT',
     type=click.IntRange(*_PARAMS['min_mad_both_strand_strong'].range),
     show_default=str(_PARAMS['min_mad_both_strand_strong']),
-    help='ADF; min range of distances between variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -sbss is true'
+    help='min range of distances between variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -sbss is true'
 )
 @optgroup.option(
     '--min-sd-both-strand-strong',
     metavar='FLOAT',
     type=click.FloatRange(*_PARAMS['min_sd_both_strand_strong'].range),
     show_default=str(_PARAMS['min_sd_both_strand_strong'].default),
-    help='ADF; min stdev of variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -mbss is true'
+    help='min stdev of variant position and read start for valid reads when both strands have sufficient valid reads for testing AND -mbss is true'
 )
 @optgroup.option(
     '--min-reads',
     metavar='INT',
     type=click.IntRange(*_PARAMS['min_reads'].range),
     show_default=_PARAMS['min_reads'].default,
-    help='ADF; number of reads at and below which the hairpin filtering logic considers a strand to have insufficient reads for testing'
+    help='number of reads at and below which the hairpin filtering logic considers a strand to have insufficient reads for testing'
 )
 def hairpin2(
     vcf: str,

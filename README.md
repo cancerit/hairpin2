@@ -36,8 +36,14 @@ to install testing dependencies
 `hairpin2` is designed for paired data where alignment records have the `MC` tag and the complete CIGAR string is present in the `CIGAR` field (rather than the `CG:B,I` tag). If the `MC` tag is not present in your data, it can be added using `samtools fixmate` or `biobambam2 bamsormadup`. The tool can handle substitions, insertions, and deletions formatted per the VCF specification. At this time, the tool will not investigate mutations notated with angle brackets, e.g. `<DEL>`, complex mutations, or monomorphic reference. No further assumptions are made – other alignment tags and VCF fields are used, however they are mandatory per the relevant format specifications. If these requirements are limiting and you need the tool to be extended in some way, please request it.
 
 ### USAGE
+The recommended usage is to provide a config of filter parameters along with the VCF in question and the relavant alignments, like so:
 ```
-Usage: hairpin2 [-h, --help] [OPTIONS] VCF_IN ALIGNMENTS...
+hairpin2 -c myconfig.json data.vcf aln.cram
+```
+
+full helptext:
+```
+Usage: hairpin2 [-h, --help] [OPTIONS] VCF ALIGNMENTS...
 
   read-aware artefactual variant flagging algorithms. Flag variants in VCF
   using statistics calculated from supporting reads found in ALIGNMENTS, and
@@ -45,28 +51,28 @@ Usage: hairpin2 [-h, --help] [OPTIONS] VCF_IN ALIGNMENTS...
 
 Options:
   -v, --version                   Show the version and exit.
-  -h, --help                      show helptext
-  -hh, --help-all                 Show further help including config override
-                                  options
-  -r, --cram-reference FILEPATH   path to FASTA format CRAM reference,
-                                  overrides $REF_PATH and UR tags - ignored if
-                                  --format is not CRAM
-  -m, --name-mapping S:SM S:SM...
-                                  key to map samples in a multisample VCF to
-                                  alignment/s provided to -a. Uses VCF sample
-                                  names from VCF header and alignment SM tags.
-                                  With multiple alignments to -a, accepts a
-                                  space separated list of sample:SM pairs.
-                                  When only a single alignment provided, also
-                                  accepts a comma separated string of one or
-                                  more possible sample-of-interest names like
-                                  TUMOR,TUMOUR
+  -h, --help                      show help (-h for basic, -hh for extended
+                                  including config override options)
   -c, --config FILEPATH           path to config JSON from which filter
                                   paramters will be loaded - can be overridden
                                   by extended arguments provided at runtime
-  -o, --output_config FILEPATH    log filter paramaters from run as a config
+  -o, --output-config FILEPATH    log filter paramaters from run as a config
                                   JSON file
-  --progess / --no-progess        display progress bar on stderr during run
+  -m, --name-mapping S:SM S:SM...
+                                  If sample names in VCF differ from SM tags
+                                  in alignment files, provide a key here to
+                                  map them. When multiple alignments are
+                                  provided, accepts a space separated list of
+                                  sample:SM pairs. When only a single
+                                  alignment is provided, also accepts a comma
+                                  separated string of one or more possible
+                                  sample-of-interest names like TUMOR,TUMOUR
+  -r, --cram-reference FILEPATH   path to FASTA format CRAM reference,
+                                  overrides $REF_PATH and UR tags for CRAM
+                                  alignments
+  -q, --quiet                     be quiet (-q to not log INFO level messages,
+                                  -qq to additionally not log WARN)
+  -p, --progress                  display progress bar on stderr during run
 
 read validation config overrides:
     --min-clip-quality INT        discard reads with mean base quality of
@@ -78,7 +84,8 @@ read validation config overrides:
     --min-base-quality INT        discard reads with base quality below this
                                   value at variant position  [default: (25);
                                   x>=-1]
-  DVF config overrides:
+
+DVF config overrides:
     --duplication-window-size INT
                                   inclusive maximum window size, in number of
                                   bases to use when detecting PCR duplicates.
@@ -86,52 +93,52 @@ read validation config overrides:
                                   [default: (6); x>=0]
 
 ALF config overrides:
-    --al-filter-threshold FLOAT   ALF; threshold for median of read alignment
-                                  score per base of all relevant reads, at and
-                                  below which a variant is flagged as ALF
-                                  [default: (0.93); 0<=x<=93]
+    --al-filter-threshold FLOAT   threshold for median of read alignment score
+                                  per base of all relevant reads, at and below
+                                  which a variant is flagged as ALF  [default:
+                                  (0.93); 0<=x<=93]
 
 ADF config overrides:
-    --edge-definition FLOAT       ADF; percentage of a read that is considered
-                                  to be "the edge" for the purposes of
-                                  assessing variant location distribution
-                                  [default: (0.15); 0.0<=x<=0.99]
-    --edge-fraction FLOAT         ADF; percentage of variants must occur
-                                  within EDGE_FRACTION of read edges to mark
-                                  ADF flag  [default: (0.9); 0.0<=x<=0.99]
-    --min-mad-one-strand INT      ADF; min range of distances between variant
+    --edge-definition FLOAT       percentage of a read that is considered to
+                                  be "the edge" for the purposes of assessing
+                                  variant location distribution  [default:
+                                  (0.15); 0.0<=x<=0.99]
+    --edge-fraction FLOAT         percentage of variants must occur within
+                                  EDGE_FRACTION of read edges to mark ADF flag
+                                  [default: (0.9); 0.0<=x<=0.99]
+    --min-mad-one-strand INT      min range of distances between variant
                                   position and read start for valid reads when
                                   only one strand has sufficient valid reads
                                   for testing  [default: (0); x>=0]
-    --min-sd-one-strand FLOAT     ADF; min stdev of variant position and read
-                                  start for valid reads when only one strand
-                                  has sufficient valid reads for testing
+    --min-sd-one-strand FLOAT     min stdev of variant position and read start
+                                  for valid reads when only one strand has
+                                  sufficient valid reads for testing
                                   [default: (4.0); x>=0.0]
     --min-mad-both-strand-weak INT
-                                  ADF; min range of distances between variant
+                                  min range of distances between variant
                                   position and read start for valid reads when
                                   both strands have sufficient valid reads for
                                   testing AND -sbsw is true  [default: (2);
                                   x>=0]
     --min-sd-both-strand-weak FLOAT
-                                  ADF; min stdev of variant position and read
-                                  start for valid reads when both strands have
+                                  min stdev of variant position and read start
+                                  for valid reads when both strands have
                                   sufficient valid reads for testing AND -mbsw
                                   is true- default: 2, range: 0-, exclusive
                                   [default: (2.0); x>=0.0]
     --min-mad-both-strand-strong INT
-                                  ADF; min range of distances between variant
+                                  min range of distances between variant
                                   position and read start for valid reads when
                                   both strands have sufficient valid reads for
                                   testing AND -sbss is true  [default:
                                   (ParamConstraint(default=1,
                                   range=MinMax(min=0, max=None))); x>=0]
     --min-sd-both-strand-strong FLOAT
-                                  ADF; min stdev of variant position and read
-                                  start for valid reads when both strands have
+                                  min stdev of variant position and read start
+                                  for valid reads when both strands have
                                   sufficient valid reads for testing AND -mbss
                                   is true  [default: (10.0); x>=0.0]
-    --min-reads INT               ADF; number of reads at and below which the
+    --min-reads INT               number of reads at and below which the
                                   hairpin filtering logic considers a strand
                                   to have insufficient reads for testing
                                   [x>=1]
@@ -143,15 +150,22 @@ Parameters are hopefully mostly clear from the helptext, but some warrant furthe
 - `--al-filter-threshold` – the default value of 0.93 was arrived at by trial and error – since different aligners/platforms calculate alignment score differently, you may want to modify this value appropriately. In the predecessor to this tool, `additionalBAMStatistics`, this value was known as `ASRD` and the default was set at 0.87.
 - `--duplication-window-size` – long homopolymer tracts can cause stuttering, where a PCR duplicate will have, for example, an additional A in a tract of As. These reads will align a base or two earlier on the reference genome than they should. As a result pcr duplicate flag machinery fails and they are not flagged as duplicates. `hairpin2` will attempt to filter out these duplicates, and duplication window size is then the maximum +- position to use during duplicate detection.
 
-The parameters available for the ADF flag are probably best understood by reading the 'test()' method implementation of that filter.
+reading the 'test()' method implementation of each filter may be informative. They can be found in `hairpin2/filters/`
 
 The tool tests records in a VCF file and applies filter flags as appropriate. Reasoning for decisions is recorded in the INFO field of the VCF records, in the form `<FILTER>=<alt>|<True/False>|<code>|...`. The codes indicate the reason on which the decision was made, and are as follows:
 
-> **0** – passed/failed on condition 60A(i) of Ellis et al. (`ADF` only)  
-> **1** – passed/failed on condition 60B(i) of Ellis et al. (`ADF` only)  
-> **2** – passed/failed on filter threshold (`ALF` only)  
-> **3** – insufficient appropriate reads to support calling flag – this covers a lot of possiblities, if more granularity is desired, please request it  
-> **4** – no samples have non 0,0 genotype for the record  
+DVF:
+> **0** – insufficient supporting reads
+> **1** – variant is/not the result of PCR stuttering
+
+ALF:
+> **0** – insufficient supporting reads
+> **1** – variant passed/failed on filter threshold
+
+ADF:
+> **0** – insufficient supporting reads
+> **1** – passed/failed on condition 60A(i) of Ellis et al. (`ADF` only)  
+> **2** – passed/failed on condition 60B(i) of Ellis et al. (`ADF` only)  
 
 The basic procedure of this implementation is as follows:  
 >   For each record in the VCF, test every alt for that record as follows:  
