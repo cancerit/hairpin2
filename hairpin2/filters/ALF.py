@@ -1,6 +1,6 @@
 # hairpin2
 #
-# Copyright (C) 2024 Genome Research Ltd.
+# Copyright (C) 2024, 2025 Genome Research Ltd.
 #
 # Author: Alex Byrne <ab63@sanger.ac.uk>
 #

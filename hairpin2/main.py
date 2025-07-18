@@ -129,7 +129,7 @@ def show_full_help(ctx):
     help='Show further help including config override options'
 )
 @click.argument(
-    'vcf_in',
+    'vcf',
     type=existing_file_path,
     required=True
 )
@@ -141,22 +141,6 @@ def show_full_help(ctx):
 )
 
 # Procedural options
-@click.option(
-    '-r',
-    '--cram-reference',
-    metavar='FILEPATH',
-    type=existing_file_path,
-    help="path to FASTA format CRAM reference, overrides $REF_PATH and UR tags - ignored if --format is not CRAM"
-)
-@click.option(
-    '-m',
-    '--name-mapping',
-    metavar= 'S:SM S:SM...',
-    help="key to map samples in a multisample VCF to alignment/s provided to -a. Uses VCF sample names from VCF header "
-    "and alignment SM tags. With multiple alignments to -a, accepts a space separated list of sample:SM pairs. "
-    "When only a single alignment provided, also accepts a comma separated string of one or more possible sample-of-interest "
-    "names like TUMOR,TUMOUR"
-)
 @click.option(
     '-c',
     '--config',
@@ -173,7 +157,39 @@ def show_full_help(ctx):
     type=writeable_file_path,
     help='log filter paramaters from run as a config JSON file'
 )
-@click.option('--progess/--no-progess', 'progress_bar', help='display progress bar on stderr during run', default=False)
+@click.option(
+    '-m',
+    '--name-mapping',
+    metavar= 'S:SM S:SM...',
+    help="key to map samples in a multisample VCF to alignment/s provided to -a. Uses VCF sample names from VCF header "
+    "and alignment SM tags. With multiple alignments to -a, accepts a space separated list of sample:SM pairs. "
+    "When only a single alignment provided, also accepts a comma separated string of one or more possible sample-of-interest "
+    "names like TUMOR,TUMOUR"
+)
+@click.option(
+    '-r',
+    '--cram-reference',
+    'cram_reference_path',
+    metavar='FILEPATH',
+    type=existing_file_path,
+    help="path to FASTA format CRAM reference, overrides $REF_PATH and UR tags - ignored if --format is not CRAM"
+)
+@click.option(
+    '-q',
+    '--quiet',
+    count=True,
+    help='-q=Do not log INFO level messages, -qq=Additionally do not log WARN',
+    default=False
+)
+@click.option(
+    '-p',
+    '--progress',
+    'progress_bar',
+    is_flag=True,
+    # metavar='',
+    help='display progress bar on stderr during run',
+    default=False
+)
 
 # === Config override groups (hidden by default) ===
 @optgroup.group("\nread validation config overrides", hidden=True)
@@ -282,16 +298,18 @@ def show_full_help(ctx):
     help='ADF; number of reads at and below which the hairpin filtering logic considers a strand to have insufficient reads for testing'
 )
 def hairpin2(
-    vcf_in: str,
+    vcf: str,
     alignments: list[str],
-    config_path: str | None = None,
-    progress_bar: bool = False,
-    cram_reference_path: str | None = None,
-    config_output_path: str | None = None,
+    config_path: str | None,
+    output_config_path: str | None,
+    name_mapping: str | None,
+    cram_reference_path: str | None,
+    quiet: int,
+    progress_bar: bool,
     **kwargs: Any,
 ) -> None:
     '''
-    cruciform artefact flagging algorithm based on Ellis et al. 2020 (DOI: 10.1038/s41596-020-00437-6)
+    read-aware artefactual variant flagging algorithms. Flag variants in VCF using statistics calculated from supporting reads found in ALIGNMENTS, and emit the flagged VCF to stdout.
     '''
     logging.basicConfig(
         level=logging.INFO,
@@ -314,11 +332,13 @@ def hairpin2(
     # TODO: move to validation of FilterParams with pydantic, where there should be full validation anyway
     # TODO: forbid extra config params (pydantic?)
     for key in kwargs:
+        if key not in _PARAMS:
+            logging.error(f'unrecognised parameter {key!r} - check spelling?')
         if kwargs[key] is None:
             if key in configd.keys():
                 kwargs[key] = configd[key]
             elif key in _PARAMS:
-                logging.info(f'parameter {key!r} not found in config or present on command line, falling back to standard default {_PARAMS[key].default}')
+                if not quiet: logging.info(f'parameter {key!r} not found in config or present on command line, falling back to standard default {_PARAMS[key].default}')
                 kwargs[key] = _PARAMS[key].default
         if key in _PARAMS:
             assert kwargs[key] is not None
@@ -347,7 +367,7 @@ def hairpin2(
     )
 
     try:
-        vcf_in_handle = pysam.VariantFile(vcf_in)
+        vcf_in_handle = pysam.VariantFile(vcf)
     except Exception as er:
         logging.error(f'failed to open input VCF, reporting {er}')
         sys.exit(EXIT_FAILURE)
@@ -389,8 +409,8 @@ def hairpin2(
         sm_to_aln_map[aln_sm] = alignment
 
     vcf_sample_to_alignment_map: dict[str, pysam.AlignmentFile] = {}
-    if kwargs['name_mapping']:
-        name_mapping: list[str] = kwargs['name_mapping'].split(' ')
+    if name_mapping:
+        name_mapping: list[str] = name_mapping.split(' ')
         vcf_mapflag: list[str] = []
         alignment_mapflag: list[str] = []
         if len(name_mapping) <= len(alignments) and all(m.count(':') == 1 for m in name_mapping) and not any("," in m for m in name_mapping):
@@ -438,7 +458,7 @@ def hairpin2(
                         name_mapping))
                 sys.exit(EXIT_FAILURE)
             else:
-                logging.info('matched alignment to sample {} in VCF'.format(matches[0]))
+                if not quiet: logging.info('matched alignment to sample {} in VCF'.format(matches[0]))
                 vcf_sample_to_alignment_map[matches[0]] = alignment  # pyright: ignore[reportPossiblyUnboundVariable] | since length of alignments == 1, can just reuse this variable
 
         else:
@@ -458,7 +478,7 @@ def hairpin2(
     ## end name mapping handling
 
     if set(vcf_names) != vcf_sample_to_alignment_map.keys():
-        logging.info(
+        if not quiet: logging.info(
             "alignments not provided for all VCF samples; {} will be ignored".format(
                 set(vcf_names) - vcf_sample_to_alignment_map.keys()
             )
@@ -479,10 +499,10 @@ def hairpin2(
         '##INFO=<ID=ADF,Number=1,Type=String,Description="alt|[True,False]|code indicating decision reason for each alt">'
     )
     out_head.add_line(
-        '##INFO=<ID=ALF,Number=1,Type=String,Description="alt|[True,False]|code|score indicating decision reason and average AS of supporting reads for each alt "">'
+        '##INFO=<ID=ALF,Number=1,Type=String,Description="alt|[True,False]|code|score indicating decision reason and average AS of supporting reads for each alt">'
     )
     out_head.add_line(
-        '##INFO=<ID=DVF,Number=1,Type=String,Description="alt|[True,False]|code indicating decision reason for each alt"">'
+        '##INFO=<ID=DVF,Number=1,Type=String,Description="alt|[True,False]|code indicating decision reason for each alt">'
     )  # TODO: placeholder!
     out_head.add_line(
         f'##hairpin2_version={__version__}'
@@ -505,7 +525,7 @@ def hairpin2(
     for record in vcf_in_handle.fetch():
         record_filters: dict[type[FilterResult[Any]], list[FilterResult[Any]]] = {ALF.Result: [], ADF.Result: [], DVF.Result: []}
         if record.alts is None:
-            logging.warning('{0: <7}:{1: >12} ¦ no alts for this record, skipping'.format(
+            if quiet < 1: logging.warning('{0: <7}:{1: >12} ¦ no alts for this record, skipping'.format(
                 record.chrom, record.pos))
         else:
             samples_w_mutants = [name
@@ -513,7 +533,7 @@ def hairpin2(
                                  in record.samples
                                  if record.samples[name]["GT"] != (0, 0)]
             if len(samples_w_mutants) == 0:
-                logging.warning('{0: <7}:{1: >12} ¦ no samples exhibit alts associated with this record, skipping'.format(
+                if quiet < 1: logging.warning('{0: <7}:{1: >12} ¦ no samples exhibit alts associated with this record, skipping'.format(
                     record.chrom, record.pos))
             else:
                 region_reads_by_sample: dict[str, Iterable[pysam.AlignedSegment]] = {}
@@ -553,7 +573,7 @@ def hairpin2(
                             and set(alt).issubset(set(['A', 'C', 'T', 'G', 'N', '*']))):  # INS - DOES NOT SUPPORT <INS> TYPE IDS
                         mut_type = 'I'
                     else:
-                        logging.warning('could not infer mutation type, POS={} REF={} ALT={}, skipping variant'.format(
+                        if quiet < 1: logging.warning('could not infer mutation type, POS={} REF={} ALT={}, skipping variant'.format(
                             record.pos, record.ref, alt))
                         continue
 
@@ -606,9 +626,9 @@ def hairpin2(
         if progress_bar:
             print(file=sys.stderr)
 
-    if config_output_path:
+    if output_config_path:
         try:
-            with open(config_output_path, "w") as output_json:
+            with open(output_config_path, "w") as output_json:
                 json.dump(
                     {
                         k: kwargs[k]
@@ -620,5 +640,5 @@ def hairpin2(
             logging.error(msg='failed to write output JSON, reporting: {}'.format(e))
             sys.exit(EXIT_FAILURE)
 
-    logging.info('hairpin complete')
+    if not quiet: logging.info('hairpin complete')
     sys.exit(EXIT_SUCCESS)
