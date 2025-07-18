@@ -382,11 +382,11 @@ def hairpin2(
         path = Path(path_str)
         try:
             match path.suffix[1]:
-                case ch if ch in 'sS':
+                case 's' | 'S':
                     mode = "r"
-                case ch if ch in 'bB':
+                case 'b' | 'B':
                     mode = "rb"
-                case ch if ch in 'cC':
+                case 'c' | 'C':
                     mode = "rc"
                 case _:
                     raise ValueError
