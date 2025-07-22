@@ -6,7 +6,9 @@
 Given a VCF, and BAM files for the samples of that VCF, return a VCF with variants flagged with `ADF` if variants have anomalous distributions indicating that they are likely to be artefactual, `ALF` if relevant reads have lower median alignment score per base than a specified threshold, and `DVF` if variants appear to be the result of PCR error.
 
 The `ADF ` filter is an implementation of the artifact detection algorithm described in [Ellis et al, 2020](https://www.nature.com/articles/s41596-020-00437-6). It detects variants which appear with anomalously regular positional distribution in supporting reads.
+
 The `ALF` filter indicates variants which are supported by reads with poor signal-to-noise, per the alignment score. It is complementary to the `ADF` filter – artefacts with anomalous distributions often cause a marked decrease in alignment score.
+
 The `DVF` filter is a naive but effective algorithm for detecting variants which are the result of PCR error - in regions of low complexity, short repeats and homopolymer tract can cause PCR stuttering. PCR stuttering can lead to, for example, an erroneous additional A on the read when amplifying a tract of As. If duplicated reads contain stutter, this can lead to variation of read length and alignment to reference between reads that are in fact duplicates. Because of this, these duplicates both evade dupmarking and give rise to spurious variants when calling. The DVF filter attempts to catch these variants by examining the regularity of the start and end coordinates of supporting reads and their mates.
 
 All filters are tunable such that their parameters can be configured to a variety of use cases and sequencing methods
@@ -40,7 +42,7 @@ The recommended usage is to provide a config of filter parameters along with the
 ```
 hairpin2 -c myconfig.json variants.vcf aln.cram
 ```
-A config of default parameters is provided in `example-configs/`. All config parameters are equivalently named to their command line overrides (see helptext below), except - is replaced by _
+A config of default parameters is provided in `example-configs/`. All config parameters are equivalently named to their command line overrides (see helptext below), except `-` is replaced by `_`
 
 full helptext:
 ```
@@ -179,7 +181,6 @@ Parameters are hopefully mostly clear from the helptext, but some warrant additi
 - `--name-mapping` – When using multisample VCFS, hairpin2 compares VCF sample names found in the VCF header to SM tags in alignments to match samples of interest to the correct alignment. If these IDs are different between the VCF and alignments, you'll need to provide a key. If there are multiple samples of interest in the VCF, and therefore multiple alignments, you will need to provide a key for each pair - e.g. `-m sample1:SM1 sample2:SM2 ...`. If there is only one alignment, then you need only indicate which VCF sample is the sample of interest, e.g. `-m TUMOR`. As a convenience for high throughput workflows, when there is only one alignment you may also provide a comma separated string of possible names for the sample of interest, e.g. `-m TUMOR,TUMOUR`. Assuming there is one and only one match in the VCF, the tool will match the alignment to that sample.
 - `--al-filter-threshold` – the default value of 0.93 was found by trial and error on LCM data – since different aligners/platforms calculate alignment score differently, you may want to modify this value appropriately. In the predecessor to this tool, `additionalBAMStatistics`, this value was known as `ASRD` and the default was set at 0.87.
 - `--duplication-window-size` – as above, the default was found by trial and error on LCM data and you may find it necessary to experiment with this parameter depending on data type.
-- `--loss-ratio` – the rationale for this parameter is to allow the sensitivity of the DVF test with the number of supporting reads, as opposed to hardcoding a value. In pratice, the test against the ratio is in logical AND with a hardcoded test that at least 2 supporting reads are independent, i.e. not duplicates of each other, to ensure that regardless of the value of `loss_ratio` collapse of duplicates to only a single supporting read always results in a DVF flag.
 
 reading the 'test()' method implementation of each filter may be informative. They can be found in `hairpin2/filters/`
 
