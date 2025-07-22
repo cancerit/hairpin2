@@ -7,7 +7,7 @@ Given a VCF, and BAM files for the samples of that VCF, return a VCF with varian
 
 The `ADF ` filter is an implementation of the artifact detection algorithm described in [Ellis et al, 2020](https://www.nature.com/articles/s41596-020-00437-6). It detects variants which appear with anomalously regular positional distribution in supporting reads.
 The `ALF` filter indicates variants which are supported by reads with poor signal-to-noise, per the alignment score. It is complementary to the `ADF` filter – artefacts with anomalous distributions often cause a marked decrease in alignment score.
-The `DVF` filter is a naive but effective algorithm for detecting variants which are the result of PCR error - in regions of low complexity, short repeats and homopolymer tract can cause PCR stuttering. PCR stuttering can lead to, for example, an erroneous additional A on the read when amplifying a tract of As. If duplicated reads contain stutter, this can lead to variation of read length and alignment to reference between reads that are in fact duplicates. Because of this, these duplicates both evade dupmarking and give rise to spurious variants when calling.
+The `DVF` filter is a naive but effective algorithm for detecting variants which are the result of PCR error - in regions of low complexity, short repeats and homopolymer tract can cause PCR stuttering. PCR stuttering can lead to, for example, an erroneous additional A on the read when amplifying a tract of As. If duplicated reads contain stutter, this can lead to variation of read length and alignment to reference between reads that are in fact duplicates. Because of this, these duplicates both evade dupmarking and give rise to spurious variants when calling. The DVF filter attempts to catch these variants by examining the regularity of the start and end coordinates of supporting reads and their mates.
 
 All filters are tunable such that their parameters can be configured to a variety of use cases and sequencing methods
 
@@ -38,8 +38,9 @@ to install testing dependencies
 ### USAGE
 The recommended usage is to provide a config of filter parameters along with the VCF in question and the relavant alignments, like so:
 ```
-hairpin2 -c myconfig.json data.vcf aln.cram
+hairpin2 -c myconfig.json variants.vcf aln.cram
 ```
+A config of default parameters is provided in `example-configs/`
 
 full helptext:
 ```
@@ -87,72 +88,91 @@ read validation config overrides:
 
 DVF config overrides:
     --duplication-window-size INT
-                                  inclusive maximum window size, in number of
-                                  bases to use when detecting PCR duplicates.
-                                  -1 will disable duplicate detection
-                                  [default: (6); x>=0]
+                                  inclusive maximum window size in number of
+                                  bases within which read pairs supporting a
+                                  variant may be considered possible
+                                  duplicates of eachother. -1 will disable
+                                  duplicate detection  [default: (6); x>=0]
+    --loss-ratio FLOAT            ratio of the number of reads found to be
+                                  duplicates against the number of input
+                                  reads, above which a variant is flagged DVF
+                                  [default: (0.49); 0.0<=x<=0.99]
 
 ALF config overrides:
     --al-filter-threshold FLOAT   threshold for median of read alignment score
                                   per base of all relevant reads, at and below
-                                  which a variant is flagged as ALF  [default:
+                                  which a variant is flagged ALF  [default:
                                   (0.93); 0<=x<=93]
 
 ADF config overrides:
     --edge-definition FLOAT       percentage of a read that is considered to
                                   be "the edge" for the purposes of assessing
-                                  variant location distribution  [default:
+                                  variant position distribution  [default:
                                   (0.15); 0.0<=x<=0.99]
     --edge-fraction FLOAT         percentage of variants must occur within
                                   EDGE_FRACTION of read edges to mark ADF flag
                                   [default: (0.9); 0.0<=x<=0.99]
-    --min-mad-one-strand INT      min range of distances between variant
-                                  position and read start for valid reads when
-                                  only one strand has sufficient valid reads
-                                  for testing  [default: (0); x>=0]
-    --min-sd-one-strand FLOAT     min stdev of variant position and read start
-                                  for valid reads when only one strand has
-                                  sufficient valid reads for testing
-                                  [default: (4.0); x>=0.0]
+    --min-mad-one-strand INT      Mean Average Devaition of distances between
+                                  variant position and read start above which
+                                  a variant cannot be considered anomalous -
+                                  used when only one strand has sufficient
+                                  valid reads for testing  [default: (0);
+                                  x>=0]
+    --min-sd-one-strand FLOAT     stdev of distances between variant position
+                                  and read start above which a variant cannot
+                                  be considered anomalous - used when only one
+                                  strand has sufficient valid reads for
+                                  testing  [default: (4.0); x>=0.0]
     --min-mad-both-strand-weak INT
-                                  min range of distances between variant
-                                  position and read start for valid reads when
-                                  both strands have sufficient valid reads for
-                                  testing AND -sbsw is true  [default: (2);
+                                  Mean Average Devaition of distances between
+                                  variant position and read start above which
+                                  a variant cannot be considered anomalous -
+                                  used when both strands have sufficient valid
+                                  reads for testing, in logical AND with
+                                  --min-sd-both-strand-weak, and logical OR
+                                  with the strong condtions  [default: (2);
                                   x>=0]
     --min-sd-both-strand-weak FLOAT
-                                  min stdev of variant position and read start
-                                  for valid reads when both strands have
-                                  sufficient valid reads for testing AND -mbsw
-                                  is true- default: 2, range: 0-, exclusive
-                                  [default: (2.0); x>=0.0]
+                                  stdev of distances between variant position
+                                  and read start above which a variant cannot
+                                  be considered anomalous - used when both
+                                  strands have sufficient valid reads for
+                                  testing, in logical AND with --min-mad-both-
+                                  strand-weak, and logical OR with the strong
+                                  condtions  [default: (2.0); x>=0.0]
     --min-mad-both-strand-strong INT
-                                  min range of distances between variant
-                                  position and read start for valid reads when
-                                  both strands have sufficient valid reads for
-                                  testing AND -sbss is true  [default:
-                                  (ParamConstraint(default=1,
-                                  range=MinMax(min=0, max=None))); x>=0]
+                                  Mean Average Devaition of distances between
+                                  variant position and read start above which
+                                  a variant cannot be considered anomalous -
+                                  used when both strands have sufficient valid
+                                  reads for testing, in logical AND with
+                                  --min-sd-both-strand-strong, and logical OR
+                                  with the weak condtions  [default: (1);
+                                  x>=0]
     --min-sd-both-strand-strong FLOAT
-                                  min stdev of variant position and read start
-                                  for valid reads when both strands have
-                                  sufficient valid reads for testing AND -mbss
-                                  is true  [default: (10.0); x>=0.0]
+                                  stdev of distances between variant position
+                                  and read start above which a variant cannot
+                                  be considered anomalous - used when both
+                                  strands have sufficient valid reads for
+                                  testing, in logical AND with --min-mad-both-
+                                  strand-weak, and logical OR with the weak
+                                  condtions  [default: (10.0); x>=0.0]
     --min-reads INT               number of reads at and below which the
                                   hairpin filtering logic considers a strand
-                                  to have insufficient reads for testing
-                                  [x>=1]
+                                  to have insufficient reads for testing for a
+                                  given variant  [default: (1); x>=1]
 ```
 
-Parameters are hopefully mostly clear from the helptext, but some warrant further explanation:
+Parameters are hopefully mostly clear from the helptext, but some warrant additional commentary:
 
 - `--name-mapping` – When using multisample VCFS, hairpin2 compares VCF sample names found in the VCF header to SM tags in alignments to match samples of interest to the correct alignment. If these IDs are different between the VCF and alignments, you'll need to provide a key. If there are multiple samples of interest in the VCF, and therefore multiple alignments, you will need to provide a key for each pair - e.g. `-m sample1:SM1 sample2:SM2 ...`. If there is only one alignment, then you need only indicate which VCF sample is the sample of interest, e.g. `-m TUMOR`. As a convenience for high throughput workflows, when there is only one alignment you may also provide a comma separated string of possible names for the sample of interest, e.g. `-m TUMOR,TUMOUR`. Assuming there is one and only one match in the VCF, the tool will match the alignment to that sample.
-- `--al-filter-threshold` – the default value of 0.93 was arrived at by trial and error – since different aligners/platforms calculate alignment score differently, you may want to modify this value appropriately. In the predecessor to this tool, `additionalBAMStatistics`, this value was known as `ASRD` and the default was set at 0.87.
-- `--duplication-window-size` – long homopolymer tracts can cause stuttering, where a PCR duplicate will have, for example, an additional A in a tract of As. These reads will align a base or two earlier on the reference genome than they should. As a result pcr duplicate flag machinery fails and they are not flagged as duplicates. `hairpin2` will attempt to filter out these duplicates, and duplication window size is then the maximum +- position to use during duplicate detection.
+- `--al-filter-threshold` – the default value of 0.93 was found by trial and error on LCM data – since different aligners/platforms calculate alignment score differently, you may want to modify this value appropriately. In the predecessor to this tool, `additionalBAMStatistics`, this value was known as `ASRD` and the default was set at 0.87.
+- `--duplication-window-size` – as above, the default was found by trial and error on LCM data and you may find it necessary to experiment with this parameter depending on data type.
+- `--loss-ratio` – the rationale for this parameter is to allow the sensitivity of the DVF test with the number of supporting reads, as opposed to hardcoding a value. In pratice, the test against the ratio is in logical AND with a hardcoded test that at least 2 supporting reads are independent, i.e. not duplicates of each other, to ensure that regardless of the value of `loss_ratio` collapse of duplicates to only a single supporting read always results in a DVF flag.
 
 reading the 'test()' method implementation of each filter may be informative. They can be found in `hairpin2/filters/`
 
-The tool tests records in a VCF file and applies filter flags as appropriate. Reasoning for decisions is recorded in the INFO field of the VCF records, in the form `<FILTER>=<alt>|<True/False>|<code>|...`. The codes indicate the reason on which the decision was made, and are as follows:
+The tool tests records in a VCF file and applies filter flags as appropriate. Reasoning for decisions is recorded in the INFO field of the VCF records, in the form `<FILTER>=<alt>|<True/False>|<code>|...`. Additional data (noted by the ellipsis) where present are described in the relevant header line of the VCF. The codes indicate the reason on which the decision was made, and are as follows:
 
 DVF:
 > **0** – insufficient supporting reads
@@ -180,9 +200,11 @@ A test suite has been provided with the algorithm implementation. To run these t
 
 
 ### TODO
-- automated regression testing
-- stricter config validation, most likely with pydantic, to catch misformatted configs earlier
+- automated regression testing, and further boundary condition testing
+- stricter config and params validation, most likely with pydantic, to catch misformatted configs earlier
 - improve documentation - describe filters in individual sections, beyond replicating helptext
+- switch entirely to fstrings from .format()
+- minor improvements to multisample VCF support
 
 
 ### LICENCE

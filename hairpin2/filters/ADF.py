@@ -62,12 +62,13 @@ class Params(haf.FilterParams):
 class Filter(haf.FilterTester[Sequence[AlignedSegment], Params, Result]):
     # TODO: docstring
     """
-    Anomalous Distribution Filter
+    Anomalous Distribution Filter based on hairpin filtering algorthim described in Ellis et al. 2020 (DOI: 10.1038/s41596-020-00437-6) 
     """
 
-    # NOTE:
+    # NOTE/TODO:
     # per paper, can set hairpin for mutations distant from alignment start
     # in the case where both strands have sufficient supporting reads
+    # discuss with Peter
     @override
     def test[T: Sequence[AlignedSegment]](
         self,

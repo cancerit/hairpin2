@@ -37,21 +37,21 @@ class DVCodes(IntEnum):
 class Result(haf.FilterResult[DVCodes]):
     Name: ClassVar[str] = 'DVF'
     alt: str
+    loss_ratio: float  # 0 == no loss
 
     @override
     def getinfo(self) -> str:
-        return f"{self.alt}|{self.flag}|{self.code}"  # TODO: report which samples?
+        return f"{self.alt}|{self.flag}|{self.code}|{self.loss_ratio}"  # TODO: report which samples?
 
 
 @dataclass(slots=True, frozen=True)
 class Params(haf.FilterParams):
-    # TODO: docstrings
-    # TODO: document inclusivity/exclusivity of parameters
-    duplication_window_size: int = 6  # TODO: can be used to turn off - document
+    duplication_window_size: int = 6  # -1 disables
     # TODO: n.b. neither of these options prevent read removal due to duplication,
     # so `DVF.test()` always functions as QC and may still drop reads
     # - I think this is fine, just document more
-    nsamples_threshold: int = 0  # TODO: document - I'm not sure this param makes sense. I guess in a multi sample VCF it would imply less confidence in the call if only 1 sample reported duplication. But you'd still probably want to know about that sample? Discuss with Peter
+    read_loss_threshold: float = 0.49  # percent threshold of N duplicate reads compared to N input reads for a given variant and sample, above which we call DVF
+    nsamples_threshold: int = 0  # TODO: I'm not sure this param makes sense. I guess in a multi sample VCF it would imply less confidence in the call if only 1 sample reported duplication. But you'd still probably want to know about that sample? Discuss with Peter
 
 
 class Filter(haf.FilterTester[dict[str, list[AlignedSegment]], Params, Result]):
@@ -84,19 +84,22 @@ class Filter(haf.FilterTester[dict[str, list[AlignedSegment]], Params, Result]):
         A naive algorithm using start/end co-ordinates of read pairs to identify likely stutter duplicate reads missed by traditional dupmarking.
         """
         nsamples_with_duplication = 0
+        nreads_by_sample: dict[str, int] = { k: len(v) for k, v in variant_reads_by_sample.items() }
         sanitised_reads_by_sample: dict[str, list[AlignedSegment]] = {}
 
-        if not any([len(reads) > 1 for reads in variant_reads_by_sample.values()]):
+        if not any([nreads > 1 for nreads in nreads_by_sample.values()]):
             fresult = Result(
                 flag=None,
                 code=DVCodes.INSUFFICIENT_READS,
-                alt=alt
+                alt=alt,
+                loss_ratio=0
             )
             sanitised_reads_by_sample = variant_reads_by_sample
         else:
+            loss_ratio = 0
             code = DVCodes.DUPLICATION  # testing possible, and this is the only relevant code
             for sample_key, reads in variant_reads_by_sample.items():
-                if len(reads) > 1:
+                if nreads_by_sample[sample_key] > 1:
                     # prep data
                     sample_pair_endpoints: list[tuple[int, tuple[int, int, int, int]]] = []
                     for idx, read in enumerate(reads):
@@ -135,7 +138,6 @@ class Filter(haf.FilterTester[dict[str, list[AlignedSegment]], Params, Result]):
                                 )
                             )
                             max_diff_per_comparison.append(max(endpoint_diffs))
-                        # breakpoint()
                         if all([x <= self.fixed_params.duplication_window_size for x in max_diff_per_comparison]):
                             # then the read pair being examined is a duplicate of the others in the pool
                             dup_endpoint_test_pool.append(testing_endpoints)
@@ -145,7 +147,10 @@ class Filter(haf.FilterTester[dict[str, list[AlignedSegment]], Params, Result]):
                             # start again, test read at i against reads subsequent from i in ends_sorted
                             dup_endpoint_test_pool = [testing_endpoints]
                     sanitised_reads = [read for i, read in enumerate(reads) if i not in dup_idcs]
-                    if len(sanitised_reads) < 2:  # total collapse
+                    n_loss = nreads_by_sample[sample_key] - len(sanitised_reads)
+                    assert nreads_by_sample[sample_key] > n_loss > -1
+                    loss_ratio = n_loss / nreads_by_sample[sample_key]
+                    if loss_ratio > self.fixed_params.read_loss_threshold or len(sanitised_reads) == 1:
                         nsamples_with_duplication += 1
                 else:
                     sanitised_reads = reads
@@ -159,7 +164,8 @@ class Filter(haf.FilterTester[dict[str, list[AlignedSegment]], Params, Result]):
             fresult = Result(
                 flag=flag,
                 code=code,
-                alt=alt
+                alt=alt,
+                loss_ratio=loss_ratio  # BUG: doesn't average over multisample variant
             )
 
         return sanitised_reads_by_sample, fresult

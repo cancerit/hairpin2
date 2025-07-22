@@ -5,7 +5,6 @@ __pycache__/
 .helix/
 build/
 *.sif
-*.json
 .coverage
 scratch/
 .DS_Store

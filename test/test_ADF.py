@@ -26,7 +26,7 @@ import pysam
 import copy
 
 
-# TODO: parameter meaning testing (and elsewhere)
+# TODO: parameter boundary testing (and elsewhere)
 # perfect read pair:
 r = pysam.AlignedSegment()
 r.query_name = 'read1'
