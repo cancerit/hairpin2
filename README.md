@@ -184,20 +184,20 @@ Parameters are hopefully mostly clear from the helptext, but some warrant additi
 - `--al-filter-threshold` – the default value of 0.93 was found by trial and error on LCM data – since different aligners/platforms calculate alignment score differently, you may want to modify this value appropriately. In the predecessor to this tool, `additionalBAMStatistics`, this value was known as `ASRD` and the default was set at 0.87.
 - `--duplication-window-size` – as above, the default was found by trial and error on LCM data and you may find it necessary to experiment with this parameter depending on data type.
 
-reading the 'test()' method implementation of each filter may be informative. They can be found in `hairpin2/filters/`
+reading the `test()` method implementation of each filter may be informative. They can be found in `hairpin2/filters/`
 
 The tool tests records in a VCF file and applies filter flags as appropriate. Reasoning for decisions is recorded in the INFO field of the VCF records, in the form `<FILTER>=<alt>|<True/False>|<code>|...`. Additional data (noted by the ellipsis) where present are described in the relevant header line of the VCF. The codes indicate the reason on which the decision was made, and are as follows:
 
 DVF:
-> **0** – insufficient supporting reads
-> **1** – variant is/not the result of PCR stuttering
+> **0** – insufficient supporting reads  
+> **1** – variant is/not the result of PCR stuttering 
 
 ALF:
-> **0** – insufficient supporting reads
-> **1** – variant passed/failed on filter threshold
+> **0** – insufficient supporting reads  
+> **1** – variant passed/failed on filter threshold 
 
 ADF:
-> **0** – insufficient supporting reads
+> **0** – insufficient supporting reads  
 > **1** – passed/failed on condition 60A(i) of Ellis et al. (`ADF` only)  
 > **2** – passed/failed on condition 60B(i) of Ellis et al. (`ADF` only)  
 
