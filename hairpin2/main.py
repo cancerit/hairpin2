@@ -230,7 +230,7 @@ def show_help(ctx, value):
     metavar='FLOAT',
     type=click.FloatRange(*_PARAMS['loss_ratio'].range),
     show_default=str(_PARAMS['loss_ratio'].default),
-    help='ratio of the number of reads found to be duplicates against the number of input reads, above which a variant is flagged DVF'
+    help='ratio of the number of reads found to be duplicates against the total number of supporting reads, above which a variant is flagged DVF. In logical AND with a hardcoded test that at least 2 supporting reads are independent, i.e. not duplicates of each other, to ensure that regardless of the value of `loss_ratio` collapse of duplicates to only a single supporting read always results in a DVF flag. Smaller is more sensitive. Set to 0.99 to rely only on the hardcoded test (practically speaking).'
 )
 
 @optgroup.group("\nALF config overrides", hidden=True)
@@ -276,28 +276,28 @@ def show_help(ctx, value):
     metavar='INT',
     type=click.IntRange(*_PARAMS['min_mad_both_strand_weak'].range),
     show_default=str(_PARAMS['min_mad_both_strand_weak'].default),
-    help='Mean Average Devaition of distances between variant position and read start above which a variant cannot be considered anomalous - used when both strands have sufficient valid reads for testing, in logical AND with --min-sd-both-strand-weak, and logical OR with the strong condtions'
+    help='Mean Average Devaition of distances between variant position and read start above which a variant cannot be considered anomalous - used when both strands have sufficient valid reads for testing, in logical AND with `min_sd_both_strand_weak`, and logical OR with corresponding strong condtion pair'
 )
 @optgroup.option(
     '--min-sd-both-strand-weak',
     metavar='FLOAT',
     type=click.FloatRange(*_PARAMS['min_sd_both_strand_weak'].range),
     show_default=str(_PARAMS['min_sd_both_strand_weak'].default),
-    help='stdev of distances between variant position and read start above which a variant cannot be considered anomalous - used when both strands have sufficient valid reads for testing, in logical AND with --min-mad-both-strand-weak, and logical OR with the strong condtions'
+    help='stdev of distances between variant position and read start above which a variant cannot be considered anomalous - used when both strands have sufficient valid reads for testing, in logical AND with `min_mad_both_strand_weak`, and logical OR with corresponding strong condtion pair'
 )
 @optgroup.option(
     '--min-mad-both-strand-strong',
     metavar='INT',
     type=click.IntRange(*_PARAMS['min_mad_both_strand_strong'].range),
     show_default=str(_PARAMS['min_mad_both_strand_strong'].default),
-    help='Mean Average Devaition of distances between variant position and read start above which a variant cannot be considered anomalous - used when both strands have sufficient valid reads for testing, in logical AND with --min-sd-both-strand-strong, and logical OR with the weak condtions'
+    help='Mean Average Devaition of distances between variant position and read start above which a variant cannot be considered anomalous - used when both strands have sufficient valid reads for testing, in logical AND with `min_sd_both_strand_strong`, and logical OR with corresponding weak condtion pair'
 )
 @optgroup.option(
     '--min-sd-both-strand-strong',
     metavar='FLOAT',
     type=click.FloatRange(*_PARAMS['min_sd_both_strand_strong'].range),
     show_default=str(_PARAMS['min_sd_both_strand_strong'].default),
-    help='stdev of distances between variant position and read start above which a variant cannot be considered anomalous - used when both strands have sufficient valid reads for testing, in logical AND with --min-mad-both-strand-weak, and logical OR with the weak condtions'
+    help='stdev of distances between variant position and read start above which a variant cannot be considered anomalous - used when both strands have sufficient valid reads for testing, in logical AND with `min_mad_both_strand_weak`, and logical OR with the corresponding weak condtion pair'
 )
 @optgroup.option(
     '--min-reads',

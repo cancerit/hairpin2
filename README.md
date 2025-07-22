@@ -40,7 +40,7 @@ The recommended usage is to provide a config of filter parameters along with the
 ```
 hairpin2 -c myconfig.json variants.vcf aln.cram
 ```
-A config of default parameters is provided in `example-configs/`
+A config of default parameters is provided in `example-configs/`. All config parameters are equivalently named to their command line overrides (see helptext below), except - is replaced by _
 
 full helptext:
 ```
@@ -94,8 +94,17 @@ DVF config overrides:
                                   duplicates of eachother. -1 will disable
                                   duplicate detection  [default: (6); x>=0]
     --loss-ratio FLOAT            ratio of the number of reads found to be
-                                  duplicates against the number of input
-                                  reads, above which a variant is flagged DVF
+                                  duplicates against the total number of
+                                  supporting reads, above which a variant is
+                                  flagged DVF. In logical AND with a hardcoded
+                                  test that at least 2 supporting reads are
+                                  independent, i.e. not duplicates of each
+                                  other, to ensure that regardless of the
+                                  value of `loss_ratio` collapse of duplicates
+                                  to only a single supporting read always
+                                  results in a DVF flag. Smaller is more
+                                  sensitive. Set to 0.99 to rely only on the
+                                  hardcoded test (practically speaking).
                                   [default: (0.49); 0.0<=x<=0.99]
 
 ALF config overrides:
@@ -129,34 +138,36 @@ ADF config overrides:
                                   a variant cannot be considered anomalous -
                                   used when both strands have sufficient valid
                                   reads for testing, in logical AND with
-                                  --min-sd-both-strand-weak, and logical OR
-                                  with the strong condtions  [default: (2);
-                                  x>=0]
+                                  `min_sd_both_strand_weak`, and logical OR
+                                  with corresponding strong condtion pair
+                                  [default: (2); x>=0]
     --min-sd-both-strand-weak FLOAT
                                   stdev of distances between variant position
                                   and read start above which a variant cannot
                                   be considered anomalous - used when both
                                   strands have sufficient valid reads for
-                                  testing, in logical AND with --min-mad-both-
-                                  strand-weak, and logical OR with the strong
-                                  condtions  [default: (2.0); x>=0.0]
+                                  testing, in logical AND with
+                                  `min_mad_both_strand_weak`, and logical OR
+                                  with corresponding strong condtion pair
+                                  [default: (2.0); x>=0.0]
     --min-mad-both-strand-strong INT
                                   Mean Average Devaition of distances between
                                   variant position and read start above which
                                   a variant cannot be considered anomalous -
                                   used when both strands have sufficient valid
                                   reads for testing, in logical AND with
-                                  --min-sd-both-strand-strong, and logical OR
-                                  with the weak condtions  [default: (1);
-                                  x>=0]
+                                  `min_sd_both_strand_strong`, and logical OR
+                                  with corresponding weak condtion pair
+                                  [default: (1); x>=0]
     --min-sd-both-strand-strong FLOAT
                                   stdev of distances between variant position
                                   and read start above which a variant cannot
                                   be considered anomalous - used when both
                                   strands have sufficient valid reads for
-                                  testing, in logical AND with --min-mad-both-
-                                  strand-weak, and logical OR with the weak
-                                  condtions  [default: (10.0); x>=0.0]
+                                  testing, in logical AND with
+                                  `min_mad_both_strand_weak`, and logical OR
+                                  with the corresponding weak condtion pair
+                                  [default: (10.0); x>=0.0]
     --min-reads INT               number of reads at and below which the
                                   hairpin filtering logic considers a strand
                                   to have insufficient reads for testing for a
