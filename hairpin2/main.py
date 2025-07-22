@@ -335,23 +335,31 @@ def hairpin2(
             logging.error(f'failed to open input JSON, reporting: {er}')
             sys.exit(EXIT_FAILURE)
 
+    # verify config
+    for key in configd:
+        if key not in _PARAMS:
+            logging.error(f'unrecognised parameter {key!r} in config - check spelling and underscores?')
+            sys.exit(EXIT_FAILURE)
+
     # override from config and ensure all args are set
     # test args are sensible, exit if not
     # unfortunately necessary duplication with options since the config remains unverified
     # TODO: move to validation of FilterParams with pydantic, where there should be full validation anyway
-    # TODO: forbid extra config params (pydantic?)
     for key in kwargs:
-        if key not in _PARAMS:
-            logging.error(f'unrecognised parameter {key!r} - check spelling?')
-            sys.exit(EXIT_FAILURE)
         if kwargs[key] is None:
             if key in configd.keys():
                 kwargs[key] = configd[key]
             elif key in _PARAMS:
                 if not quiet: logging.info(f'parameter {key!r} not found in config or overridden on command line, falling back to standard default {_PARAMS[key].default}')
                 kwargs[key] = _PARAMS[key].default
-        if key in _PARAMS:
+        if key not in _PARAMS:  # shouldn't happen
+            logging.error(f'unrecognised parameter {key!r} in kwargs - this is probably a bug!')
+            sys.exit(EXIT_FAILURE)
+        else:
             assert kwargs[key] is not None
+            if not isinstance(kwargs[key], type(_PARAMS[key].default)):
+                logging.error(f'value {kwargs[key]!r} for parameter {key!r} is not of expected type {type(_PARAMS[key].default).__name__}')
+                sys.exit(EXIT_FAILURE)
             pmin, pmax = _PARAMS[key].range
             if (pmin is not None and pmin > kwargs[key]) or (pmax is not None and kwargs[key] > pmax):
                 logging.error(f'value {kwargs[key]!r} for parameter {key!r} out of range {pmin}<=x<={pmax}')
