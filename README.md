@@ -42,7 +42,7 @@ to install testing dependencies
 ### USAGE
 The recommended usage is to provide a config of filter parameters along with the VCF in question and the relavant alignments, like so:
 ```
-hairpin2 -c myconfig.json variants.vcf aln.cram
+hairpin2 -c myconfig.json variants.vcf aln.cram > output.vcf
 ```
 A config of default parameters is provided in `example-configs/`. All config parameters are equivalently named to their command line overrides (see helptext below), except `-` is replaced by `_`.
 
