@@ -40,7 +40,7 @@ to install testing dependencies
 `hairpin2` is designed for paired data where alignment records have the `MC` tag and the complete CIGAR string is present in the `CIGAR` field (rather than the `CG:B,I` tag). If the `MC` tag is not present in your data, it can be added using `samtools fixmate` or `biobambam2 bamsormadup`. The tool can handle substitions, insertions, and deletions formatted per the VCF specification. At this time, the tool will not investigate mutations notated with angle brackets, e.g. `<DEL>`, complex mutations, or monomorphic reference. No further assumptions are made – other alignment tags and VCF fields are used, however they are mandatory per the relevant format specifications. If these requirements are limiting and you need the tool to be extended in some way, please request it.
 
 ### USAGE
-The recommended usage is to provide a config of filter parameters along with the VCF in question and the relavant alignments, like so:
+The recommended usage is to provide a config of filter parameters along with the VCF in question and the relavant alignments (.sam/.bam/.cram), like so:
 ```
 hairpin2 -c myconfig.json variants.vcf aln.cram > output.vcf
 ```
