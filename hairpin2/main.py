@@ -100,6 +100,26 @@ writeable_file_path = click.Path(
     resolve_path=True,
 )
 
+class JSONOrFile(click.ParamType):
+    def convert(self, value, param, ctx):
+        # ty to interpret as path
+        path_type = click.Path(exists=True, readable=True, dir_okay=False)
+        try:
+            file_path = path_type.convert(value, param, ctx)
+            with open(file_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except click.BadParameter:
+            pass  # Not a valid file path, treat as raw JSON
+        except Exception as e:
+            self.fail(f"Failed to parse JSON file '{value}': {e}", param, ctx)
+
+        # Fallback: try parsing as raw JSON string
+        try:
+            return json.loads(value)
+        except json.JSONDecodeError as e:
+            self.fail(f"Invalid JSON input: {e}", param, ctx)
+
+
 
 def show_help(ctx, value):
     if value > 1:
@@ -120,7 +140,6 @@ def show_help(ctx, value):
     add_help_option=False,
 )
 @click.version_option(__version__, '-v', '--version', message='%(version)s')
-# @click.help_option('-h', '--help', help='show helptext')
 @click.option(
     '-h',
     '--help',
@@ -162,11 +181,15 @@ def show_help(ctx, value):
 @click.option(
     '-m',
     '--name-mapping',
-    metavar= 'S:SM S:SM...',
+    metavar= "STR | FILEPATH",
+    type=JSONOrFile(),
     help="If sample names in VCF differ from SM tags in alignment files, provide a key here to map them. "
-    "When multiple alignments are provided, accepts a space separated list of sample:SM pairs. "
-    "When only a single alignment is provided, also accepts a comma separated string of one or more possible sample-of-interest "
-    "names like TUMOR,TUMOUR"
+    "Accepts a path to a JSON file, or JSON-formatted string of key-value pairs where keys are sample names in the VCF "
+    "and values are either the SM tag or the filepath of the relevant alignment"
+    'e.g. \'{"sample0": "PDxxxxx", "sample1": "PDxxxxx"}\''
+    "When only a single alignment is provided, also accepts a JSON-spec top-level array of possible sample of interest names"
+    'e.g. \'["TUMOR","TUMOUR"]\'. '
+    "Note that when providing a JSON-formatted string at the command line you must single quote the string, and use only double quotes internally"
 )
 @click.option(
     '-r',
@@ -311,7 +334,7 @@ def hairpin2(
     alignments: list[str],
     config_path: str | None,
     output_config_path: str | None,
-    name_mapping: str | None,
+    name_mapping: dict[str, str] | list[str] | None,
     cram_reference_path: str | None,
     quiet: int,
     progress_bar: bool,
@@ -396,6 +419,7 @@ def hairpin2(
         sys.exit(EXIT_FAILURE)
 
     sm_to_aln_map: dict[str, pysam.AlignmentFile] = {}
+    filename_to_aln_map: dict[str, pysam.AlignmentFile] = {}
     for path_str in alignments:
         path = Path(path_str)
         try:
@@ -427,74 +451,74 @@ def hairpin2(
         # in header field RG
         aln_sm = alignment.header.to_dict()['RG'][0]['SM']
         sm_to_aln_map[aln_sm] = alignment
+        filename_to_aln_map[path.name] = alignment
 
     vcf_sample_to_alignment_map: dict[str, pysam.AlignmentFile] = {}
-    if name_mapping:
-        name_mapping: list[str] = name_mapping.split(' ')
-        vcf_mapflag: list[str] = []
-        alignment_mapflag: list[str] = []
-        if len(name_mapping) <= len(alignments) and all(m.count(':') == 1 for m in name_mapping) and not any("," in m for m in name_mapping):
-            for pair in name_mapping:
-                kv_split = pair.split(':')  # VCF:aln
-                vcf_mapflag.append(kv_split[0])
-                alignment_mapflag.append(kv_split[1])
 
-            if len(vcf_mapflag) != len(set(vcf_mapflag)):
-                logging.error('duplicate VCF sample names provided to --name-mapping flag')
-                sys.exit(EXIT_FAILURE)
-
-            if not set(vcf_mapflag) <= set(vcf_names):
-                logging.error(f'VCF sample names provided to --name-mapping flag {vcf_mapflag!r} are not equal to or a subset of VCF samples from input VCF {vcf_names!r}')
-                sys.exit(EXIT_FAILURE)
-
-            if len(alignment_mapflag) != len(set(alignment_mapflag)):
-                logging.error(msg='duplicate aligment sample names provided to name mapping flag')
-                sys.exit(EXIT_FAILURE)
-
-            if not sorted(alignment_mapflag) == sorted(sm_to_aln_map.keys()):  # check equal
-                logging.error(msg='SM tags provided to name mapping flag {} are not equal to SM tag list from alignment files {} - flag recieved {}'.format(
-                        alignment_mapflag,
-                        set(sm_to_aln_map.keys()),
-                        name_mapping))
-                sys.exit(EXIT_FAILURE)
-
-            vcf_sample_to_alignment_map = {vcf_mapflag[alignment_mapflag.index(k)]: v
-                                            for k, v
-                                            in sm_to_aln_map.items()}
-        elif not any(":" in m for m in name_mapping) and len(alignments) == len(name_mapping) == 1:
-            if "," in name_mapping[0]:
-                possible_sample_names = name_mapping[0].split(',')
-            else:
-                possible_sample_names = name_mapping  # list of len 1
-            matches = [n for n in possible_sample_names if n in set(vcf_names)]
+    match name_mapping:
+        case list():
+            matches = [name for name in name_mapping if name in set(vcf_names)]
             if len(matches) > 1:
-                logging.error(msg='More than one of the VCF sample names provided to name mapping flag match any sample names in input VCF {} - flag recieved {}'.format(
-                        vcf_names,
-                        name_mapping))
+                logging.error(msg='More than one of the VCF sample names provided to name mapping {name_mapping} match any sample names in input VCF {vcf_names}!'
                 sys.exit(EXIT_FAILURE)
             elif not matches:
-                logging.error(msg='None of the VCF sample names provided to name mapping flag match any sample names in input VCF {} - flag recieved {}'.format(
-                        vcf_names,
-                        name_mapping))
+                logging.error(msg=f'None of VCF sample names provided to name mapping {name_mapping} match any sample name in input VCF {vcf_names}!')
                 sys.exit(EXIT_FAILURE)
             else:
                 if not quiet: logging.info('matched alignment to sample {} in VCF'.format(matches[0]))
                 vcf_sample_to_alignment_map[matches[0]] = alignment  # pyright: ignore[reportPossiblyUnboundVariable] | since length of alignments == 1, can just reuse this variable
+        case dict():
+            vcf_map_keys: list[str] = []
+            alignment_map_values: list[str] = []
+            for key, val in name_mapping.items():
+                vcf_map_keys.append(key)
+                alignment_map_values.append(val)
 
-        else:
-            logging.error(msg='name mapping misformatted, see helptext for expectations - flag recieved: {}'.format(name_mapping))
-            sys.exit(EXIT_FAILURE)
-    else:  # no name mapping flag
-        if not sm_to_aln_map.keys() <= set(vcf_names):
-            logging.error(
-                msg='alignment SM tags {} are not equal to or a subset of VCF sample names {}'.format(
-                    set(sm_to_aln_map.keys()),
-                    set(vcf_names)
+            if len(vcf_map_keys) != len(set(vcf_map_keys)):
+                logging.error('duplicate keys (VCF sample names) provided to name mapping!')
+                sys.exit(EXIT_FAILURE)
+
+            if not set(vcf_map_keys) <= set(vcf_names):
+                logging.error(f'keys (VCF sample names) provided to name mapping {vcf_map_keys!r} are not equal to or a subset of VCF samples from input VCF {vcf_names!r}!')
+                sys.exit(EXIT_FAILURE)
+
+            if len(alignment_map_values) != len(set(alignment_map_values)):
+                logging.error(msg='duplicate values (alignment SM tags/filenames) provided to name mapping!')
+                sys.exit(EXIT_FAILURE)
+
+            match_sm = sorted(alignment_map_values) == sorted(sm_to_aln_map.keys())
+            match_fn = sorted(alignment_map_values) == sorted(filename_to_aln_map.keys())
+            if match_sm:
+                vcf_sample_to_alignment_map = {
+                    vcf_map_keys[alignment_map_values.index(k)]: v
+                    for k, v
+                    in sm_to_aln_map.items()
+                }
+            elif match_fn:
+                vcf_sample_to_alignment_map = {
+                    vcf_map_keys[alignment_map_values.index(k)]: v
+                    for k, v
+                    in filename_to_aln_map.items()
+                }
+            else:
+                logging.error(msg=f'values provided to name mapping {alignment_map_values!r} are not equal to the either the SM tags or the filenames of the alignments provided')
+                sys.exit(EXIT_FAILURE)
+
+            if match_sm and match_fn:
+                logging.warn(f'intention ambigous - values provided to name mapping {alignment_map_values!r} are equal to both the SM tags and the filenames of alignments. Mapping against SM tags, not filenames')
+        case None:
+            if not sm_to_aln_map.keys() <= set(vcf_names):
+                logging.error(
+                    msg='alignment SM tags {} are not equal to or a subset of VCF sample names {} - use a name mapping'.format(
+                        set(sm_to_aln_map.keys()),
+                        set(vcf_names)
+                    )
                 )
-            )
+                sys.exit(EXIT_FAILURE)
+            vcf_sample_to_alignment_map = sm_to_aln_map
+        case _:
+            logging.error(f'name mapping misformatted. Expected deserialised JSON, recieved {type(name_mapping)}, containing {name_mapping}')
             sys.exit(EXIT_FAILURE)
-        vcf_sample_to_alignment_map = sm_to_aln_map
-    ## end name mapping handling
 
     if set(vcf_names) != vcf_sample_to_alignment_map.keys():
         if not quiet: logging.info(
@@ -660,3 +684,4 @@ def hairpin2(
 
     if not quiet: logging.info('hairpin complete')
     sys.exit(EXIT_SUCCESS)
+
