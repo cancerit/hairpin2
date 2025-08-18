@@ -459,7 +459,7 @@ def hairpin2(
         case list():
             matches = [name for name in name_mapping if name in set(vcf_names)]
             if len(matches) > 1:
-                logging.error(msg='More than one of the VCF sample names provided to name mapping {name_mapping} match any sample names in input VCF {vcf_names}!'
+                logging.error(msg='More than one of the VCF sample names provided to name mapping {name_mapping} match any sample names in input VCF {vcf_names}!')
                 sys.exit(EXIT_FAILURE)
             elif not matches:
                 logging.error(msg=f'None of VCF sample names provided to name mapping {name_mapping} match any sample name in input VCF {vcf_names}!')
@@ -652,6 +652,10 @@ def hairpin2(
             for ftype in record_filters:
                 if any(fres.flag == True for fres in record_filters[ftype]):
                     record.filter.add(ftype.Name)
+                for fl in record_filters[ftype]:
+                    infstr = fl.getinfo()
+                    if '3' in infstr:
+                        breakpoint()
                 record.info.update({ftype.Name: ','.join([fl.getinfo() for fl in record_filters[ftype]])})  # pyright: ignore[reportArgumentType]
 
         try:
