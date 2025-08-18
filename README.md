@@ -1,7 +1,7 @@
 # hairpin2
 `hairpin2` – read-aware artefactual variant flagging
 
-`hairpin2` is designed to flag variants that are likely artefactual via series of tests performed upon the read data associated with each variant. Initially, it was concieved to flag possible cruciform artefacts for LCM sequence data, but the concept has been extended and can detect a variety of potentially spurious variants (including indels). The tool operates on a VCF file containing one or more samples, and alignment files for all samples to be tested.
+`hairpin2` is designed to flag variants that are likely artefactual via a series of tests performed upon the read data associated with each variant. Initially, it was concieved to flag possible cruciform artefacts for LCM sequence data, but the concept has been extended and can detect a variety of potentially spurious variants (including indels). The tool operates on a VCF file containing one or more samples, and alignment files for all samples to be tested.
 
 Given a VCF, and BAM files for the samples of that VCF, return a VCF with variants flagged with `ADF` if variants have anomalous distributions indicating that they are likely to be artefactual, `ALF` if relevant reads have lower median alignment score per base than a specified threshold, and `DVF` if variants appear to be the result of PCR error.
 
@@ -11,7 +11,7 @@ Given a VCF, and BAM files for the samples of that VCF, return a VCF with varian
 
 - `ALF`; The `ALF` filter indicates variants which are supported by reads with poor signal-to-noise, per the alignment score. It is complementary to the `ADF` filter – artefacts with anomalous distributions often cause a marked decrease in alignment score.
 
-- `DVF`; The `DVF` filter is a naive but effective algorithm for detecting variants which are the result of PCR error - in regions of low complexity, short repeats and homopolymer tract can cause PCR stuttering. PCR stuttering can lead to, for example, an erroneous additional A on the read when amplifying a tract of As. If duplicated reads contain stutter, this can lead to variation of read length and alignment to reference between reads that are in fact duplicates. Because of this, these duplicates both evade dupmarking and give rise to spurious variants when calling. The DVF filter attempts to catch these variants by examining the regularity of the start and end coordinates of supporting reads and their mates.
+- `DVF`; The `DVF` filter is a naive but effective algorithm for detecting variants which are the result of PCR error - in regions of low complexity, short repeats and homopolymer tracts can cause PCR stuttering. PCR stuttering can lead to, for example, an erroneous additional A on the read when amplifying a tract of As. If duplicated reads contain stutter, this can lead to variation of read length and alignment to reference between reads that are in fact duplicates. Because of this, these duplicates both evade dupmarking and give rise to spurious variants when calling. The `DVF` filter attempts to catch these variants by examining the regularity of the start and end coordinates of collections of supporting reads and their mates.
 
 All filters are tunable such that their parameters can be configured to a variety of use cases and sequencing methods
 
@@ -40,11 +40,11 @@ to install testing dependencies
 `hairpin2` is designed for paired data where alignment records have the `MC` tag and the complete CIGAR string is present in the `CIGAR` field (rather than the `CG:B,I` tag). If the `MC` tag is not present in your data, it can be added using `samtools fixmate` or `biobambam2 bamsormadup`. The tool can handle substitions, insertions, and deletions formatted per the VCF specification. At this time, the tool will not investigate mutations notated with angle brackets, e.g. `<DEL>`, complex mutations, or monomorphic reference. No further assumptions are made – other alignment tags and VCF fields are used, however they are mandatory per the relevant format specifications. If these requirements are limiting and you need the tool to be extended in some way, please request it.
 
 ### USAGE
-The recommended usage is to provide a config of filter parameters along with the VCF in question and the relavant alignments, like so:
+The recommended usage is to provide a config of filter parameters along with the VCF in question and the relavant alignments (.sam/.bam/.cram), like so:
 ```
-hairpin2 -c myconfig.json variants.vcf aln.cram
+hairpin2 -c myconfig.json variants.vcf aln.cram > output.vcf
 ```
-A config of default parameters is provided in `example-configs/`. All config parameters are equivalently named to their command line overrides (see helptext below), except `-` is replaced by `_`
+A config of default parameters is provided in `example-configs/`. All config parameters are equivalently named to their command line overrides (see helptext below), except `-` is replaced by `_`.
 
 full helptext:
 ```
@@ -181,10 +181,10 @@ ADF config overrides:
 Parameters are hopefully mostly clear from the helptext, but some warrant additional commentary:
 
 - `--name-mapping` – When using multisample VCFS, hairpin2 compares VCF sample names found in the VCF header to SM tags in alignments to match samples of interest to the correct alignment. If these IDs are different between the VCF and alignments, you'll need to provide a key. If there are multiple samples of interest in the VCF, and therefore multiple alignments, you will need to provide a key for each pair - e.g. `-m sample1:SM1 sample2:SM2 ...`. If there is only one alignment, then you need only indicate which VCF sample is the sample of interest, e.g. `-m TUMOR`. As a convenience for high throughput workflows, when there is only one alignment you may also provide a comma separated string of possible names for the sample of interest, e.g. `-m TUMOR,TUMOUR`. Assuming there is one and only one match in the VCF, the tool will match the alignment to that sample.
-- `--al-filter-threshold` – the default value of 0.93 was found by trial and error on LCM data – since different aligners/platforms calculate alignment score differently, you may want to modify this value appropriately. In the predecessor to this tool, `additionalBAMStatistics`, this value was known as `ASRD` and the default was set at 0.87.
-- `--duplication-window-size` – as above, the default was found by trial and error on LCM data and you may find it necessary to experiment with this parameter depending on data type.
+- `--al-filter-threshold` – In the predecessor to `hairpin2`, `additionalBAMStatistics`, this value was known as `ASRD` and the default was set at 0.87.
+- For all parameters, defaults were found by trial and error on LCM data and you may find it necessary to experiment with this parameter depending on data type.
 
-reading the `test()` method implementation of each filter may be informative. They can be found in `hairpin2/filters/`
+Reading the `test()` method implementation of each filter may be informative. These can be found in `hairpin2/filters/`
 
 The tool tests records in a VCF file and applies filter flags as appropriate. Reasoning for decisions is recorded in the INFO field of the VCF records, in the form `<FILTER>=<alt>|<True/False>|<code>|...`. Additional data (noted by the ellipsis) where present are described in the relevant header line of the VCF. The codes indicate the reason on which the decision was made, and are as follows:
 
