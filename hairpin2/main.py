@@ -652,10 +652,6 @@ def hairpin2(
             for ftype in record_filters:
                 if any(fres.flag == True for fres in record_filters[ftype]):
                     record.filter.add(ftype.Name)
-                for fl in record_filters[ftype]:
-                    infstr = fl.getinfo()
-                    if '3' in infstr:
-                        breakpoint()
                 record.info.update({ftype.Name: ','.join([fl.getinfo() for fl in record_filters[ftype]])})  # pyright: ignore[reportArgumentType]
 
         try:
