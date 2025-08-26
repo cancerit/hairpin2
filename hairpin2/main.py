@@ -185,10 +185,10 @@ def show_help(ctx, value):
     type=JSONOrFile(),
     help="If sample names in VCF differ from SM tags in alignment files, provide a key here to map them. "
     "Accepts a path to a JSON file, or JSON-formatted string of key-value pairs where keys are sample names in the VCF "
-    "and values are either the SM tag or the filepath of the relevant alignment"
-    'e.g. \'{"sample0": "PDxxxxx", "sample1": "PDxxxxx"}\''
-    "When only a single alignment is provided, also accepts a JSON-spec top-level array of possible sample of interest names"
-    'e.g. \'["TUMOR","TUMOUR"]\'. '
+    "and all values are either the SM tag or the filepath of the relevant alignment "
+    '- e.g. \'{"sample0": "PDxxA", "sample1": "PDxxB"}\' or \'{"sample0": "A.bam", ...}\'. '
+    "When only a single alignment is provided, also accepts a JSON-spec top-level array of possible sample of interest names "
+    '- e.g. \'["TUMOR","TUMOUR"]\'. '
     "Note that when providing a JSON-formatted string at the command line you must single quote the string, and use only double quotes internally"
 )
 @click.option(

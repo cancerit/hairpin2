@@ -63,15 +63,24 @@ Options:
                                   by extended arguments provided at runtime
   -o, --output-config FILEPATH    log filter paramaters from run as a config
                                   JSON file
-  -m, --name-mapping S:SM S:SM...
+  -m, --name-mapping STR | FILEPATH
                                   If sample names in VCF differ from SM tags
                                   in alignment files, provide a key here to
-                                  map them. When multiple alignments are
-                                  provided, accepts a space separated list of
-                                  sample:SM pairs. When only a single
-                                  alignment is provided, also accepts a comma
-                                  separated string of one or more possible
-                                  sample-of-interest names like TUMOR,TUMOUR
+                                  map them. Accepts a path to a JSON file, or
+                                  JSON-formatted string of key-value pairs
+                                  where keys are sample names in the VCF and
+                                  all values are either the SM tag or the
+                                  filepath of the relevant alignment - e.g.
+                                  '{"sample0": "PDxxA", "sample1": "PDxxB"}'
+                                  or '{"sample0": "A.bam", ...}'. When only a
+                                  single alignment is provided, also accepts a
+                                  JSON-spec top-level array of possible sample
+                                  of interest names - e.g.
+                                  '["TUMOR","TUMOUR"]'. Note that when
+                                  providing a JSON-formatted string at the
+                                  command line you must single quote the
+                                  string, and use only double quotes
+                                  internally
   -r, --cram-reference FILEPATH   path to FASTA format CRAM reference,
                                   overrides $REF_PATH and UR tags for CRAM
                                   alignments
@@ -180,7 +189,7 @@ ADF config overrides:
 
 Parameters are hopefully mostly clear from the helptext, but some warrant additional commentary:
 
-- `--name-mapping` – When using multisample VCFS, hairpin2 compares VCF sample names found in the VCF header to SM tags in alignments to match samples of interest to the correct alignment. If these IDs are different between the VCF and alignments, you'll need to provide a key. If there are multiple samples of interest in the VCF, and therefore multiple alignments, you will need to provide a key for each pair - e.g. `-m sample1:SM1 sample2:SM2 ...`. If there is only one alignment, then you need only indicate which VCF sample is the sample of interest, e.g. `-m TUMOR`. As a convenience for high throughput workflows, when there is only one alignment you may also provide a comma separated string of possible names for the sample of interest, e.g. `-m TUMOR,TUMOUR`. Assuming there is one and only one match in the VCF, the tool will match the alignment to that sample.
+- `--name-mapping` – When using multisample VCFs, hairpin2 compares VCF sample names found in the VCF header to SM tags in alignments to match samples of interest to the correct alignment. If these IDs are different between the VCF and alignments, you'll need to provide a JSON key. If there are multiple samples of interest in a multisample VCF, and therefore it is necessary to provide multiple alignments, you will need to provide a mapping for each pair - e.g. `-m '{"sample1":"SM1", "sample2":"SM2", ...}'` or `-m '{"sample1:"1.bam", ...}'`. If there is only one sample of interest, and therefore only one alignment is provided to the tool, then you also have an optional shorthand - you need only indicate which VCF sample is the sample of interest, e.g. `-m '["TUMOR"]'`. When there is only one sample of interest, and therefore one alignment, but the sample of interest may have one of several possible names, you may also provide a comma separated string of possible names for the sample of interest, e.g. `-m '["TUMOR", "TUMOUR"]'` - users have found this valuable for high throughput workflows where the VCF input may be coming from one of several prior processes (which may name samples differently). In all cases, there must be one and only one match between alignment and VCF sample. In all cases, a path to a JSON file may be provided instead of the JSON string. Note that a VCF containing both a TUMOUR and a NORMAL sample contains 2 samples, and therefore is a multisample VCF.
 - `--al-filter-threshold` – In the predecessor to `hairpin2`, `additionalBAMStatistics`, this value was known as `ASRD` and the default was set at 0.87.
 - For all parameters, defaults were found by trial and error on LCM data and you may find it necessary to experiment with this parameter depending on data type.
 
