@@ -5,15 +5,17 @@
 
 Given a VCF, and BAM files for the samples of that VCF, return a VCF with variants flagged with `ADF` if variants have anomalous distributions indicating that they are likely to be artefactual, `ALF` if relevant reads have lower median alignment score per base than a specified threshold, and `DVF` if variants appear to be the result of PCR error.
 
-### FILTERS
+### FLAGS
 
-- `ADF`; The `ADF` filter is an implementation of the artifact detection algorithm described in [Ellis et al, 2020](https://www.nature.com/articles/s41596-020-00437-6). It detects variants which appear with anomalously regular positional distribution in supporting reads.
+- `ADF`; The `ADF` flag is an implementation of the artifact detection algorithm described in [Ellis et al, 2020](https://www.nature.com/articles/s41596-020-00437-6). It detects variants which appear with anomalously regular positional distribution in supporting reads.
 
-- `ALF`; The `ALF` filter indicates variants which are supported by reads with poor signal-to-noise, per the alignment score. It is complementary to the `ADF` filter – artefacts with anomalous distributions often cause a marked decrease in alignment score.
+- `ALF`; The `ALF` flag indicates variants which are supported by reads with poor signal-to-noise, per the alignment score. It is complementary to the `ADF` flag – artefacts with anomalous distributions often cause a marked decrease in alignment score.
 
-- `DVF`; The `DVF` filter is a naive but effective algorithm for detecting variants which are the result of PCR error - in regions of low complexity, short repeats and homopolymer tracts can cause PCR stuttering. PCR stuttering can lead to, for example, an erroneous additional A on the read when amplifying a tract of As. If duplicated reads contain stutter, this can lead to variation of read length and alignment to reference between reads that are in fact duplicates. Because of this, these duplicates both evade dupmarking and give rise to spurious variants when calling. The `DVF` filter attempts to catch these variants by examining the regularity of the start and end coordinates of collections of supporting reads and their mates.
+- `DVF`; The `DVF` flag is a naive but effective algorithm for detecting variants which are the result of PCR error - in regions of low complexity, short repeats and homopolymer tracts can cause PCR stuttering. PCR stuttering can lead to, for example, an erroneous additional A on the read when amplifying a tract of As. If duplicated reads contain stutter, this can lead to variation of read length and alignment to reference between reads that are in fact duplicates. Because of this, these duplicates both evade dupmarking and give rise to spurious variants when calling. The `DVF` flag attempts to catch these variants by examining the regularity of the start and end coordinates of collections of supporting reads and their mates.
 
-All filters are tunable such that their parameters can be configured to a variety of use cases and sequencing methods
+All flags are tunable such that their parameters can be configured to a variety of use cases and sequencing methods.
+
+Note that the term "filter" is sometimes used in place of the word flag in the helptext.
 
 ### DEPENDENCIES
 * `Python >= 3.12`
@@ -40,7 +42,7 @@ to install testing dependencies
 `hairpin2` is designed for paired data where alignment records have the `MC` tag and the complete CIGAR string is present in the `CIGAR` field (rather than the `CG:B,I` tag). If the `MC` tag is not present in your data, it can be added using `samtools fixmate` or `biobambam2 bamsormadup`. The tool can handle substitions, insertions, and deletions formatted per the VCF specification. At this time, the tool will not investigate mutations notated with angle brackets, e.g. `<DEL>`, complex mutations, or monomorphic reference. No further assumptions are made – other alignment tags and VCF fields are used, however they are mandatory per the relevant format specifications. If these requirements are limiting and you need the tool to be extended in some way, please request it.
 
 ### USAGE
-The recommended usage is to provide a config of filter parameters along with the VCF in question and the relavant alignments (.sam/.bam/.cram), like so:
+The recommended usage is to provide a config of flag parameters along with the VCF in question and the relavant alignments (.sam/.bam/.cram), like so:
 ```
 hairpin2 -c myconfig.json variants.vcf aln.cram > output.vcf
 ```
@@ -193,9 +195,9 @@ Parameters are hopefully mostly clear from the helptext, but some warrant additi
 - `--al-filter-threshold` – In the predecessor to `hairpin2`, `additionalBAMStatistics`, this value was known as `ASRD` and the default was set at 0.87.
 - For all parameters, defaults were found by trial and error on LCM data and you may find it necessary to experiment with this parameter depending on data type.
 
-Reading the `test()` method implementation of each filter may be informative. These can be found in `hairpin2/filters/`
+Reading the `test()` method implementation of each flag may be informative. These can be found in `hairpin2/filters/`
 
-The tool tests records in a VCF file and applies filter flags as appropriate. Reasoning for decisions is recorded in the INFO field of the VCF records, in the form `<FILTER>=<alt>|<True/False>|<code>|...`. Additional data (noted by the ellipsis) where present are described in the relevant header line of the VCF. The codes indicate the reason on which the decision was made, and are as follows:
+The tool tests records in a VCF file and applies flags as appropriate. Reasoning for decisions is recorded in the INFO field of the VCF records, in the form `<FLAG>=<alt>|<True/False>|<code>|...`. Additional data (noted by the ellipsis) where present are described in the relevant header line of the VCF. The codes indicate the reason on which the decision was made, and are as follows:
 
 DVF:
 > **0** – insufficient supporting reads  
@@ -203,7 +205,7 @@ DVF:
 
 ALF:
 > **0** – insufficient supporting reads  
-> **1** – variant passed/failed on filter threshold 
+> **1** – variant passed/failed on flag threshold 
 
 ADF:
 > **0** – insufficient supporting reads  
@@ -215,7 +217,7 @@ The basic procedure of this implementation is as follows:
 >   1. for samples exhibiting the mutation, retrieve reads covering the region
 >   2. test each read for validity for use in testing (i.e. base quality, do they express the correct alt, and so on)
 >   3. performing statistical analysis on read context
->   4. pass or fail the record for each filter and log to `INFO`
+>   4. pass or fail the record for each flag and log to `INFO`
 
 
 ### TESTING
@@ -226,7 +228,7 @@ A test suite has been provided with the algorithm implementation. To run these t
 - automated regression testing
 - stricter config and params validation, most likely with pydantic, to catch misformatted configs earlier
 - further boundary condition testing
-- improve documentation - describe filters in individual sections, beyond replicating helptext
+- improve documentation - describe flags in individual sections, beyond replicating helptext
 - switch entirely to fstrings from .format()
 - disscussions to be had on multisample VCF support
 
