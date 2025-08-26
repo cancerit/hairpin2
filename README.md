@@ -1,17 +1,24 @@
 # hairpin2
-`hairpin2` – CLI implementation of the hairpin detection algorithm concieved by [Ellis et al, 2020](https://www.nature.com/articles/s41596-020-00437-6).
+`hairpin2` – read-aware artefactual variant flagging
 
-`hairpin2` is designed to flag variants with anomalous distributions indicating that they are likely artefactual. Initially, it was concieved to flag possible cruciform artefacts for LCM sequence data, but the concept has been extended to other artefacts including artefactual indels. It operates on a VCF file containing one or more samples, and alignment files for all samples to be tested.
+`hairpin2` is designed to flag variants that are likely artefactual via a series of tests performed upon the read data associated with each variant. Initially, it was concieved to flag possible cruciform artefacts for LCM sequence data, but the concept has been extended and can detect a variety of potentially spurious variants (including indels). The tool operates on a VCF file containing one or more samples, and alignment files for all samples to be tested.
 
-Given a VCF, and BAM files for the samples of that VCF, return a VCF with variants flagged with `ADF` if variants have anomalous distributions indicating that they are likely to be artefactual, and `ALF` if relevant reads have lower median alignment score per base than a specified threshold.
+Given a VCF, and BAM files for the samples of that VCF, return a VCF with variants flagged with `ADF` if variants have anomalous distributions indicating that they are likely to be artefactual, `ALF` if relevant reads have lower median alignment score per base than a specified threshold, and `DVF` if variants appear to be the result of PCR error.
 
-The `ALF` filter indicates variants which occur with poor signal-to-noise, and also provides additional confidence in the `ADF` filter – artefacts with anomalous distributions often cause a marked decrease in alignment score, as is the case for cruciform artefacts.
+### FILTERS
 
+- `ADF`; The `ADF` filter is an implementation of the artifact detection algorithm described in [Ellis et al, 2020](https://www.nature.com/articles/s41596-020-00437-6). It detects variants which appear with anomalously regular positional distribution in supporting reads.
+
+- `ALF`; The `ALF` filter indicates variants which are supported by reads with poor signal-to-noise, per the alignment score. It is complementary to the `ADF` filter – artefacts with anomalous distributions often cause a marked decrease in alignment score.
+
+- `DVF`; The `DVF` filter is a naive but effective algorithm for detecting variants which are the result of PCR error - in regions of low complexity, short repeats and homopolymer tracts can cause PCR stuttering. PCR stuttering can lead to, for example, an erroneous additional A on the read when amplifying a tract of As. If duplicated reads contain stutter, this can lead to variation of read length and alignment to reference between reads that are in fact duplicates. Because of this, these duplicates both evade dupmarking and give rise to spurious variants when calling. The `DVF` filter attempts to catch these variants by examining the regularity of the start and end coordinates of collections of supporting reads and their mates.
+
+All filters are tunable such that their parameters can be configured to a variety of use cases and sequencing methods
 
 ### DEPENDENCIES
-* `Python >= 3.10`
-* `pysam >= 0.22.1` – installed automatically during install process (tested with 0.22.1 only)
-* `pytest >= 0.8.2.2` - optional, only necessary to run tests
+* `Python >= 3.12`
+
+further dependencies (pysam, pydantic, and optionally pytest and pytest-cov) are detailed in `pyproject.toml`, and will be downloaded automatically if following the recommend install process
 
 ### INSTALLATION
 The easiest end-user approach is to install into a virtual environment:
@@ -22,166 +29,213 @@ pip install .
 hairpin -h
 ```
 
+for development, substitute:
+```
+pip install -e ".[dev]"
+```
+to install testing dependencies
+
+
 ### ASSUMPTIONS & LIMITATIONS
 `hairpin2` is designed for paired data where alignment records have the `MC` tag and the complete CIGAR string is present in the `CIGAR` field (rather than the `CG:B,I` tag). If the `MC` tag is not present in your data, it can be added using `samtools fixmate` or `biobambam2 bamsormadup`. The tool can handle substitions, insertions, and deletions formatted per the VCF specification. At this time, the tool will not investigate mutations notated with angle brackets, e.g. `<DEL>`, complex mutations, or monomorphic reference. No further assumptions are made – other alignment tags and VCF fields are used, however they are mandatory per the relevant format specifications. If these requirements are limiting and you need the tool to be extended in some way, please request it.
 
-
 ### USAGE
+The recommended usage is to provide a config of filter parameters along with the VCF in question and the relavant alignments (.sam/.bam/.cram), like so:
 ```
-usage: hairpin2 [-h] [-v] -i VCF_IN -o VCF_OUT -a ALIGNMENTS [ALIGNMENTS ...]
-                -f {s,b,c} [-mc MIN_CLIP_QUALITY] [-mq MIN_MAPPING_QUALITY]
-                [-mb MIN_BASE_QUALITY] [-ms MAX_READ_SPAN]
-                [-al AL_FILTER_THRESHOLD] [-ed EDGE_DEFINITION]
-                [-ef EDGE_FRACTION] [-mos MIN_MAD_ONE_STRAND]
-                [-sos MIN_SD_ONE_STRAND] [-mbsw MIN_MAD_BOTH_STRAND_WEAK]
-                [-sbsw MIN_SD_BOTH_STRAND_WEAK]
-                [-mbss MIN_MAD_BOTH_STRAND_STRONG]
-                [-sbss MIN_SD_BOTH_STRAND_STRONG] [-mr MIN_READS]
-                [-r CRAM_REFERENCE] [-m NAME_MAPPING [NAME_MAPPING ...]]
-                [-ji INPUT_JSON] [-jo OUTPUT_JSON]
+hairpin2 -c myconfig.json variants.vcf aln.cram > output.vcf
+```
+A config of default parameters is provided in `example-configs/`. All config parameters are equivalently named to their command line overrides (see helptext below), except `-` is replaced by `_`.
 
-cruciform artefact flagging algorithm based on Ellis et al. 2020 (DOI:
-10.1038/s41596-020-00437-6). See README for further explanation of parameters.
+full helptext:
+```
+Usage: hairpin2 [-h, --help] [OPTIONS] VCF ALIGNMENTS...
 
-info:
-  -h, --help            show this help message and exit
-  -v, --version         print version
+  read-aware artefactual variant flagging algorithms. Flag variants in VCF
+  using statistics calculated from supporting reads found in ALIGNMENTS, and
+  emit the flagged VCF to stdout.
 
-mandatory:
-  -i VCF_IN, --vcf-in VCF_IN
-                        path to input VCF
-  -o VCF_OUT, --vcf-out VCF_OUT
-                        path to write output VCF
-  -a ALIGNMENTS [ALIGNMENTS ...], --alignments ALIGNMENTS [ALIGNMENTS ...]
-                        list of paths to (S/B/CR)AMs (indicated by --format)
-                        for samples in input VCF, whitespace separated -
-                        (s/b/cr)ai expected in same directories
-  -f {s,b,c}, --format {s,b,c}
-                        format of alignment files; s indicates SAM, b
-                        indicates BAM, and c indicates CRAM
+Options:
+  -v, --version                   Show the version and exit.
+  -h, --help                      show help (-h for basic, -hh for extended
+                                  including config override options)
+  -c, --config FILEPATH           path to config JSON from which filter
+                                  paramters will be loaded - can be overridden
+                                  by extended arguments provided at runtime
+  -o, --output-config FILEPATH    log filter paramaters from run as a config
+                                  JSON file
+  -m, --name-mapping STR | FILEPATH
+                                  If sample names in VCF differ from SM tags
+                                  in alignment files, provide a key here to
+                                  map them. Accepts a path to a JSON file, or
+                                  JSON-formatted string of key-value pairs
+                                  where keys are sample names in the VCF and
+                                  all values are either the SM tag or the
+                                  filepath of the relevant alignment - e.g.
+                                  '{"sample0": "PDxxA", "sample1": "PDxxB"}'
+                                  or '{"sample0": "A.bam", ...}'. When only a
+                                  single alignment is provided, also accepts a
+                                  JSON-spec top-level array of possible sample
+                                  of interest names - e.g.
+                                  '["TUMOR","TUMOUR"]'. Note that when
+                                  providing a JSON-formatted string at the
+                                  command line you must single quote the
+                                  string, and use only double quotes
+                                  internally
+  -r, --cram-reference FILEPATH   path to FASTA format CRAM reference,
+                                  overrides $REF_PATH and UR tags for CRAM
+                                  alignments
+  -q, --quiet                     be quiet (-q to not log INFO level messages,
+                                  -qq to additionally not log WARN)
+  -p, --progress                  display progress bar on stderr during run
 
-read validation:
-  -mc MIN_CLIP_QUALITY, --min-clip-quality MIN_CLIP_QUALITY
-                        discard reads with mean base quality of aligned bases
-                        below this value, if they have soft-clipped bases -
-                        default: 35, range: 0-93, exclusive
-  -mq MIN_MAPPING_QUALITY, --min-mapping-quality MIN_MAPPING_QUALITY
-                        discard reads with mapping quality below this value -
-                        default: 11, range: 0-60, exclusive
-  -mb MIN_BASE_QUALITY, --min-base-quality MIN_BASE_QUALITY
-                        discard reads with base quality at variant position
-                        below this value - default: 25, range: 0-93, exclusive
-  -ms MAX_READ_SPAN, --max-read-span MAX_READ_SPAN
-                        maximum +- position to use when detecting PCR
-                        duplicates. -1 will disable duplicate detection -
-                        default: 6, range: -1-, inclusive
+read validation config overrides:
+    --min-clip-quality INT        discard reads with mean base quality of
+                                  aligned bases below this value, if they have
+                                  soft-clipped bases  [default: (35);
+                                  0<=x<=60]
+    --min-mapping-quality INT     discard reads with mapping quality below
+                                  this value  [default: (11); 0<=x<=93]
+    --min-base-quality INT        discard reads with base quality below this
+                                  value at variant position  [default: (25);
+                                  x>=-1]
 
-filter conditions:
-  -al AL_FILTER_THRESHOLD, --al-filter-threshold AL_FILTER_THRESHOLD
-                        ALF; threshold for median of read alignment score per
-                        base of all relevant reads, at and below which a
-                        variant is flagged as ALF - default: 0.93, range: 0-,
-                        inclusive
-  -ed EDGE_DEFINITION, --edge-definition EDGE_DEFINITION
-                        ADF; percentage of a read that is considered to be
-                        "the edge" for the purposes of assessing variant
-                        location distribution - default: 0.15, range: 0-0.99,
-                        inclusive
-  -ef EDGE_FRACTION, --edge-fraction EDGE_FRACTION
-                        ADF; percentage of variants must occur within
-                        EDGE_FRACTION of read edges to allow ADF flag -
-                        default: 0.15, range: 0-0.99, exclusive
-  -mos MIN_MAD_ONE_STRAND, --min-MAD-one-strand MIN_MAD_ONE_STRAND
-                        ADF; min range of distances between variant position
-                        and read start for valid reads when only one strand
-                        has sufficient valid reads for testing - default: 0,
-                        range: 0-, exclusive
-  -sos MIN_SD_ONE_STRAND, --min-sd-one-strand MIN_SD_ONE_STRAND
-                        ADF; min stdev of variant position and read start for
-                        valid reads when only one strand has sufficient valid
-                        reads for testing - default: 4, range: 0-, exclusive
-  -mbsw MIN_MAD_BOTH_STRAND_WEAK, --min-MAD-both-strand-weak MIN_MAD_BOTH_STRAND_WEAK
-                        ADF; min range of distances between variant position
-                        and read start for valid reads when both strands have
-                        sufficient valid reads for testing AND -sbsw is true -
-                        default: 2, range: 0-, exclusive
-  -sbsw MIN_SD_BOTH_STRAND_WEAK, --min-sd-both-strand-weak MIN_SD_BOTH_STRAND_WEAK
-                        ADF; min stdev of variant position and read start for
-                        valid reads when both strands have sufficient valid
-                        reads for testing AND -mbsw is true- default: 2,
-                        range: 0-, exclusive
-  -mbss MIN_MAD_BOTH_STRAND_STRONG, --min-MAD-both-strand-strong MIN_MAD_BOTH_STRAND_STRONG
-                        ADF; min range of distances between variant position
-                        and read start for valid reads when both strands have
-                        sufficient valid reads for testing AND -sbss is true -
-                        default: 1, range: 0-, exclusive
-  -sbss MIN_SD_BOTH_STRAND_STRONG, --min-sd-both-strand-strong MIN_SD_BOTH_STRAND_STRONG
-                        ADF; min stdev of variant position and read start for
-                        valid reads when both strands have sufficient valid
-                        reads for testing AND -mbss is true - default: 10,
-                        range: 0-, exclusive
-  -mr MIN_READS, --min-reads MIN_READS
-                        ADF; number of reads at and below which the hairpin
-                        filtering logic considers a strand to have
-                        insufficient reads for testing - default: 1, range:
-                        0-, inclusive
+DVF config overrides:
+    --duplication-window-size INT
+                                  inclusive maximum window size in number of
+                                  bases within which read pairs supporting a
+                                  variant may be considered possible
+                                  duplicates of eachother. -1 will disable
+                                  duplicate detection  [default: (6); x>=0]
+    --loss-ratio FLOAT            ratio of the number of reads found to be
+                                  duplicates against the total number of
+                                  supporting reads, above which a variant is
+                                  flagged DVF. In logical AND with a hardcoded
+                                  test that at least 2 supporting reads are
+                                  independent, i.e. not duplicates of each
+                                  other, to ensure that regardless of the
+                                  value of `loss_ratio` collapse of duplicates
+                                  to only a single supporting read always
+                                  results in a DVF flag. Smaller is more
+                                  sensitive. Set to 0.99 to rely only on the
+                                  hardcoded test (practically speaking).
+                                  [default: (0.49); 0.0<=x<=0.99]
 
-procedural:
-  -r CRAM_REFERENCE, --cram-reference CRAM_REFERENCE
-                        path to FASTA format CRAM reference, overrides
-                        $REF_PATH and UR tags - ignored if --format is not
-                        CRAM
-  -m NAME_MAPPING [NAME_MAPPING ...], --name-mapping NAME_MAPPING [NAME_MAPPING ...]
-                        key to map samples in a multisample VCF to alignment/s
-                        provided to -a. Uses VCF sample names per VCF header
-                        and alignment SM tags. With multiple alignments to -a,
-                        accepts a space separated list of sample:SM pairs.
-                        With a single alignment, also accepts a comma
-                        separated string of one or more possible sample-of-
-                        interest names like TUMOR,TUMOUR
-  -ji INPUT_JSON, --input-json INPUT_JSON
-                        path to JSON of command line parameters, from which
-                        arguments will be loaded - overridden by arguments
-                        provided at runtime
-  -jo OUTPUT_JSON, --output-json OUTPUT_JSON
-                        log command line arguments to JSON
+ALF config overrides:
+    --al-filter-threshold FLOAT   threshold for median of read alignment score
+                                  per base of all relevant reads, at and below
+                                  which a variant is flagged ALF  [default:
+                                  (0.93); 0<=x<=93]
+
+ADF config overrides:
+    --edge-definition FLOAT       percentage of a read that is considered to
+                                  be "the edge" for the purposes of assessing
+                                  variant position distribution  [default:
+                                  (0.15); 0.0<=x<=0.99]
+    --edge-fraction FLOAT         percentage of variants must occur within
+                                  EDGE_FRACTION of read edges to mark ADF flag
+                                  [default: (0.9); 0.0<=x<=0.99]
+    --min-mad-one-strand INT      Mean Average Devaition of distances between
+                                  variant position and read start above which
+                                  a variant cannot be considered anomalous -
+                                  used when only one strand has sufficient
+                                  valid reads for testing  [default: (0);
+                                  x>=0]
+    --min-sd-one-strand FLOAT     stdev of distances between variant position
+                                  and read start above which a variant cannot
+                                  be considered anomalous - used when only one
+                                  strand has sufficient valid reads for
+                                  testing  [default: (4.0); x>=0.0]
+    --min-mad-both-strand-weak INT
+                                  Mean Average Devaition of distances between
+                                  variant position and read start above which
+                                  a variant cannot be considered anomalous -
+                                  used when both strands have sufficient valid
+                                  reads for testing, in logical AND with
+                                  `min_sd_both_strand_weak`, and logical OR
+                                  with corresponding strong condtion pair
+                                  [default: (2); x>=0]
+    --min-sd-both-strand-weak FLOAT
+                                  stdev of distances between variant position
+                                  and read start above which a variant cannot
+                                  be considered anomalous - used when both
+                                  strands have sufficient valid reads for
+                                  testing, in logical AND with
+                                  `min_mad_both_strand_weak`, and logical OR
+                                  with corresponding strong condtion pair
+                                  [default: (2.0); x>=0.0]
+    --min-mad-both-strand-strong INT
+                                  Mean Average Devaition of distances between
+                                  variant position and read start above which
+                                  a variant cannot be considered anomalous -
+                                  used when both strands have sufficient valid
+                                  reads for testing, in logical AND with
+                                  `min_sd_both_strand_strong`, and logical OR
+                                  with corresponding weak condtion pair
+                                  [default: (1); x>=0]
+    --min-sd-both-strand-strong FLOAT
+                                  stdev of distances between variant position
+                                  and read start above which a variant cannot
+                                  be considered anomalous - used when both
+                                  strands have sufficient valid reads for
+                                  testing, in logical AND with
+                                  `min_mad_both_strand_weak`, and logical OR
+                                  with the corresponding weak condtion pair
+                                  [default: (10.0); x>=0.0]
+    --min-reads INT               number of reads at and below which the
+                                  hairpin filtering logic considers a strand
+                                  to have insufficient reads for testing for a
+                                  given variant  [default: (1); x>=1]
 ```
 
-Parameters are hopefully mostly clear from the helptext, but some warrant further explanation:
+Parameters are hopefully mostly clear from the helptext, but some warrant additional commentary:
 
-- `--name-mapping` – When using multisample VCFS, hairpin2 compares VCF sample names found in the VCF header to SM tags in alignments to match samples of interest to the correct alignment. If these IDs are different between the VCF and alignments, you'll need to provide a key. If there are multiple samples of interest in the VCF, and therefore multiple alignments, you will need to provide a key for each pair - e.g. `-m sample1:SM1 sample2:SM2 ...`. If there is only one alignment, then you need only indicate which VCF sample is the sample of interest, e.g. `-m TUMOR`. As a convenience for high throughput workflows, when there is only one alignment you may also provide a comma separated string of possible names for the sample of interest, e.g. `-m TUMOR,TUMOUR`. Assuming there is one and only one match in the VCF, the tool will match the alignment to that sample.
-- `--al-filter-threshold` – the default value of 0.93 was arrived at by trial and error – since different aligners/platforms calculate alignment score differently, you may want to modify this value appropriately. In past implementations, where this value was known as `ASRD`, the default was set at 0.87.
-- `--max-read-span` – long homopolymer tracts can cause stuttering, where a PCR duplicate will have, for example, an additional A in a tract of As. These reads will align a base or two earlier on the reference genome than they should. As a result pcr duplicate flag machinery fails and they are not flagged as duplicates. `hairpin2` will attempt to filter out these duplicates, and MAX_READ_SPAN is then the maximum +- position to use during duplicate detection.
+- `--name-mapping` – When using multisample VCFs, hairpin2 compares VCF sample names found in the VCF header to SM tags in alignments to match samples of interest to the correct alignment. If these IDs are different between the VCF and alignments, you'll need to provide a JSON key. If there are multiple samples of interest in a multisample VCF, and therefore it is necessary to provide multiple alignments, you will need to provide a mapping for each pair - e.g. `-m '{"sample1":"SM1", "sample2":"SM2", ...}'` or `-m '{"sample1:"1.bam", ...}'`. If there is only one sample of interest, and therefore only one alignment is provided to the tool, then you also have an optional shorthand - you need only indicate which VCF sample is the sample of interest, e.g. `-m '["TUMOR"]'`. When there is only one sample of interest, and therefore one alignment, but the sample of interest may have one of several possible names, you may also provide a comma separated string of possible names for the sample of interest, e.g. `-m '["TUMOR", "TUMOUR"]'` - users have found this valuable for high throughput workflows where the VCF input may be coming from one of several prior processes (which may name samples differently). In all cases, there must be one and only one match between alignment and VCF sample. In all cases, a path to a JSON file may be provided instead of the JSON string. Note that a VCF containing both a TUMOUR and a NORMAL sample contains 2 samples, and therefore is a multisample VCF.
+- `--al-filter-threshold` – In the predecessor to `hairpin2`, `additionalBAMStatistics`, this value was known as `ASRD` and the default was set at 0.87.
+- For all parameters, defaults were found by trial and error on LCM data and you may find it necessary to experiment with this parameter depending on data type.
 
-The parameters available for the ADF flag are probably best understood by reading the implementation of the function `is_variant_AD()` in `hairpin2/main.py`.
+Reading the `test()` method implementation of each filter may be informative. These can be found in `hairpin2/filters/`
 
-The tool tests records in a VCF file and applies the `ADF` and `ALF` filter flags as appropriate. Reasoning for decisions is recorded in the INFO field of the VCF records, in the form `ADF=<alt>|<True/False>|<code>` and `ALF=<alt>|<True/False>|<code>|<median AS score>`. The codes are as follows:  
+The tool tests records in a VCF file and applies filter flags as appropriate. Reasoning for decisions is recorded in the INFO field of the VCF records, in the form `<FILTER>=<alt>|<True/False>|<code>|...`. Additional data (noted by the ellipsis) where present are described in the relevant header line of the VCF. The codes indicate the reason on which the decision was made, and are as follows:
 
-> **0** – passed/failed on condition 60A(i) of Ellis et al. (`ADF` only)  
-> **1** – passed/failed on condition 60B(i) of Ellis et al. (`ADF` only)  
-> **2** – passed/failed on filter threshold (`ALF` only)  
-> **3** – insufficient appropriate reads to support calling flag – this covers a lot of possiblities, if more granularity is desired, please request it  
-> **4** – no samples have non 0,0 genotype for the record  
+DVF:
+> **0** – insufficient supporting reads  
+> **1** – variant is/not the result of PCR stuttering 
+
+ALF:
+> **0** – insufficient supporting reads  
+> **1** – variant passed/failed on filter threshold 
+
+ADF:
+> **0** – insufficient supporting reads  
+> **1** – passed/failed on condition 60A(i) of Ellis et al. (`ADF` only)  
+> **2** – passed/failed on condition 60B(i) of Ellis et al. (`ADF` only)  
 
 The basic procedure of this implementation is as follows:  
 >   For each record in the VCF, test every alt for that record as follows:  
 >   1. for samples exhibiting the mutation, retrieve reads covering the region
->   2. test each read for validity for use in distribution testing (i.e. base quality, do they express the correct alt, and so on)
->   3. performing statistical analysis on aggregates of the position of the mutation relative to the start and end of the aligned portion of the reads
->   4. on the results of the statistical analysis, pass or fail the record for the filters `ALF` and `ADF`, and log a code and relevant info to the `INFO` field indicating the reason for the decision  
-
-The code has been written with the intention of clarity and extensibility – again, further understanding may be achieved by reading `hairpin2/main.py`.
+>   2. test each read for validity for use in testing (i.e. base quality, do they express the correct alt, and so on)
+>   3. performing statistical analysis on read context
+>   4. pass or fail the record for each filter and log to `INFO`
 
 
 ### TESTING
-A test suite has been provided with the algorithm implementation. To run these tests run `pytest -m "validate"` from within the install directory. `hairpin2` must have been installed from that same directory, and be available on path (for example in a virtual environment). The tests can be found in the `test` directory. The basic premise is basis path testing. This approach means the focus is on testing all nodes (statements) and edges (paths between statements), rather than trying every possible input combination. Since all input possibilities will pass via the same network/graph, if we prove that each part of that network functions correctly, we can be more confident that the program functions as it claims to. The tests are simple, and, once you have read them, it should be very easy to add your own further tests should you feel the need to confirm any behaviour.
+A test suite has been provided with the algorithm implementation. To run these tests run `pytest .` from within the install directory. `hairpin2` must have been installed from that same directory, and be available on path (for example in a virtual environment). The tests can be found in the `test` directory. The focus is on testing all nodes (statements) and edges (paths between statements) for key scientific logic, rather than trying every possible input combination, in addition to testing critical boundary conditions. Since all input possibilities will pass via the same network/graph, if we prove that each part of that network functions correctly, we can be more confident that the program functions as it claims to. The tests are simple, and, once you have read them, it should be very easy to add your own further tests should you feel the need to confirm any behaviour.
+
+
+### TODO
+- automated regression testing
+- stricter config and params validation, most likely with pydantic, to catch misformatted configs earlier
+- further boundary condition testing
+- improve documentation - describe filters in individual sections, beyond replicating helptext
+- switch entirely to fstrings from .format()
+- disscussions to be had on multisample VCF support
 
 
 ### LICENCE
 ```
 hairpin2
 
-Copyright (C) 2024 Genome Research Ltd.
+Copyright (C) 2024, 2025 Genome Research Ltd.
 
 Author: Alex Byrne <ab63@sanger.ac.uk>
 

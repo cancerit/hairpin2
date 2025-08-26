@@ -1,0 +1,2 @@
+- Collate the scientific discussions to be had, including the TBC QC filter, with responsible scientists (these are for a future release)
+- Run prerelease over many samples

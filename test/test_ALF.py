@@ -1,6 +1,6 @@
 # hairpin2
 #
-# Copyright (C) 2024 Genome Research Ltd.
+# Copyright (C) 2024, 2025 Genome Research Ltd.
 #
 # Author: Alex Byrne <ab63@sanger.ac.uk>
 #
@@ -21,17 +21,11 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
-from hairpin2.main import is_variant_AL
-from hairpin2 import constants as c
+from hairpin2.filters import ALF
 import pysam
-import pytest
 import copy
 
 
-# BASIS PATH TESTING (ish)
-# test every node and edge at least once
-# ----
 # perfect read pair:
 r = pysam.AlignedSegment()
 r.query_name = 'read1'
@@ -46,27 +40,43 @@ r.cigarstring = '100M'
 r.set_tag('MC', '100M')
 
 
-@pytest.mark.validate
-def test_path_AL_true_code_2():
-    expected = c.ALFilter(flag=True, code=2, avg_as=0.5)
+def test_low_AS():
+    al = ALF.Filter(fixed_params=ALF.Params())
     s1r1 = copy.deepcopy(r)  # no AS, cover except KeyError
     s1r2 = copy.deepcopy(r)
     s1r2.set_tag('AS', 50)  # low AS
-    result = is_variant_AL([s1r1, s1r2])
-    assert expected == result
+    readsin = [s1r1, s1r2]
+    readsout, result = al.test('_', readsin)
+    assert result.flag == True
+    assert result.code == ALF.ALCodes.ON_THRESHOLD
+    assert readsin == readsout
 
 
-@pytest.mark.validate
-def test_path_AL_false_code_2():
-    expected = c.ALFilter(flag=False, code=2, avg_as=0.99)
+def test_high_AS():
+    al = ALF.Filter(fixed_params=ALF.Params())
     s1r1 = copy.deepcopy(r)
     s1r1.set_tag('AS', 99)  # high AS
-    result = is_variant_AL([s1r1])
-    assert expected == result
+    readsin = [s1r1]
+    readsout, result = al.test('_', readsin)
+    assert result.flag == False
+    assert result.code == ALF.ALCodes.ON_THRESHOLD
+    assert readsin == readsout
 
 
-@pytest.mark.validate
-def test_path_AL_false_code_3():
-    expected = c.ALFilter(code=3)
-    result = is_variant_AL([])
-    assert expected == result
+def test_insufficient_AS():
+    al = ALF.Filter(fixed_params=ALF.Params())
+    s1r1 = copy.deepcopy(r)
+    readsin = [s1r1]
+    readsout, result = al.test('_', readsin)
+    assert result.flag == None
+    assert result.code == ALF.ALCodes.INSUFFICIENT_AS_TAGS
+    assert readsin == readsout
+
+
+def test_insufficient_reads():
+    al = ALF.Filter(fixed_params=ALF.Params())
+    readsin = []
+    readsout, result = al.test('_', [])
+    assert result.flag == None
+    assert result.code == ALF.ALCodes.INSUFFICIENT_READS
+    assert readsin == readsout
