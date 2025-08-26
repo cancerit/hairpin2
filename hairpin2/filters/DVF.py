@@ -97,9 +97,9 @@ class Filter(haf.FilterTester[dict[str, list[AlignedSegment]], Params, Result]):
             )
             sanitised_reads_by_sample = variant_reads_by_sample
         else:
-            sample_loss_ratio = 0
             code = DVCodes.DUPLICATION  # testing possible, and this is the only relevant code
             for sample_key, reads in variant_reads_by_sample.items():
+                sample_loss_ratio = 0
                 if nreads_by_sample[sample_key] > 1:
                     # prep data
                     sample_pair_endpoints: list[tuple[int, tuple[int, int, int, int]]] = []
@@ -156,6 +156,7 @@ class Filter(haf.FilterTester[dict[str, list[AlignedSegment]], Params, Result]):
                     sanitised_reads = reads
 
                 sanitised_reads_by_sample[sample_key] = sanitised_reads
+                loss_ratio.append(sample_loss_ratio)
 
             if nsamples_with_duplication > self.fixed_params.nsamples_threshold:
                 flag = True
