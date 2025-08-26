@@ -214,11 +214,12 @@ A test suite has been provided with the algorithm implementation. To run these t
 
 
 ### TODO
-- automated regression testing, and further boundary condition testing
+- automated regression testing
 - stricter config and params validation, most likely with pydantic, to catch misformatted configs earlier
+- further boundary condition testing
 - improve documentation - describe filters in individual sections, beyond replicating helptext
 - switch entirely to fstrings from .format()
-- minor improvements to multisample VCF support
+- disscussions to be had on multisample VCF support
 
 
 ### LICENCE

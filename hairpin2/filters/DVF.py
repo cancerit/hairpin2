@@ -47,7 +47,7 @@ class Result(haf.FilterResult[DVCodes]):
 @dataclass(slots=True, frozen=True)
 class Params(haf.FilterParams):
     duplication_window_size: int = 6  # -1 disables
-    # TODO: n.b. neither of these options prevent read removal due to duplication,
+    # NOTE: neither of these options prevent read removal due to duplication,
     # so `DVF.test()` always functions as QC and may still drop reads
     # - I think this is fine, just document more
     read_loss_threshold: float = 0.49  # percent threshold of N duplicate reads compared to N input reads for a given variant and sample, above which we call DVF
@@ -86,6 +86,7 @@ class Filter(haf.FilterTester[dict[str, list[AlignedSegment]], Params, Result]):
         nsamples_with_duplication = 0
         nreads_by_sample: dict[str, int] = { k: len(v) for k, v in variant_reads_by_sample.items() }
         sanitised_reads_by_sample: dict[str, list[AlignedSegment]] = {}
+        loss_ratio: list[float] = []
 
         if not any([nreads > 1 for nreads in nreads_by_sample.values()]):
             fresult = Result(
@@ -96,7 +97,7 @@ class Filter(haf.FilterTester[dict[str, list[AlignedSegment]], Params, Result]):
             )
             sanitised_reads_by_sample = variant_reads_by_sample
         else:
-            loss_ratio = 0
+            sample_loss_ratio = 0
             code = DVCodes.DUPLICATION  # testing possible, and this is the only relevant code
             for sample_key, reads in variant_reads_by_sample.items():
                 if nreads_by_sample[sample_key] > 1:
@@ -122,7 +123,6 @@ class Filter(haf.FilterTester[dict[str, list[AlignedSegment]], Params, Result]):
                     sample_pair_endpoints = sorted(sample_pair_endpoints, key=lambda x: x[1][0])
 
                     # test data
-                    # TODO: I don't agree with sorting the ends. They should be matched on their field (start, start) - discuss with Phuong/Peter
                     dup_idcs: list[int] = []
                     dup_endpoint_test_pool: list[tuple[int, int, int, int]] = []
                     dup_endpoint_test_pool.append(sample_pair_endpoints[0][1])
@@ -149,8 +149,8 @@ class Filter(haf.FilterTester[dict[str, list[AlignedSegment]], Params, Result]):
                     sanitised_reads = [read for i, read in enumerate(reads) if i not in dup_idcs]
                     n_loss = nreads_by_sample[sample_key] - len(sanitised_reads)
                     assert nreads_by_sample[sample_key] > n_loss > -1
-                    loss_ratio = n_loss / nreads_by_sample[sample_key]
-                    if loss_ratio > self.fixed_params.read_loss_threshold or len(sanitised_reads) == 1:
+                    sample_loss_ratio = n_loss / nreads_by_sample[sample_key]
+                    if sample_loss_ratio > self.fixed_params.read_loss_threshold or len(sanitised_reads) == 1:
                         nsamples_with_duplication += 1
                 else:
                     sanitised_reads = reads
@@ -165,7 +165,7 @@ class Filter(haf.FilterTester[dict[str, list[AlignedSegment]], Params, Result]):
                 flag=flag,
                 code=code,
                 alt=alt,
-                loss_ratio=loss_ratio  # BUG: doesn't average over multisample variant
+                loss_ratio=sum(loss_ratio) / len(loss_ratio)  # TODO: discuss whether averaging is the best choice
             )
 
         return sanitised_reads_by_sample, fresult
