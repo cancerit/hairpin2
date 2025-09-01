@@ -22,13 +22,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import hairpin2.abstractfilters as haf
+from hairpin2.filters.shared_params import AltVarParams
 from hairpin2 import ref2seq as r2s
 from pydantic.dataclasses import dataclass
 from typing import ClassVar, override
-from collections.abc import Sequence
-from pysam import AlignedSegment
 from enum import IntEnum, auto
 from statistics import median, stdev
+from itertools import chain
 
 
 class ADCodes(IntEnum):
@@ -45,9 +45,8 @@ class Result(haf.FilterResult[ADCodes]):
     def getinfo(self) -> str:
         return f'{self.alt}|{self.flag}|{self.code}'
 
-
 @dataclass(slots=True, frozen=True)
-class Params(haf.FilterParams):
+class FixedParams(haf.FixedParams):
     edge_definition: float = 0.15  # relative proportion, by percentage, of a read to be considered 'the edge'
     edge_clustering_threshold: float = 0.9  # percentage threshold
     min_MAD_one_strand: int = 0  # exclusive (and subsequent params)
@@ -59,7 +58,7 @@ class Params(haf.FilterParams):
     min_reads: int = 1  # inclusive
 
 
-class Filter(haf.FilterTester[Sequence[AlignedSegment], Params, Result]):
+class Filter(haf.Flagger[FixedParams, AltVarParams, Result]):
     # TODO: docstring
     """
     Anomalous Distribution Filter based on hairpin filtering algorthim described in Ellis et al. 2020 (DOI: 10.1038/s41596-020-00437-6) 
@@ -70,18 +69,18 @@ class Filter(haf.FilterTester[Sequence[AlignedSegment], Params, Result]):
     # in the case where both strands have sufficient supporting reads
     # discuss with Peter
     @override
-    def test[T: Sequence[AlignedSegment]](
+    def test(
         self,
-        alt: str,
-        variant_start: int,
-        variant_reads: T,
-    ) -> tuple[T, Result]:
+    ) -> Result:
+        # NOTE/TODO: test across all samples has always been done,
+        # but is it really what we want to do?
+        # Should it be a user choice whether to execute per sample?
 
-        if len(variant_reads) < 1:
+        if len(self.var_params.all_reads) < 1:
             fresult = Result(
                 flag=None,
                 code=ADCodes.INSUFFICIENT_READS,
-                alt=alt
+                alt=self.var_params.alt
             )
         else:
             # *l*engths of *a*lignment starts *to* *m*utant query positions
@@ -90,9 +89,9 @@ class Filter(haf.FilterTester[Sequence[AlignedSegment], Params, Result]):
             near_start_f: list[bool] = []
             near_start_r: list[bool] = []
 
-            for read in variant_reads:
+            for read in self.var_params.all_reads:
                 try:
-                    mut_qpos = r2s.ref2querypos(read, variant_start)
+                    mut_qpos = r2s.ref2querypos(read, self.var_params.record.start)
                 except ValueError:
                     raise ValueError(f'read {read.query_name} does not cover variant')
 
@@ -114,7 +113,7 @@ class Filter(haf.FilterTester[Sequence[AlignedSegment], Params, Result]):
                 fresult = Result(
                     flag=None,
                     code=ADCodes.INSUFFICIENT_READS,
-                    alt=alt
+                    alt=self.var_params.alt
                 )
             else:
                 if len(la2ms_f) > self.fixed_params.min_reads:  # if true, calculate stats
@@ -159,7 +158,7 @@ class Filter(haf.FilterTester[Sequence[AlignedSegment], Params, Result]):
                 fresult = Result(
                     flag=flag,  # pyright: ignore[reportPossiblyUnboundVariable]
                     code=code,  # pyright: ignore[reportPossiblyUnboundVariable]
-                    alt=alt
+                    alt=self.var_params.alt
                 )
 
-        return variant_reads, fresult
+        return fresult

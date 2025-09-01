@@ -31,11 +31,12 @@ The payoff for that verbosity is:
     - strong guarantees about the implementation of any given filter without needing to know about the underlying logic, making filters very easy to use once defined
 """
 from abc import ABC, abstractmethod
-from pydantic import BaseModel, ConfigDict
+from itertools import chain
+from pydantic import BaseModel, ConfigDict, PrivateAttr
 from pydantic.dataclasses import dataclass
 from typing import Generic, TypeVar, Any, override, ClassVar
-from collections.abc import Collection, Mapping
-from pysam import AlignedSegment
+from collections.abc import Sequence, Mapping
+from pysam import AlignedSegment, VariantRecord
 from enum import IntEnum
 # pyright: reportExplicitAny=false
 # pyright: reportAny=false
@@ -93,8 +94,7 @@ class FilterResult(BaseModel, Generic[CodeEnum_T], ABC):
         """
 
 
-@dataclass(slots=True, frozen=True)
-class FilterParams:
+class Params:
     '''
     parent dataclass to be be inherited from to store specific fixed parameters for a particular subclass of FilterTester,
     or in other words for a particular filtering test. Using subclasses of this class for the fixed parameters provides
@@ -103,12 +103,36 @@ class FilterParams:
     pass
 
 
-ReadCollection_T = TypeVar("ReadCollection_T", Collection[AlignedSegment], Mapping[Any, Collection[AlignedSegment]])
-FilterParams_T = TypeVar("FilterParams_T", bound=FilterParams)
+@dataclass(frozen=True)
+class FixedParams(Params):
+    pass
+
+
+@dataclass(
+    config=ConfigDict(
+        frozen=True,
+        strict=True,
+        arbitrary_types_allowed=True
+    )
+)
+class VarParams(Params):
+    record: VariantRecord  # makes sense right?
+    reads_by_sample: Mapping[Any, Sequence[AlignedSegment]]  # always take a by-sample mapping, convert internally
+
+    @property
+    def all_reads(
+        self
+    ):
+        return list(chain.from_iterable(self.reads_by_sample.values()))  # collate from all samples 
+
+
+FixedParams_T = TypeVar("FixedParams_T", bound=FixedParams)
+VarParams_T = TypeVar("VarParams_T", bound=VarParams)
 FilterResult_T = TypeVar("FilterResult_T", bound=FilterResult[IntEnum], covariant=True)  # covariant such that a test method that returns a subtype of FilterResult[IntEnum] is accepted where FilterResult[IntEnum] (or FilterResult_T) is expected
 
 
-class FilterTester(BaseModel, Generic[ReadCollection_T, FilterParams_T, FilterResult_T], ABC):
+class Flagger(BaseModel, Generic[FixedParams_T, VarParams_T, FilterResult_T], ABC):
+    # TODO: update docstring
     """
     Parent ABC/pydantic BaseModel to be inherited from when implementing a filter test on read data for a variant.
     Contains a single abstract class method, `test()`, that must be overridden by subclasses for inidvidual filters.
@@ -129,19 +153,52 @@ class FilterTester(BaseModel, Generic[ReadCollection_T, FilterParams_T, FilterRe
         - filters are more difficult to implement incorrectly
         - filters have a sufficiently consistent interface such that adding extra filters into main becomes trivial
     """
-    fixed_params: FilterParams_T
+    fixed_params: FixedParams_T
+    _var_params: VarParams_T | None = PrivateAttr(None)
+    _executed: bool = PrivateAttr(False)
 
-    model_config: ConfigDict = ConfigDict(frozen=True, strict=True)
+    model_config: ConfigDict = ConfigDict(
+        frozen=True,
+        strict=True,
+    )
 
-    # I would have prefered to be stricter with the input parameters,
-    # but it's not currently possible to enforce some keyword args (e.g. `reads: ReadCollection_T`)
-    # and allow for other arbitrary keyword args in the same abstract method signature
+    # read only
+    @property
+    def var_params(self) -> VarParams_T:
+        if self._var_params is None:
+            raise AttributeError("var_params not set, cannot access")
+        return self._var_params
+
+    def prime(
+        self,
+        var_params: VarParams_T,
+        overwrite: bool = False
+    ):
+        if not isinstance(var_params, VarParams):
+            raise TypeError("Flagger can only be primed with a VarParams instance")
+        if self._var_params is not None and not overwrite:
+            raise RuntimeError("Flagger already primed, and overwrite is False")
+        self._var_params = var_params
+
+    def reset(
+        self
+    ):
+        self._var_params = None
+        self._executed = False
+
+    # override if required
+    def prefilter(
+        self
+    ):
+        """
+        filter reads prior to test
+        """
+
+    # modify unfrozen elements of params at runtime (or create a new params) to modify
     @abstractmethod
     def test(
         self,
-        *args: Any,
-        **kwargs: Any
-    ) -> tuple[ReadCollection_T, FilterResult_T]:
+    ) -> FilterResult_T:   # may not modify reads
         """
         Abstract filter test method for subclass override.
         
@@ -164,3 +221,28 @@ class FilterTester(BaseModel, Generic[ReadCollection_T, FilterParams_T, FilterRe
         FilterTester specific to list[AlignedSegment], and that some filters do need to be aware of which sample the reads
         came from, in which case you might make the subclass of FilterTester specifc to dict[str, AlignedSegment]
         """
+
+    def __call__(
+        self,
+        var_params: VarParams_T | None = None,
+        overwrite: bool = False,
+        **kwargs: Any
+    ):
+        """
+        run prefilter, test variant, and return result
+        """
+        if self._executed == True:
+            raise RuntimeError("Flagger executed and has not been reset! Cannot run flagger.")
+        if var_params is not None:
+            self.prime(var_params, overwrite)
+        else:
+            try:
+                self.var_params
+            except:
+                raise RuntimeError("var_params has not been set! Cannot run flagger.")
+        self.prefilter()
+        result = self.test()
+        self._executed = True
+        if kwargs["execute_then_reset"] == True:
+            self.reset()  # disengage
+        return result

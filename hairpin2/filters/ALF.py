@@ -28,6 +28,8 @@ from typing import override, ClassVar
 from collections.abc import Sequence
 from enum import IntEnum, auto
 from statistics import median
+
+from hairpin2.filters.shared_params import AltVarParams
 # If you're here just to examine the scientific implementation of each filter,
 # examine the `test` methods for each one
 # the rest is largely boilerplate/typing magic to make the filter implementation modular and robust
@@ -50,33 +52,31 @@ class Result(haf.FilterResult[ALCodes]):
 
 
 @dataclass(frozen=True, slots=True)
-class Params(haf.FilterParams):
+class FixedParams(haf.FixedParams):
     al_thresh: float = 0.93
 
 
-class Filter(haf.FilterTester[Sequence[AlignedSegment], Params, Result]):
+class Flagger(haf.Flagger[FixedParams, AltVarParams, Result]):
     # TODO: docstring
     """
     Alignment score filter based on AS tag
     """
     @override
-    def test[T: Sequence[AlignedSegment]](
-        self,
-        alt: str,
-        variant_reads: T,
-    ) -> tuple[T, Result]:
-        if len(variant_reads) < 1:
+    def test(
+        self
+    ):
+        if len(self.var_params.all_reads) < 1:
             code = ALCodes.INSUFFICIENT_READS
             fresult = Result(
                 flag=None,
                 code=code,
-                alt=alt,
+                alt=self.var_params.alt,
                 avg_as=None
             )
         else:
             aln_scores: list[float] = []
 
-            for read in variant_reads:
+            for read in self.var_params.all_reads:
                 try:
                     aln_scores.append(int(read.get_tag('AS')) / read.query_length)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]  TODO: look into fixing pysam typing
                 except KeyError:
@@ -90,7 +90,7 @@ class Filter(haf.FilterTester[Sequence[AlignedSegment], Params, Result]):
                 fresult = Result(
                     flag=flag,
                     code=code,
-                    alt=alt,
+                    alt=self.var_params.alt,
                     avg_as=avg_as
                 )
             else:
@@ -99,8 +99,8 @@ class Filter(haf.FilterTester[Sequence[AlignedSegment], Params, Result]):
                 fresult = Result(
                     flag=flag,
                     code=code,
-                    alt=alt,
+                    alt=self.var_params.alt,
                     avg_as=None
                 )
 
-        return variant_reads, fresult
+        return fresult

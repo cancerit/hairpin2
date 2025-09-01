@@ -25,7 +25,9 @@ from pathlib import Path
 import pysam
 from hairpin2 import  __version__
 from hairpin2.abstractfilters import FilterResult
+from hairpin2.filters.shared_params import AltVarParams
 from hairpin2.filters import ADF, ALF, DVF
+from hairpin2.read_preprocessors.dupmark import mark_stutter_dups
 from hairpin2.readqc import qc_read_broad, qc_read_alt_specific
 import logging
 import json
@@ -389,10 +391,10 @@ def hairpin2(
                 sys.exit(EXIT_FAILURE)
 
     # set up filter params based on inputs
-    al_params = ALF.Params(
+    al_params = ALF.FixedParams(
         kwargs['al_filter_threshold']
     )
-    ad_params = ADF.Params(
+    ad_params = ADF.FixedParams(
         kwargs['edge_definition'],
         kwargs['edge_fraction'],
         kwargs['min_mad_one_strand'],
@@ -403,7 +405,7 @@ def hairpin2(
         kwargs['min_sd_both_strand_strong'],
         kwargs['min_reads']
     )
-    dv_params = DVF.Params(
+    dv_params = DVF.FixedParams(
         kwargs['duplication_window_size'],
         kwargs['loss_ratio']
     )
@@ -563,6 +565,12 @@ def hairpin2(
         logging.error(msg='failed to open VCF output, reporting: {}'.format(e))
         sys.exit(EXIT_FAILURE)
 
+
+    ad = ADF.Filter(fixed_params=ad_params)
+    al = ALF.Flagger(fixed_params=al_params)
+    dv = DVF.Flagger(fixed_params=dv_params)
+
+
     # test records
     prog_bar_counter = 0
     for record in vcf_in_handle.fetch():
@@ -580,6 +588,8 @@ def hairpin2(
                     record.chrom, record.pos))
             else:
                 region_reads_by_sample: dict[str, Iterable[pysam.AlignedSegment]] = {}
+
+                # get pileup
                 for k, v in vcf_sample_to_alignment_map.items():
                     if k in samples_w_mutants:
                         read_iter, test_iter = tee(v.fetch(record.chrom,
@@ -601,6 +611,7 @@ def hairpin2(
                             ]
                             region_reads_by_sample[k] = broad_qc_region_reads
 
+                # this should come earlier
                 # TODO: put mutation type detection under testing
                 # the ability to handle complex mutations would be a potentially interesting future feature
                 # for extending to more varied artifacts
@@ -619,6 +630,9 @@ def hairpin2(
                             record.pos, record.ref, alt))
                         continue
 
+                    # FUTURE: shared qc filtering based on parsing of flagger prefilter configs
+
+                    # TODO: run additive preprocessors (dupmarking) via centralised runner
                     alt_qc_region_reads: dict[str, list[pysam.AlignedSegment]] = {
                         key: [] for key in region_reads_by_sample
                     }
@@ -634,17 +648,20 @@ def hairpin2(
                                 kwargs['min_base_quality']
                             )
                         ]
+                        # NOTE: DVF and this preprocessor are uncomfortably coupled and decoupled
+                        # TODO: test that this properly modifies reads in place
+                        mark_stutter_dups(alt_qc_region_reads[mut_sample], dv.fixed_params.duplication_window_size)
 
-                    # instantiate filters to test the QC'd reads
-                    ad = ADF.Filter(fixed_params=ad_params)
-                    al = ALF.Filter(fixed_params=al_params)
-                    dv = DVF.Filter(fixed_params=dv_params)
 
-                    # run the tests
-                    dup_qc_region_reads, dv_result = dv.test(alt, alt_qc_region_reads)
-                    testing_reads = list(chain.from_iterable(dup_qc_region_reads.values()))
-                    testing_reads, al_result = al.test(alt, testing_reads)
-                    testing_reads, ad_result = ad.test(alt, record.start, testing_reads)
+                    # prime flaggers with data to perform test
+                    test_data = AltVarParams(record, alt_qc_region_reads, alt)
+
+                    # run the flaggers
+                    # TODO: run all via centralised runner
+                    # TODO: switch to prefilter for qc
+                    dv_result = dv(test_data, execute_then_reset=True)
+                    al_result = al(test_data, execute_then_reset=True)
+                    ad_result = ad(test_data, execute_then_reset=True)
                     for res in (al_result, ad_result, dv_result):
                         record_filters[type(res)].append(res)
 
