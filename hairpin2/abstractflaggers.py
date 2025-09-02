@@ -21,6 +21,11 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+#
+# pyright: reportExplicitAny=false
+# pyright: reportAny=false
+# pyright: reportUnsafeMultipleInheritance=false
+# pyright: reportIncompatibleVariableOverride=false
 """
 A set of Parent Abstract Base Classes that together completely describe the expected implementation of a scientific test
 for recording FILTER entry for a variant record in a VCF
@@ -31,17 +36,12 @@ The payoff for that verbosity is:
     - strong guarantees about the implementation of any given filter without needing to know about the underlying logic, making filters very easy to use once defined
 """
 from abc import ABC, abstractmethod
-from itertools import chain
 from pydantic import BaseModel, ConfigDict, PrivateAttr
 from pydantic.dataclasses import dataclass
 from typing import Generic, TypeVar, Any, override, ClassVar
-from collections.abc import Sequence, Mapping
-from pysam import AlignedSegment, VariantRecord
+from pysam import VariantRecord
 from enum import IntEnum
-# pyright: reportExplicitAny=false
-# pyright: reportAny=false
-# pyright: reportUnsafeMultipleInheritance=false
-# pyright: reportIncompatibleVariableOverride=false
+from hairpin2.structures import ReadView
 
 
 ### READ FilterTester First and work backwards! ###
@@ -117,13 +117,7 @@ class FixedParams(Params):
 )
 class VarParams(Params):
     record: VariantRecord  # makes sense right?
-    reads_by_sample: Mapping[Any, Sequence[AlignedSegment]]  # always take a by-sample mapping, convert internally
-
-    @property
-    def all_reads(
-        self
-    ):
-        return list(chain.from_iterable(self.reads_by_sample.values()))  # collate from all samples 
+    reads: ReadView
 
 
 FixedParams_T = TypeVar("FixedParams_T", bound=FixedParams)
@@ -174,6 +168,8 @@ class Flagger(BaseModel, Generic[FixedParams_T, VarParams_T, FilterResult_T], AB
         var_params: VarParams_T,
         overwrite: bool = False
     ):
+        if self._executed:
+            raise RuntimeError("Flagger executed and has not been reset. Cannot primte with new test data.")
         if not isinstance(var_params, VarParams):
             raise TypeError("Flagger can only be primed with a VarParams instance")
         if self._var_params is not None and not overwrite:
@@ -195,6 +191,7 @@ class Flagger(BaseModel, Generic[FixedParams_T, VarParams_T, FilterResult_T], AB
         """
 
     # modify unfrozen elements of params at runtime (or create a new params) to modify
+    # TODO: AUTOMATED FILTER VERIFICATION - DEEPLY CHECK A TEST METHOD DOES NOT MODIFY ELEMENTS (if we can't restrict)
     @abstractmethod
     def test(
         self,
@@ -225,13 +222,17 @@ class Flagger(BaseModel, Generic[FixedParams_T, VarParams_T, FilterResult_T], AB
     def __call__(
         self,
         var_params: VarParams_T | None = None,
-        overwrite: bool = False,
-        **kwargs: Any
+        *args: str
     ):
         """
         run prefilter, test variant, and return result
         """
-        if self._executed == True:
+        # intentionally hidden dev options
+        force = True if "force" in args else False
+        overwrite = True if "overwrite" in args else False
+        execute_then_reset = True if "execute_then_reset" else False
+
+        if self._executed and not force:
             raise RuntimeError("Flagger executed and has not been reset! Cannot run flagger.")
         if var_params is not None:
             self.prime(var_params, overwrite)
@@ -243,6 +244,6 @@ class Flagger(BaseModel, Generic[FixedParams_T, VarParams_T, FilterResult_T], AB
         self.prefilter()
         result = self.test()
         self._executed = True
-        if kwargs["execute_then_reset"] == True:
+        if execute_then_reset == True:
             self.reset()  # disengage
         return result

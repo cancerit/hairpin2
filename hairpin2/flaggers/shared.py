@@ -1,5 +1,5 @@
 from pydantic.dataclasses import dataclass
-from hairpin2.abstractfilters import VarParams
+from hairpin2.abstractflaggers import VarParams
 
 @dataclass(slots=True)
 class AltVarParams(VarParams):

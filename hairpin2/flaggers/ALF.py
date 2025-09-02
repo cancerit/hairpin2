@@ -21,27 +21,25 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-import hairpin2.abstractfilters as haf
-from pysam import AlignedSegment
+import hairpin2.abstractflaggers as haf
 from pydantic.dataclasses import dataclass
 from typing import override, ClassVar
-from collections.abc import Sequence
 from enum import IntEnum, auto
 from statistics import median
+from hairpin2.flaggers.shared import AltVarParams
 
-from hairpin2.filters.shared_params import AltVarParams
 # If you're here just to examine the scientific implementation of each filter,
 # examine the `test` methods for each one
 # the rest is largely boilerplate/typing magic to make the filter implementation modular and robust
 
 
-class ALCodes(IntEnum):
+class CodesALF(IntEnum):
     INSUFFICIENT_READS = 0
     INSUFFICIENT_AS_TAGS = auto()
     ON_THRESHOLD = auto()
 
 
-class Result(haf.FilterResult[ALCodes]):
+class ResultALF(haf.FilterResult[CodesALF]):
     Name: ClassVar[str] = 'ALF'
     alt: str
     avg_as: float | None
@@ -52,11 +50,14 @@ class Result(haf.FilterResult[ALCodes]):
 
 
 @dataclass(frozen=True, slots=True)
-class FixedParams(haf.FixedParams):
+class FixedParamsALF(haf.FixedParams):
     al_thresh: float = 0.93
 
 
-class Flagger(haf.Flagger[FixedParams, AltVarParams, Result]):
+class VarParamsALF(AltVarParams): pass
+
+
+class FlaggerALF(haf.Flagger[FixedParamsALF, VarParamsALF, ResultALF]):
     # TODO: docstring
     """
     Alignment score filter based on AS tag
@@ -65,9 +66,9 @@ class Flagger(haf.Flagger[FixedParams, AltVarParams, Result]):
     def test(
         self
     ):
-        if len(self.var_params.all_reads) < 1:
-            code = ALCodes.INSUFFICIENT_READS
-            fresult = Result(
+        if len(self.var_params.reads.all) < 1:
+            code = CodesALF.INSUFFICIENT_READS
+            fresult = ResultALF(
                 flag=None,
                 code=code,
                 alt=self.var_params.alt,
@@ -76,27 +77,27 @@ class Flagger(haf.Flagger[FixedParams, AltVarParams, Result]):
         else:
             aln_scores: list[float] = []
 
-            for read in self.var_params.all_reads:
+            for read in self.var_params.reads.all:
                 try:
                     aln_scores.append(int(read.get_tag('AS')) / read.query_length)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]  TODO: look into fixing pysam typing
                 except KeyError:
                     pass
             if len(aln_scores) != 0:
                 avg_as = median(aln_scores)
-                code = ALCodes.ON_THRESHOLD
+                code = CodesALF.ON_THRESHOLD
                 flag = False
                 if avg_as <= self.fixed_params.al_thresh:
                     flag = True
-                fresult = Result(
+                fresult = ResultALF(
                     flag=flag,
                     code=code,
                     alt=self.var_params.alt,
                     avg_as=avg_as
                 )
             else:
-                code = ALCodes.INSUFFICIENT_AS_TAGS
+                code = CodesALF.INSUFFICIENT_AS_TAGS
                 flag = None
-                fresult = Result(
+                fresult = ResultALF(
                     flag=flag,
                     code=code,
                     alt=self.var_params.alt,

@@ -41,7 +41,7 @@ r.set_tag('MC', '100M')
 
 
 def test_low_AS():
-    al = ALF.Filter(fixed_params=ALF.Params())
+    al = ALF.Flagger(fixed_params=ALF.FixedParams())
     s1r1 = copy.deepcopy(r)  # no AS, cover except KeyError
     s1r2 = copy.deepcopy(r)
     s1r2.set_tag('AS', 50)  # low AS
@@ -53,7 +53,7 @@ def test_low_AS():
 
 
 def test_high_AS():
-    al = ALF.Filter(fixed_params=ALF.Params())
+    al = ALF.Flagger(fixed_params=ALF.FixedParams())
     s1r1 = copy.deepcopy(r)
     s1r1.set_tag('AS', 99)  # high AS
     readsin = [s1r1]
@@ -64,7 +64,7 @@ def test_high_AS():
 
 
 def test_insufficient_AS():
-    al = ALF.Filter(fixed_params=ALF.Params())
+    al = ALF.Flagger(fixed_params=ALF.FixedParams())
     s1r1 = copy.deepcopy(r)
     readsin = [s1r1]
     readsout, result = al.test('_', readsin)
@@ -74,7 +74,7 @@ def test_insufficient_AS():
 
 
 def test_insufficient_reads():
-    al = ALF.Filter(fixed_params=ALF.Params())
+    al = ALF.Flagger(fixed_params=ALF.FixedParams())
     readsin = []
     readsout, result = al.test('_', [])
     assert result.flag == None

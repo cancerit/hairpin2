@@ -10,6 +10,9 @@ def mark_stutter_dups(
     if not len(reads) > 1:
         return
 
+    if len(reads) != len(set(id(rd) for rd in reads)):
+        raise ValueError("Sequence of objects submitted to function contains duplicated references pointing to the same object in memory (i.e. the same read has been included twice)")
+
     # prep data
     sample_pair_endpoints: list[tuple[AlignedSegment, tuple[int, int, int, int]]] = []
     for read in reads:

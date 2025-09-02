@@ -24,14 +24,15 @@
 from pathlib import Path
 import pysam
 from hairpin2 import  __version__
-from hairpin2.abstractfilters import FilterResult
-from hairpin2.filters.shared_params import AltVarParams
-from hairpin2.filters import ADF, ALF, DVF
+from hairpin2.abstractflaggers import FilterResult
+from hairpin2.structures import ReadView
+from hairpin2.flaggers.shared import AltVarParams
+from hairpin2.flaggers import ADF, ALF, DVF
 from hairpin2.read_preprocessors.dupmark import mark_stutter_dups
 from hairpin2.readqc import qc_read_broad, qc_read_alt_specific
 import logging
 import json
-from itertools import tee, chain
+from itertools import tee
 from typing import Any
 from collections.abc import Iterable
 import sys
@@ -391,10 +392,10 @@ def hairpin2(
                 sys.exit(EXIT_FAILURE)
 
     # set up filter params based on inputs
-    al_params = ALF.FixedParams(
+    al_params = ALF.FixedParamsALF(
         kwargs['al_filter_threshold']
     )
-    ad_params = ADF.FixedParams(
+    ad_params = ADF.FixedParamsADF(
         kwargs['edge_definition'],
         kwargs['edge_fraction'],
         kwargs['min_mad_one_strand'],
@@ -405,7 +406,7 @@ def hairpin2(
         kwargs['min_sd_both_strand_strong'],
         kwargs['min_reads']
     )
-    dv_params = DVF.FixedParams(
+    dv_params = DVF.FixedParamsDVF(
         kwargs['duplication_window_size'],
         kwargs['loss_ratio']
     )
@@ -566,15 +567,15 @@ def hairpin2(
         sys.exit(EXIT_FAILURE)
 
 
-    ad = ADF.Filter(fixed_params=ad_params)
-    al = ALF.Flagger(fixed_params=al_params)
-    dv = DVF.Flagger(fixed_params=dv_params)
+    ad = ADF.FlaggerADF(fixed_params=ad_params)
+    al = ALF.FlaggerALF(fixed_params=al_params)
+    dv = DVF.FlaggerDVF(fixed_params=dv_params)
 
 
     # test records
     prog_bar_counter = 0
     for record in vcf_in_handle.fetch():
-        record_filters: dict[type[FilterResult[Any]], list[FilterResult[Any]]] = {ALF.Result: [], ADF.Result: [], DVF.Result: []}
+        record_filters: dict[type[FilterResult[Any]], list[FilterResult[Any]]] = {ALF.ResultALF: [], ADF.ResultADF: [], DVF.ResultDVF: []}
         if record.alts is None:
             if quiet < 1: logging.warning('{0: <7}:{1: >12} ¦ no alts for this record, skipping'.format(
                 record.chrom, record.pos))
@@ -600,6 +601,7 @@ def hairpin2(
                         except StopIteration:
                             continue
                         else:
+                            # TODO: remove shared QC
                             broad_qc_region_reads = [
                                 read for read in read_iter
                                 if not qc_read_broad(
@@ -630,8 +632,7 @@ def hairpin2(
                             record.pos, record.ref, alt))
                         continue
 
-                    # FUTURE: shared qc filtering based on parsing of flagger prefilter configs
-
+                    # TODO: remove shared QC
                     # TODO: run additive preprocessors (dupmarking) via centralised runner
                     alt_qc_region_reads: dict[str, list[pysam.AlignedSegment]] = {
                         key: [] for key in region_reads_by_sample
@@ -653,15 +654,25 @@ def hairpin2(
                         mark_stutter_dups(alt_qc_region_reads[mut_sample], dv.fixed_params.duplication_window_size)
 
 
-                    # prime flaggers with data to perform test
-                    test_data = AltVarParams(record, alt_qc_region_reads, alt)
+                    # FUTURE: shared qc filtering based on parsing of flagger prefilter configs, post additive preprocessing
 
+
+                    # instantiate test data obj/s
+                    # NOTE: shared var params KOs flagger independence
+                    # NOTE: shared access to the same record in memory is dangerous, trusts developers not to modify for all
+                    # in flagger methods
+                    # NOTE: doubly so if multithreading in future
+                    # TODO: make independent copy in flaggers run method
+                    test_reads = ReadView(alt_qc_region_reads)
+
+                    # !#!#!#!#! NEXT: SUCCESSFUL RUN*. NOW ONTO LQF, INDEPENDENT PREFILTER, AND TESTABLE SUBMETHODS !#!#!#!#!
+                    # *No DVF regressions
                     # run the flaggers
                     # TODO: run all via centralised runner
-                    # TODO: switch to prefilter for qc
-                    dv_result = dv(test_data, execute_then_reset=True)
-                    al_result = al(test_data, execute_then_reset=True)
-                    ad_result = ad(test_data, execute_then_reset=True)
+                    # TODO: switch to prefilter for qc, independent config sections for each filter
+                    dv_result = dv(DVF.VarParamsDVF(record, test_reads, alt)); dv.reset()
+                    al_result = al(ALF.VarParamsALF(record, test_reads, alt)); al.reset()
+                    ad_result = ad(ADF.VarParamsADF(record, test_reads, alt)); ad.reset()
                     for res in (al_result, ad_result, dv_result):
                         record_filters[type(res)].append(res)
 

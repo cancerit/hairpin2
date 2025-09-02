@@ -21,23 +21,22 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-import hairpin2.abstractfilters as haf
-from hairpin2.filters.shared_params import AltVarParams
+import hairpin2.abstractflaggers as haf
+from hairpin2.flaggers.shared import AltVarParams
 from hairpin2 import ref2seq as r2s
 from pydantic.dataclasses import dataclass
 from typing import ClassVar, override
 from enum import IntEnum, auto
 from statistics import median, stdev
-from itertools import chain
 
 
-class ADCodes(IntEnum):
+class CodesADF(IntEnum):
     INSUFFICIENT_READS = 0
     SIXTYAI = auto()
     SIXTYBI = auto()
 
 
-class Result(haf.FilterResult[ADCodes]):
+class ResultADF(haf.FilterResult[CodesADF]):
     Name: ClassVar[str] = 'ADF'
     alt: str
 
@@ -45,8 +44,9 @@ class Result(haf.FilterResult[ADCodes]):
     def getinfo(self) -> str:
         return f'{self.alt}|{self.flag}|{self.code}'
 
-@dataclass(slots=True, frozen=True)
-class FixedParams(haf.FixedParams):
+
+@dataclass(slots=True, frozen=True)  # is this necessary on the child?
+class FixedParamsADF(haf.FixedParams):
     edge_definition: float = 0.15  # relative proportion, by percentage, of a read to be considered 'the edge'
     edge_clustering_threshold: float = 0.9  # percentage threshold
     min_MAD_one_strand: int = 0  # exclusive (and subsequent params)
@@ -58,7 +58,10 @@ class FixedParams(haf.FixedParams):
     min_reads: int = 1  # inclusive
 
 
-class Filter(haf.Flagger[FixedParams, AltVarParams, Result]):
+class VarParamsADF(AltVarParams): pass
+
+
+class FlaggerADF(haf.Flagger[FixedParamsADF, VarParamsADF, ResultADF]):
     # TODO: docstring
     """
     Anomalous Distribution Filter based on hairpin filtering algorthim described in Ellis et al. 2020 (DOI: 10.1038/s41596-020-00437-6) 
@@ -71,15 +74,15 @@ class Filter(haf.Flagger[FixedParams, AltVarParams, Result]):
     @override
     def test(
         self,
-    ) -> Result:
+    ) -> ResultADF:
         # NOTE/TODO: test across all samples has always been done,
         # but is it really what we want to do?
         # Should it be a user choice whether to execute per sample?
 
-        if len(self.var_params.all_reads) < 1:
-            fresult = Result(
+        if len(self.var_params.reads.all) < 1:
+            fresult = ResultADF(
                 flag=None,
-                code=ADCodes.INSUFFICIENT_READS,
+                code=CodesADF.INSUFFICIENT_READS,
                 alt=self.var_params.alt
             )
         else:
@@ -89,7 +92,7 @@ class Filter(haf.Flagger[FixedParams, AltVarParams, Result]):
             near_start_f: list[bool] = []
             near_start_r: list[bool] = []
 
-            for read in self.var_params.all_reads:
+            for read in self.var_params.reads.all:
                 try:
                     mut_qpos = r2s.ref2querypos(read, self.var_params.record.start)
                 except ValueError:
@@ -110,9 +113,9 @@ class Filter(haf.Flagger[FixedParams, AltVarParams, Result]):
             # hairpin conditions from Ellis et al. 2020, Nature Protocols
             # sometimes reported as 2021
             if len(la2ms_f) <= self.fixed_params.min_reads and len(la2ms_r) <= self.fixed_params.min_reads:
-                fresult = Result(
+                fresult = ResultADF(
                     flag=None,
-                    code=ADCodes.INSUFFICIENT_READS,
+                    code=CodesADF.INSUFFICIENT_READS,
                     alt=self.var_params.alt
                 )
             else:
@@ -124,10 +127,10 @@ class Filter(haf.Flagger[FixedParams, AltVarParams, Result]):
                         if (((sum(near_start_f) / len(near_start_f)) < self.fixed_params.edge_clustering_threshold) and
                             mad_f > self.fixed_params.min_MAD_one_strand and
                                 sd_f > self.fixed_params.min_sd_one_strand):
-                            code = ADCodes.SIXTYAI  # 60A(i)
+                            code = CodesADF.SIXTYAI  # 60A(i)
                             flag = False
                         else:
-                            code = ADCodes.SIXTYAI
+                            code = CodesADF.SIXTYAI
                             flag = True
                 # the nested if statement here makes the combined condition mutually exclusive with the above
                 if len(la2ms_r) > self.fixed_params.min_reads:
@@ -138,10 +141,10 @@ class Filter(haf.Flagger[FixedParams, AltVarParams, Result]):
                         if (((sum(near_start_r) / len(near_start_r)) < self.fixed_params.edge_clustering_threshold) and
                             mad_r > self.fixed_params.min_MAD_one_strand and
                                 sd_r > self.fixed_params.min_sd_one_strand):
-                            code = ADCodes.SIXTYAI
+                            code = CodesADF.SIXTYAI
                             flag = False
                         else:
-                            code = ADCodes.SIXTYAI
+                            code = CodesADF.SIXTYAI
                             flag = True
                 if len(la2ms_f) > self.fixed_params.min_reads and len(la2ms_r) > self.fixed_params.min_reads:
                     frac_lt_thresh = (sum(near_start_f + near_start_r)
@@ -150,12 +153,12 @@ class Filter(haf.Flagger[FixedParams, AltVarParams, Result]):
                         (mad_f > self.fixed_params.min_MAD_both_strand_weak and mad_r > self.fixed_params.min_MAD_both_strand_weak and sd_f > self.fixed_params.min_sd_both_strand_weak and sd_r > self.fixed_params.min_sd_both_strand_weak) or  # pyright: ignore[reportPossiblyUnboundVariable]
                         (mad_f > self.fixed_params.min_MAD_both_strand_strong and sd_f > self.fixed_params.min_sd_both_strand_strong) or  # pyright: ignore[reportPossiblyUnboundVariable]
                             (mad_r > self.fixed_params.min_MAD_both_strand_strong and sd_r > self.fixed_params.min_sd_both_strand_strong)):  # pyright: ignore[reportPossiblyUnboundVariable]
-                        code = ADCodes.SIXTYBI  # 60B(i)
+                        code = CodesADF.SIXTYBI  # 60B(i)
                         flag = False
                     else:
-                        code = ADCodes.SIXTYBI
+                        code = CodesADF.SIXTYBI
                         flag = True
-                fresult = Result(
+                fresult = ResultADF(
                     flag=flag,  # pyright: ignore[reportPossiblyUnboundVariable]
                     code=code,  # pyright: ignore[reportPossiblyUnboundVariable]
                     alt=self.var_params.alt

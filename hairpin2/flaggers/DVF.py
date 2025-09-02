@@ -21,19 +21,19 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-import hairpin2.abstractfilters as haf
+import hairpin2.abstractflaggers as haf
 from pydantic.dataclasses import dataclass
 from typing import ClassVar, override
 from enum import IntEnum, auto
-from hairpin2.filters.shared_params import AltVarParams
+from hairpin2.flaggers.shared import AltVarParams
 
 
-class DVCodes(IntEnum):
+class CodesDVF(IntEnum):
     INSUFFICIENT_READS = 0
     DUPLICATION = auto()
 
 
-class Result(haf.FilterResult[DVCodes]):
+class ResultDVF(haf.FilterResult[CodesDVF]):
     Name: ClassVar[str] = 'DVF'
     alt: str
     loss_ratio: float  # 0 == no loss
@@ -43,8 +43,11 @@ class Result(haf.FilterResult[DVCodes]):
         return f"{self.alt}|{self.flag}|{self.code}|{self.loss_ratio}"  # TODO: report which samples?
 
 
+class VarParamsDVF(AltVarParams): pass
+
+
 @dataclass(slots=True, frozen=True)
-class FixedParams(haf.FixedParams):
+class FixedParamsDVF(haf.FixedParams):
     duplication_window_size: int = 6  # -1 disables
     # NOTE: neither of these options prevent read removal due to duplication,
     # so `DVF.test()` always functions as QC and may still drop reads
@@ -53,7 +56,7 @@ class FixedParams(haf.FixedParams):
     nsamples_threshold: int = 0  # TODO: I'm not sure this param makes sense. I guess in a multi sample VCF it would imply less confidence in the call if only 1 sample reported duplication. But you'd still probably want to know about that sample? Discuss with Peter
 
 
-class Flagger(haf.Flagger[FixedParams, AltVarParams, Result]):
+class FlaggerDVF(haf.Flagger[FixedParamsDVF, VarParamsDVF, ResultDVF]):
     """
     duplication variant filter - a portion of the reads supporting the variant
     are suspected to arise from duplicated reads that have escaped dupmarking.
@@ -76,24 +79,25 @@ class Flagger(haf.Flagger[FixedParams, AltVarParams, Result]):
     @override
     def test(
         self,
-    ) -> Result:
+    ) -> ResultDVF:
         """
         A naive algorithm using start/end co-ordinates of read pairs to identify likely stutter duplicate reads missed by traditional dupmarking.
         """
+        # NOTE: surely this shouldn't be across samples... I don't know, maybe?
         nsamples_with_duplication = 0
-        nreads_by_sample: dict[str, int] = { k: len(v) for k, v in self.var_params.reads_by_sample.items() }
+        nreads_by_sample: dict[str, int] = { k: len(v) for k, v in self.var_params.reads.items() }
         loss_ratio: list[float] = []
 
         if not any([nreads > 1 for nreads in nreads_by_sample.values()]):
-            fresult = Result(
+            fresult = ResultDVF(
                 flag=None,
-                code=DVCodes.INSUFFICIENT_READS,
+                code=CodesDVF.INSUFFICIENT_READS,
                 alt=self.var_params.alt,
                 loss_ratio=0
             )
         else:
-            code = DVCodes.DUPLICATION  # testing possible, and this is the only relevant code
-            for sample_key, reads in self.var_params.reads_by_sample.items():
+            code = CodesDVF.DUPLICATION  # testing possible, and this is the only relevant code
+            for sample_key, reads in self.var_params.reads.items():
                 ntotal = nreads_by_sample[sample_key]
                 sample_loss_ratio = 0
                 if ntotal > 1:
@@ -111,7 +115,7 @@ class Flagger(haf.Flagger[FixedParams, AltVarParams, Result]):
                 flag = True
             else:
                 flag = False
-            fresult = Result(
+            fresult = ResultDVF(
                 flag=flag,
                 code=code,
                 alt=self.var_params.alt,
