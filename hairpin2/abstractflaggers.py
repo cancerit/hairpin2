@@ -38,7 +38,7 @@ The payoff for that verbosity is:
 """
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Mapping, Sequence
-from pydantic import BaseModel, ConfigDict, PrivateAttr
+from pydantic import BaseModel, ConfigDict
 from typing import Generic, TypeVar, Any, cast, override, ClassVar
 from pysam import AlignedSegment, VariantRecord
 from enum import IntEnum
@@ -50,7 +50,7 @@ from hairpin2.structures import ReadView
 
 ### READ FilterTester First and work backwards! ###
 
-CodeEnum_T = TypeVar("CodeEnum_T", bound=IntEnum, covariant=True)
+CodeEnum_T = TypeVar("CodeEnum_T", bound=IntEnum, covariant=True)  # TODO: ideally minimise extra imports for definer
 class FilterResult(BaseModel, Generic[CodeEnum_T], ABC):
     """
     Parent ABC/pydantic BaseModel defining the implementation that must be followed by result subclasses - subclasses to hold results of running
@@ -160,7 +160,7 @@ class RequireReadProperties:
 
 # TODO: inject it all. subclass unnecssary, is processor or tester depending on mixins only, and prefilter
 # way less for end user to define, easier to share behaviour and not duplicate code
-# TODO: monkeypatch record if possible with wrapt ObjectProxy, then run_params can be largely fixed
+# way easier to test as can just test the callable without the machinery
 class _BaseExecutor(Generic[PrefilterParams_T, FixedParams_T, RunParams_T], ABC):
     # TODO: update docstring
     __slots__ = ("_prefilter_params", "_fixed_params", "_var_params", "_executed")

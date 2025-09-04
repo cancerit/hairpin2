@@ -25,7 +25,6 @@ from pathlib import Path
 import pysam
 from hairpin2 import  __version__
 from hairpin2.abstractflaggers import FilterResult
-from hairpin2.flaggers.shared import PrefilterParamsShared
 from hairpin2.structures import ReadView
 from hairpin2.flaggers import ADF, ALF, DVF
 from hairpin2.read_preprocessors import dupmark
