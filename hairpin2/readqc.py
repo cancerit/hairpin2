@@ -21,10 +21,11 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from array import array
 from pysam import AlignedSegment
 from hairpin2 import ref2seq as r2s
 from statistics import mean
-from typing import Literal
+from typing import Any, Literal, cast
 from enum import Flag, auto
 
 
@@ -42,9 +43,13 @@ class ValidatorFlags(Flag):
     OVERLAP = auto()
 
 
-def qc_read_broad(
+def qc_read(
     read: AlignedSegment,
     vcf_start: int,
+    vcf_stop: int,
+    alt: str,
+    mut_type: Literal['S', 'D', 'I'],
+    min_basequal: int,
     min_mapqual: int,
     min_clipqual: int,
 ) -> ValidatorFlags:
@@ -58,6 +63,15 @@ def qc_read_broad(
         - reference id is none
     """
     invalid_flag = ValidatorFlags.CLEAR  # 0 - evaluates false
+
+    """
+    When testing a variant, test a read for various features specific to the variant
+    at hand which would identify that read as a poor source of support for that
+    variant. Used to disqualify reads for use in testing a variant.
+    """
+    if mut_type not in ['S', 'D', 'I']:
+        raise ValueError(
+            'unsupported mut_type: {} - supports \'S\' (SUB) \'D\' (DEL) \'I\' (INS)'.format(mut_type))
 
     try:
         mate_cig = str(read.get_tag('MC'))
@@ -84,6 +98,7 @@ def qc_read_broad(
             invalid_flag |= ValidatorFlags.CLIPQUAL
 
         # avoid analysing both read1 and mate if they both cover the variant
+        # NOTE: introduces strand bias!!
         if (not (invalid_flag & ValidatorFlags.FLAG)
                 and not (read.flag & 0x40)):
             read_range = range(read.reference_start,
@@ -95,35 +110,6 @@ def qc_read_broad(
             if vcf_start in ref_overlap:
                 invalid_flag |= ValidatorFlags.OVERLAP
 
-    return invalid_flag
-
-
-def qc_read_alt_specific(
-    read: AlignedSegment,
-    vcf_start: int,
-    vcf_stop: int,
-    alt: str,
-    mut_type: Literal['S', 'D', 'I'],
-    min_basequal: int
-) -> ValidatorFlags:
-    """
-    When testing a variant, test a read for various features specific to the variant
-    at hand which would identify that read as a poor source of support for that
-    variant. Used to disqualify reads for use in testing a variant.
-    """
-    if mut_type not in ['S', 'D', 'I']:
-        raise ValueError(
-            'unsupported mut_type: {} - supports \'S\' (SUB) \'D\' (DEL) \'I\' (INS)'.format(mut_type))
-    if read.query_sequence is None:
-        raise ValueError(
-            'read must have query sequence'
-        )
-    if read.query_qualities is None:
-        raise ValueError(
-            'read must have query qualities'
-        )
-
-    invalid_flag = ValidatorFlags.CLEAR
 
     if mut_type in ['S', 'I']:
         try:
@@ -132,11 +118,11 @@ def qc_read_alt_specific(
             invalid_flag |= ValidatorFlags.NOT_ALIGNED
         else:
             if mut_type == 'S':  # SUB
-                if read.query_sequence[mut_pos:mut_pos + len(alt)] != alt:
+                if cast(str, read.query_sequence)[mut_pos:mut_pos + len(alt)] != alt:
                     invalid_flag |= ValidatorFlags.NOT_ALT
                 if any([bq < min_basequal
                         for bq
-                        in read.query_qualities[mut_pos:mut_pos + len(alt)]]):
+                        in cast(array[Any], read.query_qualities)[mut_pos:mut_pos + len(alt)]]):
                     invalid_flag |= ValidatorFlags.BASEQUAL
             if mut_type == 'I':  # INS - mut_pos is position immediately before insertion
                 if mut_pos + len(alt) > read.query_length:
@@ -148,7 +134,7 @@ def qc_read_alt_specific(
                                 if q in range(mut_pos + 1, mut_pos + len(alt) + 1)]
                     if any([r is not None for _, r in mut_alns]):
                         invalid_flag |= ValidatorFlags.BAD_OP
-                    if read.query_sequence[mut_pos + 1:mut_pos + len(alt) + 1] != alt:
+                    if cast(str, read.query_sequence)[mut_pos + 1:mut_pos + len(alt) + 1] != alt:
                         invalid_flag |= ValidatorFlags.NOT_ALT
     elif mut_type == 'D':  # DEL
         rng = list(range(vcf_start, vcf_stop + 1))

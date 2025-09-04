@@ -9,9 +9,15 @@ from typing import Any, override
 class ReadView(Mapping[Any, tuple[AlignedSegment, ...]]):
     __slots__ = ("_data",)
 
-    def __init__(self, data: Mapping[Any, Sequence[AlignedSegment]], *args: str) -> None:
-        if not "no_validate" in args:
-            self._validate_unique(data)  # post-init validation
+    def __init__(
+        self,
+        data: Mapping[Any, Sequence[AlignedSegment]],
+        *,
+        _internal_switches: list[str] | None = None  # hidden dev options
+    ) -> None:
+        switches = _internal_switches or []
+        if "no_validate" not in switches:
+            self._validate(data)  # post-init validation
         # create shallow private copy with frozen (tuple) sequences
         self._data: dict[Any, tuple[AlignedSegment, ...]] = {ky: tuple(vl) for ky, vl in (data or {}).items()}
 
@@ -47,8 +53,10 @@ class ReadView(Mapping[Any, tuple[AlignedSegment, ...]]):
         return list(chain.from_iterable(self._data.values()))  # collate from all samples
 
     @staticmethod
-    def _validate_unique(data: Mapping[str, Sequence[AlignedSegment]]):
+    def _validate(data: Mapping[str, Sequence[AlignedSegment]]):
         for vals in data.values():
             if len(vals) != len(set(id(el) for el in vals)):
                 raise ValueError("Sequence of objects in mapping contains duplicated references pointing to the same object in memory (i.e. the same read has been included twice). Cannot create ReadView")
+            if not all(isinstance(rd, AlignedSegment) for rd in vals):
+                raise ValueError("Sequence of objects in mapping contains objects that are not of type pysam.AlignedSegment")
 

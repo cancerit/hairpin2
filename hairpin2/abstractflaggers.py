@@ -26,6 +26,7 @@
 # pyright: reportAny=false
 # pyright: reportUnsafeMultipleInheritance=false
 # pyright: reportIncompatibleVariableOverride=false
+# pyright: reportUnnecessaryIsInstance=false
 """
 A set of Parent Abstract Base Classes that together completely describe the expected implementation of a scientific test
 for recording FILTER entry for a variant record in a VCF
@@ -36,12 +37,15 @@ The payoff for that verbosity is:
     - strong guarantees about the implementation of any given filter without needing to know about the underlying logic, making filters very easy to use once defined
 """
 from abc import ABC, abstractmethod
+from collections.abc import Iterable, Mapping, Sequence
 from pydantic import BaseModel, ConfigDict, PrivateAttr
-from pydantic.dataclasses import dataclass
-from typing import Generic, TypeVar, Any, override, ClassVar
-from pysam import VariantRecord
+from typing import Generic, TypeVar, Any, cast, override, ClassVar
+from pysam import AlignedSegment, VariantRecord
 from enum import IntEnum
 from hairpin2.structures import ReadView
+
+
+# TODO: test instantiating subclass from json
 
 
 ### READ FilterTester First and work backwards! ###
@@ -73,7 +77,7 @@ class FilterResult(BaseModel, Generic[CodeEnum_T], ABC):
         ... # the rest of the class body, e.g. further instance variables to be associated with a particular result
     ```
     """
-    Name: ClassVar[str]  # for VCF FILTER field
+    Name: ClassVar[str]  # for VCF FILTER field  # TODO: name via __init_subclass__ methods instead
     flag: bool | None
     code: CodeEnum_T | None
 
@@ -94,7 +98,13 @@ class FilterResult(BaseModel, Generic[CodeEnum_T], ABC):
         """
 
 
-class Params:
+class _Params(BaseModel):
+    model_config: ConfigDict = ConfigDict(
+        strict=True,
+        frozen=True,
+        arbitrary_types_allowed=True
+    )
+
     '''
     parent dataclass to be be inherited from to store specific fixed parameters for a particular subclass of FilterTester,
     or in other words for a particular filtering test. Using subclasses of this class for the fixed parameters provides
@@ -103,29 +113,207 @@ class Params:
     pass
 
 
-@dataclass(frozen=True)
-class FixedParams(Params):
+# inherit and set defaults in subclasses
+# exclude_flag: int
+# require_flag: int
+# min_avg_clip_quality: int   # in subclass
+# so basically an implementation (like hp2) entirely defines prefiltering beyond checking field and tag presence
+# and those subclasses define the json config schema
+# myobj.model_validate(json_str)
+class PrefilterParams(_Params):
     pass
 
 
-@dataclass(
-    config=ConfigDict(
-        frozen=True,
-        strict=True,
-        arbitrary_types_allowed=True
-    )
-)
-class VarParams(Params):
-    record: VariantRecord  # makes sense right?
+class FixedParams(_Params):
+    pass
+
+
+class RunParams(_Params):
+    record: VariantRecord
     reads: ReadView
 
 
+PrefilterParams_T = TypeVar("PrefilterParams_T", bound=PrefilterParams)
 FixedParams_T = TypeVar("FixedParams_T", bound=FixedParams)
-VarParams_T = TypeVar("VarParams_T", bound=VarParams)
+RunParams_T = TypeVar("RunParams_T", bound=RunParams)
 FilterResult_T = TypeVar("FilterResult_T", bound=FilterResult[IntEnum], covariant=True)  # covariant such that a test method that returns a subtype of FilterResult[IntEnum] is accepted where FilterResult[IntEnum] (or FilterResult_T) is expected
 
 
-class Flagger(BaseModel, Generic[FixedParams_T, VarParams_T, FilterResult_T], ABC):
+class RequireReadProperties:
+    def __init_subclass__(
+        cls,
+        *,
+        require_tags: Iterable[str],
+        exclude_tags: Iterable[str],
+        require_fields: Iterable[str],
+        **kwargs: Any
+    ):
+        super().__init_subclass__(**kwargs)
+
+        if cls is RequireReadProperties:
+            return
+
+        cls.require_tags: tuple[str, ...] = tuple(require_tags)
+        cls.exclude_tags: tuple[str, ...] = tuple(exclude_tags)
+        cls.require_fields: tuple[str, ...] = tuple(require_fields)
+
+
+# TODO: inject it all. subclass unnecssary, is processor or tester depending on mixins only, and prefilter
+# way less for end user to define, easier to share behaviour and not duplicate code
+# TODO: monkeypatch record if possible with wrapt ObjectProxy, then run_params can be largely fixed
+class _BaseExecutor(Generic[PrefilterParams_T, FixedParams_T, RunParams_T], ABC):
+    # TODO: update docstring
+    __slots__ = ("_prefilter_params", "_fixed_params", "_var_params", "_executed")
+
+    def __init__(  # pyright: ignore[reportMissingSuperCall]
+        self,
+        prefilter_params: PrefilterParams_T,
+        fixed_params: FixedParams_T
+    ):
+        self._prefilter_params: PrefilterParams_T = prefilter_params
+        self._fixed_params: FixedParams_T = fixed_params
+        self._var_params: RunParams_T | None = None
+        self._executed: bool = False
+
+    @property
+    def prefilter_params(self) -> PrefilterParams_T:
+        return self._prefilter_params
+
+    @property
+    def fixed_params(self) -> FixedParams_T:
+        return self._fixed_params
+
+    @property
+    def run_params(self) -> RunParams_T:
+        if self._var_params is None:
+            raise AttributeError("var_params not set, cannot access")
+        return self._var_params
+
+    def prime(
+        self,
+        var_params: RunParams_T,
+        overwrite: bool = False
+    ):
+        if self._executed:
+            raise RuntimeError("Flagger executed and has not been reset. Cannot primte with new test data.")
+        if not isinstance(var_params, RunParams):
+            raise TypeError("Flagger can only be primed with an instance of the RunParams subclass tied to this flagger.")  # pyright: ignore[reportUnreachable]
+        if self._var_params is not None and not overwrite:
+            raise RuntimeError("Flagger already primed, and overwrite is False")
+        self._var_params = var_params
+
+    # to support frozen run params
+    # provide a sneaky way to rebuild post read filtering
+    # without burdening the user
+    def _set_filtered_reads(
+        self,
+        new_reads: Mapping[Any, Sequence[AlignedSegment]] | ReadView | None
+    ):
+        if isinstance(new_reads, dict):
+            new_reads = ReadView(new_reads)
+        run_arg_d = self._var_params.__dict__
+        run_arg_d['reads'] = new_reads
+        self.prime(cast(RunParams_T, self._var_params.__class__(**run_arg_d)), overwrite=True)
+
+    def reset(
+        self
+    ):
+        self._var_params = None
+        self._executed = False
+
+    def _internal_prefilter(
+        self
+    ):
+        """
+        filter reads prior to test
+        """
+        # TODO: global on-fail options: record/split offending reads to file, record/split variant to file, ignore, warn, fail
+        # TODO: check primed first!
+
+        # TODO: doc - you don't need to use RequireReadProperties, but it injects nice behaviour for you
+        # NOTE: might be nice to inject prefiltering this way? consider. but not necessary for this release
+        if isinstance(self, RequireReadProperties):
+            filtered: dict[Any, list[AlignedSegment]] = {}
+            for sample, reads in self.run_params.reads.items():
+                passed_reads: list[AlignedSegment] = []
+                for read in reads:
+                    rpass = True
+                    if not all(read.has_tag(tag) for tag in self.require_tags):
+                        rpass = False
+                    if any(read.has_tag(tag) for tag in self.exclude_tags):
+                        rpass = False
+                    if any(getattr(read, field, None) is None for field in self.require_fields):
+                        rpass = False
+                    if rpass:
+                        passed_reads.append(read)
+
+                filtered[sample] = passed_reads
+
+            self._set_filtered_reads(ReadView(filtered))
+
+    # user override if required
+    def prefilter(
+        self
+    ) -> Mapping[Any, Sequence[AlignedSegment]]:
+        # must check var params set
+        if self._var_params is None:
+            raise RuntimeError("Attempt made to prefilter without data, failed")
+        return self._var_params.reads
+
+
+class ReadPreprocessor(
+    _BaseExecutor[PrefilterParams_T, FixedParams_T, RunParams_T],
+    Generic[PrefilterParams_T, FixedParams_T, RunParams_T],
+    ABC
+):
+
+    @abstractmethod
+    def process(
+        self
+    ) -> None:  # must modify reads in place, hence None return
+        """
+        additive read processing - modify or add to pysam AlignedSegment objects.
+        """
+
+    def __call__(
+        self,
+        var_params: RunParams_T | None = None,
+        *,
+        _internal_switches: list[str] | None = None,  # hidden dev options
+    ):
+        """
+        run prefilter, process reads
+        """
+
+        switches = _internal_switches or []
+        force = True if "force" in switches else False
+        overwrite = True if "overwrite" in switches else False
+        execute_then_reset = True if "execute_then_reset" in switches else False
+
+        if self._executed and not force:
+            # TODO: use subclass name via fstring
+            raise RuntimeError("Preprocessor executed, and has not been reset and loaded with new data! Cannot run preprocessor.")
+        if var_params is not None:
+            self.prime(var_params, overwrite)
+        else:
+            try:
+                self.run_params
+            except:
+                raise RuntimeError("var_params has not been set! Cannot run preprocessor.")
+        self._internal_prefilter()
+        user_filtered_reads = self.prefilter()
+        self._set_filtered_reads(user_filtered_reads)  # this is wasteful if prefiltering isn't overridden
+        self.process()
+        self._executed: bool = True
+        if execute_then_reset == True:
+            self.reset()  # disengage
+
+
+class Flagger(
+    _BaseExecutor[PrefilterParams_T, FixedParams_T, RunParams_T],
+    Generic[PrefilterParams_T, FixedParams_T, RunParams_T, FilterResult_T],
+    ABC
+):
     # TODO: update docstring
     """
     Parent ABC/pydantic BaseModel to be inherited from when implementing a filter test on read data for a variant.
@@ -147,55 +335,13 @@ class Flagger(BaseModel, Generic[FixedParams_T, VarParams_T, FilterResult_T], AB
         - filters are more difficult to implement incorrectly
         - filters have a sufficiently consistent interface such that adding extra filters into main becomes trivial
     """
-    fixed_params: FixedParams_T
-    _var_params: VarParams_T | None = PrivateAttr(None)
-    _executed: bool = PrivateAttr(False)
-
-    model_config: ConfigDict = ConfigDict(
-        frozen=True,
-        strict=True,
-    )
-
-    # read only
-    @property
-    def var_params(self) -> VarParams_T:
-        if self._var_params is None:
-            raise AttributeError("var_params not set, cannot access")
-        return self._var_params
-
-    def prime(
-        self,
-        var_params: VarParams_T,
-        overwrite: bool = False
-    ):
-        if self._executed:
-            raise RuntimeError("Flagger executed and has not been reset. Cannot primte with new test data.")
-        if not isinstance(var_params, VarParams):
-            raise TypeError("Flagger can only be primed with a VarParams instance")
-        if self._var_params is not None and not overwrite:
-            raise RuntimeError("Flagger already primed, and overwrite is False")
-        self._var_params = var_params
-
-    def reset(
-        self
-    ):
-        self._var_params = None
-        self._executed = False
-
-    # override if required
-    def prefilter(
-        self
-    ):
-        """
-        filter reads prior to test
-        """
 
     # modify unfrozen elements of params at runtime (or create a new params) to modify
     # TODO: AUTOMATED FILTER VERIFICATION - DEEPLY CHECK A TEST METHOD DOES NOT MODIFY ELEMENTS (if we can't restrict)
     @abstractmethod
     def test(
         self,
-    ) -> FilterResult_T:   # may not modify reads
+    ) -> FilterResult_T:  # should not modify underlying reads, but not currently enforced
         """
         Abstract filter test method for subclass override.
         
@@ -212,38 +358,37 @@ class Flagger(BaseModel, Generic[FixedParams_T, VarParams_T, FilterResult_T], AB
         ensures that the returned value of the test method can be used in largely the same way regardless of whether the
         specific filter mutates the input reads. If a specific test does not need to drop reads from downstream analysis,
         simply return the input reads unmodified.
-
-        ReadCollection_T is broad over both Collections and Mappings - it is expected that some filters don't need to be
-        aware of which sample (in a multisample VCF) the reads came from, in which case you might make the subclass of
-        FilterTester specific to list[AlignedSegment], and that some filters do need to be aware of which sample the reads
-        came from, in which case you might make the subclass of FilterTester specifc to dict[str, AlignedSegment]
         """
 
     def __call__(
         self,
-        var_params: VarParams_T | None = None,
-        *args: str
+        var_params: RunParams_T | None = None,
+        *,
+        _internal_switches: list[str] | None = None,  # hidden dev options
     ):
         """
         run prefilter, test variant, and return result
         """
-        # intentionally hidden dev options
-        force = True if "force" in args else False
-        overwrite = True if "overwrite" in args else False
-        execute_then_reset = True if "execute_then_reset" else False
+
+        switches = _internal_switches or []
+        force = True if "force" in switches else False
+        overwrite = True if "overwrite" in switches else False
+        execute_then_reset = True if "execute_then_reset" in switches else False
 
         if self._executed and not force:
-            raise RuntimeError("Flagger executed and has not been reset! Cannot run flagger.")
+            raise RuntimeError("Flagger executed, and has not been reset and loaded with new data! Cannot run flagger.")
         if var_params is not None:
             self.prime(var_params, overwrite)
         else:
             try:
-                self.var_params
+                self.run_params
             except:
                 raise RuntimeError("var_params has not been set! Cannot run flagger.")
-        self.prefilter()
+        self._internal_prefilter()
+        user_filtered_reads = self.prefilter()
+        self._set_filtered_reads(user_filtered_reads)  # this is wasteful if prefiltering isn't overridden
         result = self.test()
-        self._executed = True
+        self._executed: bool = True
         if execute_then_reset == True:
             self.reset()  # disengage
         return result

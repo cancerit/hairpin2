@@ -25,16 +25,14 @@ from pathlib import Path
 import pysam
 from hairpin2 import  __version__
 from hairpin2.abstractflaggers import FilterResult
+from hairpin2.flaggers.shared import PrefilterParamsShared
 from hairpin2.structures import ReadView
-from hairpin2.flaggers.shared import AltVarParams
 from hairpin2.flaggers import ADF, ALF, DVF
-from hairpin2.read_preprocessors.dupmark import mark_stutter_dups
-from hairpin2.readqc import qc_read_broad, qc_read_alt_specific
+from hairpin2.read_preprocessors import dupmark
 import logging
 import json
 from itertools import tee
 from typing import Any
-from collections.abc import Iterable
 import sys
 import click
 from click_option_group import optgroup
@@ -391,24 +389,47 @@ def hairpin2(
                 logging.error(f'value {kwargs[key]!r} for parameter {key!r} out of range {pmin}<=x<={pmax}')
                 sys.exit(EXIT_FAILURE)
 
-    # set up filter params based on inputs
-    al_params = ALF.FixedParamsALF(
-        kwargs['al_filter_threshold']
+    # set up params based on inputs
+    shared_prefilter_d = {
+        'min_mapq': kwargs['min_mapping_quality'],
+        'min_avg_clipq': kwargs['min_clip_quality'],
+        'min_baseq': kwargs['min_base_quality']
+    }
+
+    dupmark_prefilter_params = dupmark.PrefilterParamsDupmark(
+        **shared_prefilter_d
     )
-    ad_params = ADF.FixedParamsADF(
-        kwargs['edge_definition'],
-        kwargs['edge_fraction'],
-        kwargs['min_mad_one_strand'],
-        kwargs['min_sd_one_strand'],
-        kwargs['min_mad_both_strand_weak'],
-        kwargs['min_sd_both_strand_weak'],
-        kwargs['min_mad_both_strand_strong'],
-        kwargs['min_sd_both_strand_strong'],
-        kwargs['min_reads']
+    dupmark_params = dupmark.FixedParamsDupmark(
+        duplication_window_size=kwargs['duplication_window_size'],
+    )
+
+    dv_prefilter_params = DVF.PrefilterParamsDVF(
+        **shared_prefilter_d
     )
     dv_params = DVF.FixedParamsDVF(
-        kwargs['duplication_window_size'],
-        kwargs['loss_ratio']
+        read_loss_threshold=kwargs['loss_ratio']
+    )
+
+    al_prefilter_params = ALF.PrefilterParamsALF(
+        **shared_prefilter_d
+    )
+    al_params = ALF.FixedParamsALF(
+        al_thresh=kwargs['al_filter_threshold']
+    )
+
+    ad_prefilter_params = ADF.PrefilterParamsADF(
+        **shared_prefilter_d
+    )
+    ad_params = ADF.FixedParamsADF(
+        edge_definition=kwargs['edge_definition'],
+        edge_clustering_threshold=kwargs['edge_fraction'],
+        min_MAD_one_strand=kwargs['min_mad_one_strand'],
+        min_sd_one_strand=kwargs['min_sd_one_strand'],
+        min_MAD_both_strand_weak=kwargs['min_mad_both_strand_weak'],
+        min_sd_both_strand_weak=kwargs['min_sd_both_strand_weak'],
+        min_MAD_both_strand_strong=kwargs['min_mad_both_strand_strong'],
+        min_sd_both_strand_strong=kwargs['min_sd_both_strand_strong'],
+        min_reads=kwargs['min_reads']
     )
 
     try:
@@ -508,7 +529,7 @@ def hairpin2(
                 sys.exit(EXIT_FAILURE)
 
             if match_sm and match_fn:
-                logging.warn(f'intention ambigous - values provided to name mapping {alignment_map_values!r} are equal to both the SM tags and the filenames of alignments. Mapping against SM tags, not filenames')
+                logging.warning(f'intention ambigous - values provided to name mapping {alignment_map_values!r} are equal to both the SM tags and the filenames of alignments. Mapping against SM tags, not filenames')
         case None:
             if not sm_to_aln_map.keys() <= set(vcf_names):
                 logging.error(
@@ -567,11 +588,12 @@ def hairpin2(
         sys.exit(EXIT_FAILURE)
 
 
-    ad = ADF.FlaggerADF(fixed_params=ad_params)
-    al = ALF.FlaggerALF(fixed_params=al_params)
-    dv = DVF.FlaggerDVF(fixed_params=dv_params)
-
-
+    # NOTE: all this below should be excised into raf eventually
+    # TODO: providing prefilter params should only be necessary if there are any
+    dpp = dupmark.DupmarkPreprocessor(prefilter_params=dupmark_prefilter_params, fixed_params=dupmark_params)
+    ad = ADF.FlaggerADF(prefilter_params=ad_prefilter_params, fixed_params=ad_params)
+    al = ALF.FlaggerALF(prefilter_params=al_prefilter_params, fixed_params=al_params)
+    dv = DVF.FlaggerDVF(prefilter_params=dv_prefilter_params, fixed_params=dv_params)
     # test records
     prog_bar_counter = 0
     for record in vcf_in_handle.fetch():
@@ -580,6 +602,7 @@ def hairpin2(
             if quiet < 1: logging.warning('{0: <7}:{1: >12} ¦ no alts for this record, skipping'.format(
                 record.chrom, record.pos))
         else:
+            # TODO: also need to mandate/require field presence on variant records I suppose
             samples_w_mutants = [name
                                  for name
                                  in record.samples
@@ -588,7 +611,7 @@ def hairpin2(
                 if quiet < 1: logging.warning('{0: <7}:{1: >12} ¦ no samples exhibit alts associated with this record, skipping'.format(
                     record.chrom, record.pos))
             else:
-                region_reads_by_sample: dict[str, Iterable[pysam.AlignedSegment]] = {}
+                reads_by_sample: dict[str, list[pysam.AlignedSegment]] = {}
 
                 # get pileup
                 for k, v in vcf_sample_to_alignment_map.items():
@@ -601,19 +624,23 @@ def hairpin2(
                         except StopIteration:
                             continue
                         else:
-                            # TODO: remove shared QC
-                            broad_qc_region_reads = [
-                                read for read in read_iter
-                                if not qc_read_broad(
-                                    read,
-                                    record.start,
-                                    kwargs['min_mapping_quality'],
-                                    kwargs['min_clip_quality']
-                                )
-                            ]
-                            region_reads_by_sample[k] = broad_qc_region_reads
+                            # NOTE: old qc filter
+                            # broad_qc_region_reads = [
+                            #     read for read in read_iter
+                            #     if not qc_read_broad(
+                            #         read,
+                            #         record.start,
+                            #         kwargs['min_mapping_quality'],
+                            #         kwargs['min_clip_quality']
+                            #     )
+                            # ]
+                            # NOTE: global check for tag availability on reads, and filtering of reads without those properties
+                            # would save a lot of performance as fields checked globally could be subtracted from fields checked
+                            # on specific flaggers and preprocessors, and less reads to hold.
+                            # but NEED/TODO: preproccesors like dupmark should define requirements/prefilters
+                            # as right now we're getting errors from missing tags
+                            reads_by_sample[k] = list(read_iter)
 
-                # this should come earlier
                 # TODO: put mutation type detection under testing
                 # the ability to handle complex mutations would be a potentially interesting future feature
                 # for extending to more varied artifacts
@@ -632,26 +659,25 @@ def hairpin2(
                             record.pos, record.ref, alt))
                         continue
 
-                    # TODO: remove shared QC
-                    # TODO: run additive preprocessors (dupmarking) via centralised runner
-                    alt_qc_region_reads: dict[str, list[pysam.AlignedSegment]] = {
-                        key: [] for key in region_reads_by_sample
-                    }
-                    for mut_sample, read_iter in region_reads_by_sample.items():
-                        alt_qc_region_reads[mut_sample] = [
-                            read for read in read_iter
-                            if not qc_read_alt_specific(
-                                read,
-                                record.start,
-                                record.stop,
-                                alt,
-                                mut_type,
-                                kwargs['min_base_quality']
-                            )
-                        ]
-                        # NOTE: DVF and this preprocessor are uncomfortably coupled and decoupled
-                        # TODO: test that this properly modifies reads in place
-                        mark_stutter_dups(alt_qc_region_reads[mut_sample], dv.fixed_params.duplication_window_size)
+                    # alt_qc_region_reads: dict[str, list[pysam.AlignedSegment]] = {
+                    #     key: [] for key in reads_by_sample
+                    # }
+                    # for read_list in reads_by_sample.values():
+                        # NOTE: old qc filter
+                        # alt_qc_region_reads[mut_sample] = [
+                        #     read for read in read_iter
+                        #     if not qc_read_alt_specific(
+                        #         read,
+                        #         record.start,
+                        #         record.stop,
+                        #         alt,
+                        #         mut_type,
+                        #         kwargs['min_base_quality']
+                        #     )
+                        # ]
+                        # NOTE: DVF and this preprocessor are uncomfortably coupled and decoupled, since we've also got other duplicates...
+                        # NOTE: preprocessors also may need prefilters! Only target non-dups
+                        # mark_stutter_dups(read_list, dv.fixed_params.duplication_window_size)
 
 
                     # FUTURE: shared qc filtering based on parsing of flagger prefilter configs, post additive preprocessing
@@ -662,19 +688,39 @@ def hairpin2(
                     # NOTE: shared access to the same record in memory is dangerous, trusts developers not to modify for all
                     # in flagger methods
                     # NOTE: doubly so if multithreading in future
-                    # TODO: make independent copy in flaggers run method
-                    test_reads = ReadView(alt_qc_region_reads)
+                    # reasonably immutable view of test data
+                    # if further immutablility is needed will have to wrap alignedsegment internally when priming
+                    test_reads = ReadView(reads_by_sample)
+                    dpp(dupmark.RunParamsDupmark(record=record, reads=test_reads, alt=alt, mut_type=mut_type))
 
-                    # !#!#!#!#! NEXT: SUCCESSFUL RUN*. NOW ONTO LQF, INDEPENDENT PREFILTER, AND TESTABLE SUBMETHODS !#!#!#!#!
+
+                    # !#!#!#!#! NEXT: SUCCESSFUL RUN*. NOW ONTO LQF, INDEPENDENT PREFILTER & CONFIG, AND TESTABLE SUBMETHODS !#!#!#!#!
+                    # First, prefilter, so we can check no regressions
+                    # SO: get keys in json config and retrieve fields from alignedsegment, then compare to vals?
+                    # plus keys including:
+                    # "overlap":"double_count" | "drop" | ... to select method for overlapping pairs
+                    # "require":["reference_end", ...] - can't be none
+                    # "supporting":"true"|"false" - only reads expressing the alt, or not
+                    # NOTE/TODO: I strongly suspect I should drop support for multi alt VCFs - WHY? I can't remember lol
+                    # oh because flags are per variant, so it's harder to record good info - I'd say support, but strongly recommend against
+                    # this is a fair suggestion since it's just `bcftools norm -m -both input.vcf > out.vcf`
+                    # also note the --atomize flag for complex variants, --rm-dup for housekeeping
+                    # check with Phuong if her data actually has these. Also
+                    # It would certainly be advisable to decompose multisample into single sample vcfs where appropriate
+                    # and be able to restrict raf programs to not accept multisample
+                    # NOTE: regressions now introduced since 2.0, shared filtering is now OFF
+                    # NOTE: we're NOT even selecting for SUPPORTING reads, just reads that overlap, so flaggers need to specify this also
                     # *No DVF regressions
+
                     # run the flaggers
                     # TODO: run all via centralised runner
-                    # TODO: switch to prefilter for qc, independent config sections for each filter
-                    dv_result = dv(DVF.VarParamsDVF(record, test_reads, alt)); dv.reset()
-                    al_result = al(ALF.VarParamsALF(record, test_reads, alt)); al.reset()
-                    ad_result = ad(ADF.VarParamsADF(record, test_reads, alt)); ad.reset()
+                    dv_result = dv(DVF.VarParamsDVF(record=record, reads=test_reads, alt=alt, mut_type=mut_type))
+                    al_result = al(ALF.VarParamsALF(record=record, reads=test_reads, alt=alt, mut_type=mut_type))
+                    ad_result = ad(ADF.VarParamsADF(record=record, reads=test_reads, alt=alt, mut_type=mut_type))
                     for res in (al_result, ad_result, dv_result):
                         record_filters[type(res)].append(res)
+
+                    dpp.reset(); dv.reset(); al.reset(); ad.reset()  # clear for next variant
 
         if any(lst for lst in record_filters.values()):
             for ftype in record_filters:

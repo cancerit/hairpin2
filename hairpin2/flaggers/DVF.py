@@ -21,13 +21,15 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from pysam import AlignedSegment
 import hairpin2.abstractflaggers as haf
-from pydantic.dataclasses import dataclass
-from typing import ClassVar, override
+from typing import Any, ClassVar, override
 from enum import IntEnum, auto
-from hairpin2.flaggers.shared import AltVarParams
+from hairpin2.flaggers.shared import PrefilterParamsShared, RunParamsShared
+from hairpin2.readqc import qc_read
 
 
+# TODO: make end user not need to import and inherit from IntEnum, provide some kind of construction method?
 class CodesDVF(IntEnum):
     INSUFFICIENT_READS = 0
     DUPLICATION = auto()
@@ -43,12 +45,13 @@ class ResultDVF(haf.FilterResult[CodesDVF]):
         return f"{self.alt}|{self.flag}|{self.code}|{self.loss_ratio}"  # TODO: report which samples?
 
 
-class VarParamsDVF(AltVarParams): pass
+class PrefilterParamsDVF(PrefilterParamsShared): pass
 
 
-@dataclass(slots=True, frozen=True)
+class VarParamsDVF(RunParamsShared): pass
+
+
 class FixedParamsDVF(haf.FixedParams):
-    duplication_window_size: int = 6  # -1 disables
     # NOTE: neither of these options prevent read removal due to duplication,
     # so `DVF.test()` always functions as QC and may still drop reads
     # - I think this is fine, just document more
@@ -56,7 +59,13 @@ class FixedParamsDVF(haf.FixedParams):
     nsamples_threshold: int = 0  # TODO: I'm not sure this param makes sense. I guess in a multi sample VCF it would imply less confidence in the call if only 1 sample reported duplication. But you'd still probably want to know about that sample? Discuss with Peter
 
 
-class FlaggerDVF(haf.Flagger[FixedParamsDVF, VarParamsDVF, ResultDVF]):
+class FlaggerDVF(
+    haf.Flagger[PrefilterParamsDVF, FixedParamsDVF, VarParamsDVF, ResultDVF],
+    haf.RequireReadProperties,
+    require_tags=["MC"],
+    exclude_tags=[],
+    require_fields=[]
+):
     """
     duplication variant filter - a portion of the reads supporting the variant
     are suspected to arise from duplicated reads that have escaped dupmarking.
@@ -71,6 +80,30 @@ class FlaggerDVF(haf.Flagger[FixedParamsDVF, VarParamsDVF, ResultDVF]):
     `read_number_difference_threshold` sets the the threshold for absolute difference between the number of reads supporting the variant
     with and without duplicates removed. If this threshold is exceeded, the flag will be set.
     """
+    @override
+    def prefilter(
+        self
+    ):
+        filtered_reads: dict[Any, list[AlignedSegment]] = {}
+        for sample_key, reads in self.run_params.reads.items():
+            passed_reads: list[AlignedSegment] = []
+            for read in reads:
+                invalid = qc_read(
+                    read,
+                    self.run_params.record.start,
+                    self.run_params.record.stop,
+                    self.run_params.alt,
+                    self.run_params.mut_type,
+                    self.prefilter_params.min_baseq,
+                    self.prefilter_params.min_mapq,
+                    self.prefilter_params.min_avg_clipq,
+                    
+                )
+                if not invalid:
+                    passed_reads.append(read)
+            filtered_reads[sample_key] = passed_reads
+        return filtered_reads
+
     # detect PCR duplicates previously missed due to slippage
     # this implementation assumes that sorting on first element of each sublist
     # is appropriate, per Peter's initial implementation.
@@ -85,23 +118,23 @@ class FlaggerDVF(haf.Flagger[FixedParamsDVF, VarParamsDVF, ResultDVF]):
         """
         # NOTE: surely this shouldn't be across samples... I don't know, maybe?
         nsamples_with_duplication = 0
-        nreads_by_sample: dict[str, int] = { k: len(v) for k, v in self.var_params.reads.items() }
+        nreads_by_sample: dict[str, int] = { k: len(v) for k, v in self.run_params.reads.items() }
         loss_ratio: list[float] = []
 
         if not any([nreads > 1 for nreads in nreads_by_sample.values()]):
             fresult = ResultDVF(
                 flag=None,
                 code=CodesDVF.INSUFFICIENT_READS,
-                alt=self.var_params.alt,
+                alt=self.run_params.alt,
                 loss_ratio=0
             )
         else:
             code = CodesDVF.DUPLICATION  # testing possible, and this is the only relevant code
-            for sample_key, reads in self.var_params.reads.items():
+            for sample_key, reads in self.run_params.reads.items():
                 ntotal = nreads_by_sample[sample_key]
                 sample_loss_ratio = 0
                 if ntotal > 1:
-                    ndup = sum(read.is_duplicate for read in reads)
+                    ndup = sum(read.has_tag('zD') for read in reads)
                     ntrue = abs(ndup - ntotal)
                     assert ntotal > ndup > -1  # sanity check - TODO: should probably throw an interpretable error
                     assert ntotal >= ntrue > -1
@@ -118,7 +151,7 @@ class FlaggerDVF(haf.Flagger[FixedParamsDVF, VarParamsDVF, ResultDVF]):
             fresult = ResultDVF(
                 flag=flag,
                 code=code,
-                alt=self.var_params.alt,
+                alt=self.run_params.alt,
                 loss_ratio=sum(loss_ratio) / len(loss_ratio)  # TODO: discuss whether averaging is the best choice
             )
 

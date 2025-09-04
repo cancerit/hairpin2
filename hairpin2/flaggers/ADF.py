@@ -21,13 +21,15 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from pysam import AlignedSegment
 import hairpin2.abstractflaggers as haf
-from hairpin2.flaggers.shared import AltVarParams
+from hairpin2.flaggers.shared import PrefilterParamsShared, RunParamsShared
 from hairpin2 import ref2seq as r2s
-from pydantic.dataclasses import dataclass
-from typing import ClassVar, override
+from typing import Any, ClassVar, override
 from enum import IntEnum, auto
 from statistics import median, stdev
+
+from hairpin2.readqc import qc_read
 
 
 class CodesADF(IntEnum):
@@ -45,7 +47,6 @@ class ResultADF(haf.FilterResult[CodesADF]):
         return f'{self.alt}|{self.flag}|{self.code}'
 
 
-@dataclass(slots=True, frozen=True)  # is this necessary on the child?
 class FixedParamsADF(haf.FixedParams):
     edge_definition: float = 0.15  # relative proportion, by percentage, of a read to be considered 'the edge'
     edge_clustering_threshold: float = 0.9  # percentage threshold
@@ -58,14 +59,47 @@ class FixedParamsADF(haf.FixedParams):
     min_reads: int = 1  # inclusive
 
 
-class VarParamsADF(AltVarParams): pass
+class VarParamsADF(RunParamsShared): pass
 
 
-class FlaggerADF(haf.Flagger[FixedParamsADF, VarParamsADF, ResultADF]):
+class PrefilterParamsADF(PrefilterParamsShared): pass
+
+
+class FlaggerADF(
+    haf.Flagger[PrefilterParamsADF, FixedParamsADF, VarParamsADF, ResultADF],
+    haf.RequireReadProperties,
+    require_tags=[],
+    exclude_tags=['zD'],  # stutter dups  TODO/BUG: this is quite hidden...
+    require_fields=[]
+):
     # TODO: docstring
     """
     Anomalous Distribution Filter based on hairpin filtering algorthim described in Ellis et al. 2020 (DOI: 10.1038/s41596-020-00437-6) 
     """
+
+    @override
+    def prefilter(
+        self
+    ):
+        filtered_reads: dict[Any, list[AlignedSegment]] = {}
+        for sample_key, reads in self.run_params.reads.items():
+            passed_reads: list[AlignedSegment] = []
+            for read in reads:
+                invalid = qc_read(
+                    read,
+                    self.run_params.record.start,
+                    self.run_params.record.stop,
+                    self.run_params.alt,
+                    self.run_params.mut_type,
+                    self.prefilter_params.min_baseq,
+                    self.prefilter_params.min_mapq,
+                    self.prefilter_params.min_avg_clipq,
+                    
+                )
+                if not invalid:
+                    passed_reads.append(read)
+            filtered_reads[sample_key] = passed_reads
+        return filtered_reads
 
     # NOTE/TODO:
     # per paper, can set hairpin for mutations distant from alignment start
@@ -79,11 +113,11 @@ class FlaggerADF(haf.Flagger[FixedParamsADF, VarParamsADF, ResultADF]):
         # but is it really what we want to do?
         # Should it be a user choice whether to execute per sample?
 
-        if len(self.var_params.reads.all) < 1:
+        if len(self.run_params.reads.all) < 1:
             fresult = ResultADF(
                 flag=None,
                 code=CodesADF.INSUFFICIENT_READS,
-                alt=self.var_params.alt
+                alt=self.run_params.alt
             )
         else:
             # *l*engths of *a*lignment starts *to* *m*utant query positions
@@ -92,9 +126,9 @@ class FlaggerADF(haf.Flagger[FixedParamsADF, VarParamsADF, ResultADF]):
             near_start_f: list[bool] = []
             near_start_r: list[bool] = []
 
-            for read in self.var_params.reads.all:
+            for read in self.run_params.reads.all:
                 try:
-                    mut_qpos = r2s.ref2querypos(read, self.var_params.record.start)
+                    mut_qpos = r2s.ref2querypos(read, self.run_params.record.start)  # TODO: this is additive processing and should be eventually separated as such
                 except ValueError:
                     raise ValueError(f'read {read.query_name} does not cover variant')
 
@@ -116,7 +150,7 @@ class FlaggerADF(haf.Flagger[FixedParamsADF, VarParamsADF, ResultADF]):
                 fresult = ResultADF(
                     flag=None,
                     code=CodesADF.INSUFFICIENT_READS,
-                    alt=self.var_params.alt
+                    alt=self.run_params.alt
                 )
             else:
                 if len(la2ms_f) > self.fixed_params.min_reads:  # if true, calculate stats
@@ -161,7 +195,7 @@ class FlaggerADF(haf.Flagger[FixedParamsADF, VarParamsADF, ResultADF]):
                 fresult = ResultADF(
                     flag=flag,  # pyright: ignore[reportPossiblyUnboundVariable]
                     code=code,  # pyright: ignore[reportPossiblyUnboundVariable]
-                    alt=self.var_params.alt
+                    alt=self.run_params.alt
                 )
 
         return fresult
