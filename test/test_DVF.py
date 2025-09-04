@@ -26,7 +26,7 @@ from typing import cast
 from pysam import AlignedSegment, VariantRecord, qualitystring_to_array
 from hairpin2.flaggers import DVF
 from hairpin2.structures import ReadView
-from .helpers import comp_ReadView, unsafe_construct
+from .helpers import comp_ReadView, unsafe_construct_params
 
 
 # perfect read pair:
@@ -47,13 +47,18 @@ fake_rec = cast(VariantRecord, cast(object, ""))  # not used by DVF test method
 fake_alt = "_"  # not material for DVF test record, just for record keeping
 
 
-### TEST NODES AND EDGES
 def test_path_insufficient_reads():
-    dv = DVF.FlaggerDVF(fixed_params=DVF.FixedParamsDVF())
+    dv = DVF.FlaggerDVF(
+        prefilter_params=DVF.PrefilterParamsDVF(
+            min_mapq=0,
+            min_avg_clipq=0,
+            min_baseq=0
+        ),
+        fixed_params=DVF.FixedParamsDVF()
+    )
     reads = ReadView({'_': []})
     rsnapshot = deepcopy(reads)
-    test_data = unsafe_construct(DVF.VarParamsDVF, record=None, alt=fake_alt, reads=reads)
-    dv._var_params = cast(DVF.VarParamsDVF, test_data)  # unsafe prime
+    dv._var_params = unsafe_construct_params(DVF.VarParamsDVF, record=None, alt=fake_alt, reads=reads)  # unsafe prime
     
     result = dv.test()
     assert result.code == DVF.CodesDVF.INSUFFICIENT_READS
@@ -62,13 +67,19 @@ def test_path_insufficient_reads():
 
 
 def test_path_duplicated():
-    dv = DVF.FlaggerDVF(fixed_params=DVF.FixedParamsDVF())
+    dv = DVF.FlaggerDVF(
+        prefilter_params=DVF.PrefilterParamsDVF(
+            min_mapq=0,
+            min_avg_clipq=0,
+            min_baseq=0
+        ),
+        fixed_params=DVF.FixedParamsDVF()
+    )
     r1 = deepcopy(r)
-    r1.is_duplicate = True
-    reads = ReadView({'_': [r, r1, r1]}, "no_validate")
+    r1.set_tag('zD', 1, 'i')
+    reads = ReadView({'_': [r, r1, r1]}, _internal_switches=["no_validate"])
     rsnapshot = deepcopy(reads)
-    test_data = unsafe_construct(DVF.VarParamsDVF, record=None, alt=fake_alt, reads=reads)
-    dv._var_params = cast(DVF.VarParamsDVF, test_data)
+    dv._var_params = unsafe_construct_params(DVF.VarParamsDVF, record=None, alt=fake_alt, reads=reads)  # unsafe prime
 
     result = dv.test()
     assert result.code == DVF.CodesDVF.DUPLICATION
