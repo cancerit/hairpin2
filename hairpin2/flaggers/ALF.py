@@ -21,18 +21,19 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from pysam import AlignedSegment
 import hairpin2.abstractflaggers as haf
 # TODO: minimise necessary imports for end user...
-from typing import Any, override, ClassVar  # like classvar (can use init_subclass instead)
+from typing import override
 from enum import IntEnum, auto
 from statistics import median
-from hairpin2.flaggers.shared import PrefilterParamsShared, RunParamsShared
-from hairpin2.readqc import qc_read
+from hairpin2.flaggers.shared import RunParamsShared
 
 # If you're here just to examine the scientific implementation of each filter,
 # examine the `test` methods for each one
 # the rest is largely boilerplate/typing magic to make the filter implementation modular and robust
+
+
+_FLAG_NAME = "ALF"
 
 
 class CodesALF(IntEnum):
@@ -41,8 +42,11 @@ class CodesALF(IntEnum):
     ON_THRESHOLD = auto()
 
 
-class ResultALF(haf.FilterResult[CodesALF]):
-    Name: ClassVar[str] = 'ALF'
+class ResultALF(
+    haf.FlagResult,
+    flag_name="ALF",
+    result_codes=tuple(CodesALF)
+):
     alt: str
     avg_as: float | None
 
@@ -54,88 +58,59 @@ class ResultALF(haf.FilterResult[CodesALF]):
 class FixedParamsALF(haf.FixedParams):
     al_thresh: float = 0.93
 
+def test_alignment_score(  # test supporting reads
+    run_params: RunParamsShared,
+    fixed_params: FixedParamsALF
+):
+    if len(run_params.reads.all) < 1:
+        code = CodesALF.INSUFFICIENT_READS
+        fresult = ResultALF(
+            flag=None,
+            code=code,
+            alt=run_params.alt,
+            avg_as=None
+        )
+    else:
+        aln_scores: list[float] = []
 
-class VarParamsALF(RunParamsShared): pass
+        for read in run_params.reads.all:
+            try:
+                aln_scores.append(int(read.get_tag('AS')) / read.query_length)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]  TODO: look into fixing pysam typing
+            except KeyError:
+                pass
+        if len(aln_scores) != 0:
+            avg_as = median(aln_scores)
+            code = CodesALF.ON_THRESHOLD
+            flag = False
+            if avg_as <= fixed_params.al_thresh:
+                flag = True
+            fresult = ResultALF(
+                flag=flag,
+                code=code,
+                alt=run_params.alt,
+                avg_as=avg_as
+            )
+        else:
+            code = CodesALF.INSUFFICIENT_AS_TAGS
+            flag = None
+            fresult = ResultALF(
+                flag=flag,
+                code=code,
+                alt=run_params.alt,
+                avg_as=None
+            )
+
+    return fresult
 
 
-class PrefilterParamsALF(PrefilterParamsShared): pass
-
-
+# TODO: make actual mixins not importable so I stop accidentally importing them
+# NOTE: consider mapping more informative tags, such as 'SUPPORT', to 2 char htslib tags internally (e.g. 'zS')
+@haf.require_read_properties(require_tags=['zS'], exclude_tags=['zD', 'zQ', 'zO'])  # require support, exclude stutter dups, low qual, second overlapping fragment member
+@haf.variant_flagger(flag_name=_FLAG_NAME, flagger_param_class=FixedParamsALF, flagger_func=test_alignment_score,result_type=ResultALF)
 class FlaggerALF(
-    haf.Flagger[PrefilterParamsALF, FixedParamsALF, VarParamsALF, ResultALF],
-    haf.RequireReadProperties,
-    require_tags=['AS'],  # TODO/BUG this doesn't help with static assurance,
-    exclude_tags=['zD'],  # BUG I think this might be too cryptic
-    require_fields=[]
+    haf.ReadAwareProcess
 ):
     # TODO: docstring
     """
     Alignment score filter based on AS tag
     """
-    @override
-    def prefilter(
-        self
-    ):
-        filtered_reads: dict[Any, list[AlignedSegment]] = {}
-        for sample_key, reads in self.run_params.reads.items():
-            passed_reads: list[AlignedSegment] = []
-            for read in reads:
-                invalid = qc_read(
-                    read,
-                    self.run_params.record.start,
-                    self.run_params.record.stop,
-                    self.run_params.alt,
-                    self.run_params.mut_type,
-                    self.prefilter_params.min_baseq,
-                    self.prefilter_params.min_mapq,
-                    self.prefilter_params.min_avg_clipq,
-                    
-                )
-                if not invalid:
-                    passed_reads.append(read)
-            filtered_reads[sample_key] = passed_reads
-        return filtered_reads
-
-    @override
-    def test(
-        self
-    ):
-        if len(self.run_params.reads.all) < 1:
-            code = CodesALF.INSUFFICIENT_READS
-            fresult = ResultALF(
-                flag=None,
-                code=code,
-                alt=self.run_params.alt,
-                avg_as=None
-            )
-        else:
-            aln_scores: list[float] = []
-
-            for read in self.run_params.reads.all:
-                try:
-                    aln_scores.append(int(read.get_tag('AS')) / read.query_length)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]  TODO: look into fixing pysam typing
-                except KeyError:
-                    pass
-            if len(aln_scores) != 0:
-                avg_as = median(aln_scores)
-                code = CodesALF.ON_THRESHOLD
-                flag = False
-                if avg_as <= self.fixed_params.al_thresh:
-                    flag = True
-                fresult = ResultALF(
-                    flag=flag,
-                    code=code,
-                    alt=self.run_params.alt,
-                    avg_as=avg_as
-                )
-            else:
-                code = CodesALF.INSUFFICIENT_AS_TAGS
-                flag = None
-                fresult = ResultALF(
-                    flag=flag,
-                    code=code,
-                    alt=self.run_params.alt,
-                    avg_as=None
-                )
-
-        return fresult

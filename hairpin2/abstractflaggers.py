@@ -21,12 +21,12 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-#
+
 # pyright: reportExplicitAny=false
 # pyright: reportAny=false
-# pyright: reportUnsafeMultipleInheritance=false
 # pyright: reportIncompatibleVariableOverride=false
 # pyright: reportUnnecessaryIsInstance=false
+# pyright: reportImplicitStringConcatenation=false
 """
 A set of Parent Abstract Base Classes that together completely describe the expected implementation of a scientific test
 for recording FILTER entry for a variant record in a VCF
@@ -38,65 +38,23 @@ The payoff for that verbosity is:
 """
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Mapping, Sequence
-from pydantic import BaseModel, ConfigDict
-from typing import Generic, TypeVar, Any, cast, override, ClassVar
+from types import new_class
+from pydantic import BaseModel, ConfigDict, field_validator
+from typing import Callable, ClassVar, TypeVar, Any, cast, overload, override
 from pysam import AlignedSegment, VariantRecord
-from enum import IntEnum
 from hairpin2.structures import ReadView
 
 
-# TODO: test instantiating subclass from json
+# TODO/BUG: docstrings completely outdated
 
 
-### READ FilterTester First and work backwards! ###
 
-CodeEnum_T = TypeVar("CodeEnum_T", bound=IntEnum, covariant=True)  # TODO: ideally minimise extra imports for definer
-class FilterResult(BaseModel, Generic[CodeEnum_T], ABC):
-    """
-    Parent ABC/pydantic BaseModel defining the implementation that must be followed by result subclasses - subclasses to hold results of running
-    the `test()` method of a specific subclass of FilterTester on a variant (e.g. for `FooFilter.test()`, the return value should include an instance of `FooResult`).
-    All filters should use subclasses that inherit from this class to hold their results, as enforced by the FilterTester ABC.
-    Defines and guarantees basic properties that must be shared by all filter results:
-        - a 'getinfo' method for returning a string to report to the INFO field of the VCF record - a basic default is provided, but
-          subclasses probably want to override this.
-        - A basic set of instance variables, which may be extended in a subclass as necessary:
-            - name, a string id for the filter to be used in the VCF FILTER field.
-            - a flag, a boolean indicating if the filter is True/False, or None if untested.
-            - a code, an integer code from a set of possibilities, indicating the basis on which the test has returned True/False, or None if untested.
 
-    This class is generic over T, an IntEnum, such that when a subclass is made it must be made with reference to a specific IntEnum -
-    allowing for static analysis to ensure only the correct codes are set in the result instance. Since this parent class is a pydantic BaseModel,
-    subclasses also have runtime validation of parameters, including these codes.
-
-    When subclassing, create an appropriate enum of codes and define the subclass like so:
-    ```
-    def XYZCodes(IntEnum):
-        ...
-    ... # decorators if needed
-    class XYZResult(FilterResult[XYZCodes]):
-        ... # the rest of the class body, e.g. further instance variables to be associated with a particular result
-    ```
-    """
-    Name: ClassVar[str]  # for VCF FILTER field  # TODO: name via __init_subclass__ methods instead
-    flag: bool | None
-    code: CodeEnum_T | None
-
-    model_config: ConfigDict = ConfigDict(frozen=True, strict=True)
-
-    @override
-    def model_post_init(self, __context: Any) -> None:
-        if self.flag is not None and not self.code:
-            raise ValueError('If flag is set a code must be provided')
-
-    @abstractmethod
-    def getinfo(self) -> str:
-        """
-        Return basic filter info in a string formatted for use in the VCF INFO field - "<flag>|<code>".
-
-        Each filter must return INFO as it should be formatted for the VCF INFO field, or None if not applicable.
-        Subclasses must override this method to return more specific info.
-        """
-
+# SECTION: Params --------------------------------
+# Users define the params required for a process
+# using the nice pydantic dataclass-like syntax
+# and then they can use those in their process functions
+# with dot syntax. nice. Also free pydantic validation
 
 class _Params(BaseModel):
     model_config: ConfigDict = ConfigDict(
@@ -114,90 +72,470 @@ class _Params(BaseModel):
 
 
 # inherit and set defaults in subclasses
-# exclude_flag: int
-# require_flag: int
-# min_avg_clip_quality: int   # in subclass
-# so basically an implementation (like hp2) entirely defines prefiltering beyond checking field and tag presence
-# and those subclasses define the json config schema
-# myobj.model_validate(json_str)
-class PrefilterParams(_Params):
-    pass
-
-
 class FixedParams(_Params):
     pass
 
 
+# some mandatory fields
 class RunParams(_Params):
     record: VariantRecord
     reads: ReadView
 
 
-PrefilterParams_T = TypeVar("PrefilterParams_T", bound=PrefilterParams)
+# END SECTION: Params --------------------------------
+
+
+# SECTION: Behaviour Mixins --------------------------------
+# Mixin class/es per behaviour, and a decorator (factory)
+# to configure the class and inject it into user-defined subclasses
+# of ReadAwareProcess. The point is to let the user
+# declare read aware processes in a modular way, without
+# having to deeply understand generics, inheritance, overrides, etc.
+# and allowing methods to be written as free functions
+# for easy export and testing. This approach also allows
+# for pretty effective leveraging of the type checker compared to
+# e.g. __init_subclass__.
+# TODO: decorators could have better nomenclature, so they look less like regular funcs
+
+
+# TODO: use elsewhere, complete typing
+RunParams_contraT = TypeVar("RunParams_contraT", bound=RunParams, contravariant=True)
 FixedParams_T = TypeVar("FixedParams_T", bound=FixedParams)
-RunParams_T = TypeVar("RunParams_T", bound=RunParams)
-FilterResult_T = TypeVar("FilterResult_T", bound=FilterResult[IntEnum], covariant=True)  # covariant such that a test method that returns a subtype of FilterResult[IntEnum] is accepted where FilterResult[IntEnum] (or FilterResult_T) is expected
+C = TypeVar("C", bound=type)
 
 
-class RequireReadProperties:
+# TODO: extend, subsume into other classes
+class _RequireReadProperties:
+    RequireTags: ClassVar[tuple[str, ...]]
+    ExcludeTags: ClassVar[tuple[str, ...]]
+    RequireFields: ClassVar[tuple[str, ...]]
+
+    def require_properties_check(
+        self,
+        run_params: RunParams
+    ):
+        """
+        filter reads prior to test
+        """
+        # TODO: global on-fail options: record/split offending reads to file, record/split variant to file, ignore, warn, fail
+        # TODO: check primed first!
+
+        # TODO: doc - you don't need to use RequireReadProperties, but it injects nice behaviour for you
+        filtered: dict[Any, list[AlignedSegment]] = {}
+        for sample, reads in run_params.reads.items():
+            passed_reads: list[AlignedSegment] = []
+            for read in reads:
+                rpass = True
+                if self.RequireTags and not all(read.has_tag(tag) for tag in self.RequireTags):
+                    rpass = False
+                if self.ExcludeTags and any(read.has_tag(tag) for tag in self.ExcludeTags):
+                    rpass = False
+                if self.RequireFields and any(getattr(read, field, None) is None for field in self.RequireFields):
+                    rpass = False
+                if rpass:
+                    passed_reads.append(read)
+
+            filtered[sample] = passed_reads
+        return ReadView(filtered)
+
+
+# decorator
+def require_read_properties(
+    *,
+    require_tags: Iterable[str] | None = None,
+    exclude_tags: Iterable[str] | None = None,
+    require_fields: Iterable[str] | None = None
+):
+    def deco[C: type](cls: C) -> C:
+        if issubclass(cls, _RequireReadProperties):
+            raise TypeError(
+                f"{cls.__name__} is already of type {_RequireReadProperties}, "
+                "perhaps you used the require_read_properties decorator twice?"
+            )
+        bases = (cls, _RequireReadProperties)
+
+        def body(ns: dict[str, Any]):
+            ns["__module__"] = cls.__module__
+            ns["__doc__"] = getattr(cls, "__doc__", None)
+            ns["__qualname__"] = getattr(cls, "__qualname__", cls.__name__)
+
+        new_cls = cast(C, new_class(cls.__name__, bases, {}, body))
+        setattr(new_cls, "RequireTags", tuple(require_tags) if require_tags else tuple())
+        setattr(new_cls, "ExcludeTags", tuple(exclude_tags) if exclude_tags else tuple())
+        setattr(new_cls, "RequireFields", tuple(require_fields) if require_fields else tuple())
+        return new_cls
+    return deco
+
+
+# TODO: may also want to modify variants, filter variants...
+# more mixins to come
+
+
+class _PrefilterProcess:
+    PrefilterParamClass: ClassVar[type[FixedParams]]
+    _ReadEvaluator: ClassVar[Callable[[AlignedSegment, VariantRecord, FixedParams], bool]]
+    _prefilter_params: FixedParams | None = None
+
+    def load_prefilter(self, *, params: Mapping[str, Any]) -> None:
+        requisite = {fd for fd in self.PrefilterParamClass.model_fields}
+        kv = {k: v for k, v in params.items() if k in requisite}
+        self._prefilter_params = self.PrefilterParamClass(**kv)
+
+    # “sensible default” implementation; override if needed - # BUG: well you can't if it's _private! (ok you can but you shouldn't)
+    def filter_reads(self, run_params: RunParams) -> Mapping[Any, Sequence[AlignedSegment]]:
+        if self.prefilter_params is None:
+            raise RuntimeError("Prefilter not loaded; call load_prefilter() first")
+        out: dict[Any, list[AlignedSegment]] = {}
+        for sample_key, reads in run_params.reads.items():
+            passed: list[AlignedSegment] = []
+            for read in reads:
+                if type(self)._ReadEvaluator(read, run_params.record, self.prefilter_params):
+                    passed.append(read)
+            out[sample_key] = passed
+        return out
+
+    @property
+    def prefilter_params(self) -> FixedParams | None:
+        return self._prefilter_params
+
+
+# decorator
+def prefilter[FixedParams_T: FixedParams](
+    *,
+    prefilter_param_class: type[FixedParams_T],
+    read_evaluator_func: Callable[[AlignedSegment, VariantRecord, FixedParams_T], bool],
+):
+    def deco[C: type](cls: C) -> C:
+        if issubclass(cls, _PrefilterProcess):
+            raise TypeError(
+                f"{cls.__name__} is already of type {_PrefilterProcess}, "
+                "perhaps you used the prefilter decorator twice?"
+            )
+
+        bases = (cls, _PrefilterProcess)
+
+        def body(ns: dict[str, Any]):
+            ns["__module__"] = cls.__module__
+            ns["__doc__"] = getattr(cls, "__doc__", None)
+            ns["__qualname__"] = getattr(cls, "__qualname__", cls.__name__)
+
+        new_cls = cast(C, new_class(cls.__name__, bases, {}, body))
+
+        setattr(new_cls, "PrefilterParamClass", prefilter_param_class)
+        setattr(new_cls, "_ReadEvaluator", read_evaluator_func)
+        return new_cls
+    return deco
+
+
+# TODO: all mixins should probably allow for both fixed params and no fixed params subtypes
+class _AbstractReadTaggerProcess(ABC):
+    AddsTag: ClassVar[str]
+    ReadTaggerParamClass: ClassVar[type[FixedParams] | None]
+    _ReadModifier: ClassVar[Callable[[RunParams, FixedParams], None] | Callable[[RunParams], None]]
+    _read_proc_params: FixedParams | None = None
+    _loaded: int = False
+
+    def load_tagger(self, *, params: Mapping[str, Any]) -> None:
+        if self.ReadTaggerParamClass is not None:
+            requisite = {fd for fd in self.ReadTaggerParamClass.model_fields}
+            kv = {k: v for k, v in params.items() if k in requisite}
+            self._read_proc_params = self.ReadTaggerParamClass(**kv)
+        else:
+            self._read_proc_params = None
+        self._loaded = True
+
+    # TODO: it would be safer for the tagger to hand back a bool and this mixin handle the tagging
+    @abstractmethod
+    def modify_reads(self, run_params: RunParams) -> None:
+        ...
+
+    @property
+    @abstractmethod
+    def tagger_params(self) -> FixedParams | None:
+        ...
+
+
+class _FixedParamsReadTaggerProcess(_AbstractReadTaggerProcess):
+    AddsTag: ClassVar[str]
+    ReadTaggerParamClass: ClassVar[type[FixedParams]]
+    _ReadModifier: ClassVar[Callable[[RunParams, FixedParams], None]]
+    _read_proc_params: FixedParams
+    _loaded: int = False
+
+    @override
+    def modify_reads(self, run_params: RunParams) -> None:
+        if self.tagger_params is None:
+            raise RuntimeError("Read tagger not loaded; call load_tagger() first")
+        type(self)._ReadModifier(run_params, self.tagger_params)
+
+    @property
+    @override
+    def tagger_params(self) -> FixedParams | None:
+        return self._read_proc_params
+
+
+class _NoParamsReadTaggerProcess(_AbstractReadTaggerProcess):
+    AddsTag: ClassVar[str]
+    ReadTaggerParamClass: ClassVar[None] = None
+    _ReadModifier: ClassVar[Callable[[RunParams], None]]
+    _read_proc_params: None = None
+    _loaded: int = False
+
+    @override
+    def modify_reads(self, run_params: RunParams) -> None:
+        if not self._loaded:
+            raise RuntimeError("Read tagger not loaded; call load_tagger() first")
+        type(self)._ReadModifier(run_params)
+
+    @property
+    @override
+    def tagger_params(self) -> None:
+        return self._read_proc_params
+
+
+# decorator
+@overload
+def read_tagger(
+    *,
+    tagger_param_class: None,
+    read_modifier_func: Callable[[RunParams_contraT], None],
+    adds_tag: str
+) -> Callable[[C], C]: ...
+@overload
+def read_tagger(
+    *,
+    tagger_param_class: type[FixedParams_T],
+    read_modifier_func: Callable[[RunParams_contraT, FixedParams_T], None],
+    adds_tag: str
+) -> Callable[[C], C]: ...
+
+def read_tagger(
+    *,
+    tagger_param_class: type[FixedParams_T] | None,
+    read_modifier_func: Callable[[RunParams_contraT, FixedParams_T], None] | Callable[[RunParams_contraT], None],
+    adds_tag: str
+) -> Callable[[C], C]:
+    def deco(cls: C) -> C:
+        if issubclass(cls, _AbstractReadTaggerProcess):
+            raise TypeError(
+                f"{cls.__name__} is already of type {_AbstractReadTaggerProcess}, "
+                "perhaps you used the read_tagger decorator twice, or inherited as well as decorated?"
+            )
+
+        if tagger_param_class is None:
+            bases = (cls, _NoParamsReadTaggerProcess)
+        else:
+            bases = (cls, _FixedParamsReadTaggerProcess)
+
+        def body(ns: dict[str, Any]):
+            ns["__module__"] = cls.__module__  # so user class comes from the same module
+            ns["__doc__"] = getattr(cls, "__doc__", None)  # ostensibly good pratice (shrug)
+            ns["__qualname__"] = getattr(cls, "__qualname__", cls.__name__)
+
+        new_cls = cast(C, new_class(cls.__name__, bases, {}, body))
+
+        setattr(new_cls, "ReadTaggerParamClass", tagger_param_class)
+        setattr(new_cls, "_ReadModifier", read_modifier_func)
+        setattr(new_cls, "AddsTag", adds_tag)
+        return new_cls
+    return deco
+
+
+# NOTE/TODO: FlagResult is the part of the abstractflaggers model about which I am most skeptical
+# since it uses init_subclass over a decorator, making it different
+# and because it requires the user to override an abstract method
+class FlagResult(BaseModel, ABC):  # pyright: ignore[reportUnsafeMultipleInheritance]
+    """
+    Parent ABC/pydantic BaseModel defining the implementation that must be followed by result subclasses - subclasses to hold results of running
+    the `test()` method of a specific subclass of FilterTester on a variant (e.g. for `FooFilter.test()`, the return value should include an instance of `FooResult`).
+    All filters should use subclasses that inherit from this class to hold their results, as enforced by the FilterTester ABC.
+    Defines and guarantees basic properties that must be shared by all filter results:
+        - a 'getinfo' method for returning a string to report to the INFO field of the VCF record - a basic default is provided, but
+          subclasses probably want to override this.
+        - A basic set of instance variables, which may be extended in a subclass as necessary:
+            - name, a string id for the filter to be used in the VCF FILTER field.
+            - a flag, a boolean indicating if the filter is True/False, or None if untested.
+            - a code, an integer code from a set of possibilities, indicating the basis on which the test has returned True/False, or None if untested.
+    """
+    FlagName: ClassVar[str]
+    AllowedCodes: ClassVar[tuple[int, ...] | tuple[str, ...] | None]
+    CodeType: ClassVar[type]
+    flag: bool | None
+    code: int | str | None = None
+
+    model_config: ConfigDict = ConfigDict(
+        strict=True,
+        frozen=True,
+        arbitrary_types_allowed=True
+    )
+
+    @field_validator('code', mode='after')
+    @classmethod
+    def validate_code(
+        cls,
+        value: int | str | None
+    ):
+        if cls.AllowedCodes is None and value is not None:
+            raise AttributeError(f"The class definition for FlagResult {cls.FlagName!r} does not specify result codes, so you cannot set a result code")
+        elif cls.AllowedCodes is not None and value is None:
+            raise AttributeError(f"The class definition for FlagResult {cls.FlagName!r} does specifies result codes, so you must set a result code")
+        elif not isinstance(value, cls.CodeType):
+            raise TypeError(f"Attempting to set result code for FlagResult {cls.FlagName!r} with value {value} of type {type(value)}, but this FlagResult specifies codes must be of type {cls.CodeType}")
+        elif value is not None and cls.AllowedCodes is not None and value not in cls.AllowedCodes:
+            raise ValueError(f"Attempting to set code with value {value}, but this FlagResult {cls.FlagName!r} only allows {cls.AllowedCodes}")
+        return value
+
     def __init_subclass__(
         cls,
         *,
-        require_tags: Iterable[str],
-        exclude_tags: Iterable[str],
-        require_fields: Iterable[str],
+        flag_name: str,
+        result_codes: Iterable[int] | Iterable[str] | None,
         **kwargs: Any
-    ):
+    ) -> None:
+        # if 'abstractflaggers' in cast(str, getattr(cls, "__module__", None)):
+        #     # This is an intermediate pydantic class,
+        #     # not a user result class
+        #     # skip or everything breaks
+        #     return
+
+        cls.FlagName = flag_name
+
+        match result_codes:
+            case None:
+                cls.AllowedCodes = None
+            case [*items] if all(isinstance(el, int) for el in items):
+                cls.AllowedCodes = cast(tuple[int, ...], tuple(result_codes))
+                cls.CodeType = int
+            case [*items] if all(isinstance(el, str) for el in items):
+                cls.AllowedCodes = cast(tuple[str, ...], tuple(result_codes))
+                cls.CodeType = str
+            case _:
+                raise TypeError(f"allowed_codes for FlagResult {cls.FlagName} provided must be an iterable of all int, or all str; or None")
+        
         super().__init_subclass__(**kwargs)
 
-        if cls is RequireReadProperties:
-            return
+    @abstractmethod
+    def getinfo(self) -> str:
+        """
+        Return basic filter info in a string formatted for use in the VCF INFO field - "<flag>|<code>".
 
-        cls.require_tags: tuple[str, ...] = tuple(require_tags)
-        cls.exclude_tags: tuple[str, ...] = tuple(exclude_tags)
-        cls.require_fields: tuple[str, ...] = tuple(require_fields)
+        Each filter must return INFO as it should be formatted for the VCF INFO field, or None if not applicable.
+        Subclasses must override this method to return more specific info.
+        """
 
 
-# TODO: inject it all. subclass unnecssary, is processor or tester depending on mixins only, and prefilter
-# way less for end user to define, easier to share behaviour and not duplicate code
-# way easier to test as can just test the callable without the machinery
-class _BaseExecutor(Generic[PrefilterParams_T, FixedParams_T, RunParams_T], ABC):
+FlagResult_T = TypeVar('FlagResult_T', bound=FlagResult)
+
+
+class _VariantFlagProcess:
+    FlagName: ClassVar[str]
+    FlaggerParamClass: ClassVar[type[FixedParams]]
+    FlaggerResultType: ClassVar[type[FlagResult]]
+    _Flagger: ClassVar[Callable[[RunParams, FixedParams], FlagResult]]
+    _flagger_params: FixedParams | None = None
+
+    def load_flagger(self, *, params: Mapping[str, Any]) -> None:
+        requisite = {fd for fd in self.FlaggerParamClass.model_fields}
+        kv = {k: v for k, v in params.items() if k in requisite}
+        self._flagger_params = self.FlaggerParamClass(**kv)  # type: ignore[call-arg]
+
+    def flag_variant(self, run_params: RunParams) -> FlagResult:
+        if self.flagger_params is None:
+            raise RuntimeError("Flagger not loaded; call load_flagger() first")
+        res = type(self)._Flagger(run_params, self.flagger_params)
+        if not isinstance(res, self.FlaggerResultType):
+            raise RuntimeError("Flagger returned wrong result type")
+        return res
+
+    @property
+    def flagger_params(self) -> FixedParams | None:
+        return self._flagger_params
+
+# decorator
+def variant_flagger(
+    *,
+    flag_name: str,
+    flagger_param_class: type[FixedParams_T],
+    flagger_func: Callable[[RunParams_contraT, FixedParams_T], FlagResult_T],
+    result_type: type[FlagResult_T],
+):
+    def deco[C: type](cls: C) -> C:
+        # avoid double-wrapping if already present
+        if issubclass(cls, _VariantFlagProcess):
+            raise TypeError(
+                f"{cls.__name__} is already of type {_VariantFlagProcess}, "
+                "perhaps you used the decorator twice, or inherited as well as decorated?"
+            )
+        bases = (cls, _VariantFlagProcess)
+
+        def body(ns: dict[str, Any]):
+            ns["__module__"] = cls.__module__
+            ns["__doc__"] = getattr(cls, "__doc__", None)
+            ns["__qualname__"] = getattr(cls, "__qualname__", cls.__name__)
+
+        new_cls = cast(C, new_class(cls.__name__, bases, {}, body))
+
+        # runtime sanity checks
+        if getattr(result_type, "FlagName", None) != flag_name:
+            raise TypeError("flag_name must match result_type.FlagName")
+
+        setattr(new_cls, "FlagName", flag_name)
+        setattr(new_cls, "FlaggerParamClass", flagger_param_class)
+        setattr(new_cls, "FlaggerResultType", result_type)
+        setattr(new_cls, "_Flagger", flagger_func)
+        return new_cls
+    return deco
+
+
+# END SECTION: Behaviour Mixins -------------------------
+
+
+# The key class which executes the behaviour injected via the mixins
+# TODO: mixin decorators should confirm class they are decorating
+# is a ReadAwareProcess
+class ReadAwareProcess(ABC):
     # TODO: update docstring
-    __slots__ = ("_prefilter_params", "_fixed_params", "_var_params", "_executed")
+    __slots__ = ("_param_map", "_var_params", "_executed")  # pyright: ignore[reportUnannotatedClassAttribute]
 
-    def __init__(  # pyright: ignore[reportMissingSuperCall]
+    def __init__(
         self,
-        prefilter_params: PrefilterParams_T,
-        fixed_params: FixedParams_T
+        params: Mapping[str, Any],
+        **kwargs: Any
     ):
-        self._prefilter_params: PrefilterParams_T = prefilter_params
-        self._fixed_params: FixedParams_T = fixed_params
-        self._var_params: RunParams_T | None = None
+        self._param_map: Mapping[str, Any] = params
+        self._var_params: RunParams | None = None
         self._executed: bool = False
 
-    @property
-    def prefilter_params(self) -> PrefilterParams_T:
-        return self._prefilter_params
+        if isinstance(self, _PrefilterProcess):
+            self.load_prefilter(params=params)
+        if isinstance(self, _AbstractReadTaggerProcess):
+            self.load_tagger(params=params)
+        if isinstance(self, _VariantFlagProcess):
+            self.load_flagger(params=params)
+
+        super().__init__(**kwargs)
 
     @property
-    def fixed_params(self) -> FixedParams_T:
-        return self._fixed_params
+    def all_fixed_params(self) -> Mapping[str, Any]:
+        return self._param_map
 
     @property
-    def run_params(self) -> RunParams_T:
+    def run_params(self) -> RunParams:
         if self._var_params is None:
-            raise AttributeError("var_params not set, cannot access")
+            raise AttributeError("run_params not set, cannot access")
         return self._var_params
 
     def prime(
         self,
-        var_params: RunParams_T,
+        var_params: RunParams,
         overwrite: bool = False
     ):
         if self._executed:
-            raise RuntimeError("Flagger executed and has not been reset. Cannot primte with new test data.")
+            raise RuntimeError("Process executed and has not been reset. Cannot prime with new test data.")
         if not isinstance(var_params, RunParams):
-            raise TypeError("Flagger can only be primed with an instance of the RunParams subclass tied to this flagger.")  # pyright: ignore[reportUnreachable]
+            # The following message is not stricly true, but should be
+            # TODO: init subclass should tie a type[RunParams] to the class
+            raise TypeError("Process can only be primed with an instance of the RunParams subclass tied to this flagger.")  # pyright: ignore[reportUnreachable]
         if self._var_params is not None and not overwrite:
             raise RuntimeError("Flagger already primed, and overwrite is False")
         self._var_params = var_params
@@ -209,11 +547,13 @@ class _BaseExecutor(Generic[PrefilterParams_T, FixedParams_T, RunParams_T], ABC)
         self,
         new_reads: Mapping[Any, Sequence[AlignedSegment]] | ReadView | None
     ):
+        if self._var_params is None:
+            raise RuntimeError("Attempt to set filtered reads from runtime params, but runtime params is not set, so what were you filtering?!?")
         if isinstance(new_reads, dict):
             new_reads = ReadView(new_reads)
-        run_arg_d = self._var_params.__dict__
-        run_arg_d['reads'] = new_reads
-        self.prime(cast(RunParams_T, self._var_params.__class__(**run_arg_d)), overwrite=True)
+        run_arg_d = self._var_params.__dict__.copy()  # must copy, or you'll alter the parent readview!!
+        run_arg_d['reads'] = new_reads  # overwrite only the readview aspect
+        self.prime(self._var_params.__class__(**run_arg_d), overwrite=True)
 
     def reset(
         self
@@ -221,66 +561,22 @@ class _BaseExecutor(Generic[PrefilterParams_T, FixedParams_T, RunParams_T], ABC)
         self._var_params = None
         self._executed = False
 
-    def _internal_prefilter(
-        self
-    ):
-        """
-        filter reads prior to test
-        """
-        # TODO: global on-fail options: record/split offending reads to file, record/split variant to file, ignore, warn, fail
-        # TODO: check primed first!
 
-        # TODO: doc - you don't need to use RequireReadProperties, but it injects nice behaviour for you
-        # NOTE: might be nice to inject prefiltering this way? consider. but not necessary for this release
-        if isinstance(self, RequireReadProperties):
-            filtered: dict[Any, list[AlignedSegment]] = {}
-            for sample, reads in self.run_params.reads.items():
-                passed_reads: list[AlignedSegment] = []
-                for read in reads:
-                    rpass = True
-                    if not all(read.has_tag(tag) for tag in self.require_tags):
-                        rpass = False
-                    if any(read.has_tag(tag) for tag in self.exclude_tags):
-                        rpass = False
-                    if any(getattr(read, field, None) is None for field in self.require_fields):
-                        rpass = False
-                    if rpass:
-                        passed_reads.append(read)
-
-                filtered[sample] = passed_reads
-
-            self._set_filtered_reads(ReadView(filtered))
-
-    # user override if required
-    def prefilter(
-        self
-    ) -> Mapping[Any, Sequence[AlignedSegment]]:
-        # must check var params set
-        if self._var_params is None:
-            raise RuntimeError("Attempt made to prefilter without data, failed")
-        return self._var_params.reads
-
-
-class ReadPreprocessor(
-    _BaseExecutor[PrefilterParams_T, FixedParams_T, RunParams_T],
-    Generic[PrefilterParams_T, FixedParams_T, RunParams_T],
-    ABC
-):
-
-    @abstractmethod
-    def process(
-        self
-    ) -> None:  # must modify reads in place, hence None return
-        """
-        additive read processing - modify or add to pysam AlignedSegment objects.
-        """
-
+    # @overload
+    # def __call__(
+    #     self: VariantFlagProcess  # BUG: these don't work because VariantFlagProcess isn't a subclass of this base
+    # ) -> FlagResult: ...
+    # @overload
+    # def __call__(
+    #     self
+    # ) -> None: ...
+    
     def __call__(
         self,
-        var_params: RunParams_T | None = None,
+        call_run_params: RunParams | None = None,
         *,
         _internal_switches: list[str] | None = None,  # hidden dev options
-    ):
+    ) -> FlagResult | None:
         """
         run prefilter, process reads
         """
@@ -290,105 +586,31 @@ class ReadPreprocessor(
         overwrite = True if "overwrite" in switches else False
         execute_then_reset = True if "execute_then_reset" in switches else False
 
+        flag_result: FlagResult | None = None
+
         if self._executed and not force:
             # TODO: use subclass name via fstring
-            raise RuntimeError("Preprocessor executed, and has not been reset and loaded with new data! Cannot run preprocessor.")
-        if var_params is not None:
-            self.prime(var_params, overwrite)
+            raise RuntimeError("Process executed, and has not been reset and loaded with new data! Cannot run process.")
+        if call_run_params is not None:
+            self.prime(call_run_params, overwrite)
         else:
             try:
                 self.run_params
             except:
-                raise RuntimeError("var_params has not been set! Cannot run preprocessor.")
-        self._internal_prefilter()
-        user_filtered_reads = self.prefilter()
-        self._set_filtered_reads(user_filtered_reads)  # this is wasteful if prefiltering isn't overridden
-        self.process()
-        self._executed: bool = True
+                raise RuntimeError("Process has not been primed with data! Cannot run process.")
+
+        # might need to use name mangling to ensure no clashes
+        if isinstance(self, _RequireReadProperties):
+            self._set_filtered_reads(self.require_properties_check(self.run_params))
+        if isinstance(self, _PrefilterProcess):
+            self._set_filtered_reads(self.filter_reads(self.run_params))
+        if isinstance(self, _AbstractReadTaggerProcess):
+            self.modify_reads(self.run_params)
+        if isinstance(self, _VariantFlagProcess):
+            flag_result = self.flag_variant(self.run_params)
+
+        self._executed = True
         if execute_then_reset == True:
             self.reset()  # disengage
 
-
-class Flagger(
-    _BaseExecutor[PrefilterParams_T, FixedParams_T, RunParams_T],
-    Generic[PrefilterParams_T, FixedParams_T, RunParams_T, FilterResult_T],
-    ABC
-):
-    # TODO: update docstring
-    """
-    Parent ABC/pydantic BaseModel to be inherited from when implementing a filter test on read data for a variant.
-    Contains a single abstract class method, `test()`, that must be overridden by subclasses for inidvidual filters.
-
-    The class is Generic over type variables ReadCollection_T (Collection[AlignedSegment]/Mapping[Any, Collection[AlignedSegment]]),
-    FilterParams_T, and FilterResult_t. This means that on implementing a concrete filter by subclassing this class,
-    you must select the specific types to which the filter pertains. For example, if implementing filter FooFilter,
-    the defintion might look something like:
-    `class FooFilter(FilterTester[list[AlignedSegment], FooParams, FooResult])`
-
-    As a result:
-        - static analysis will insist that the `test()` method of FooFilter returns tuple[list[AlignedSegment], FooResult]
-        - static analysis will insist instances of FooFilter pass the correct params upon instantiation
-        - since FilterTester is a pydantic BaseModel,
-          FooFilter will also validate that the correct FilterParams have been passed at runtime
-
-    In total, using this parent class ensures concrete filters obey strict rules, and therefore:
-        - filters are more difficult to implement incorrectly
-        - filters have a sufficiently consistent interface such that adding extra filters into main becomes trivial
-    """
-
-    # modify unfrozen elements of params at runtime (or create a new params) to modify
-    # TODO: AUTOMATED FILTER VERIFICATION - DEEPLY CHECK A TEST METHOD DOES NOT MODIFY ELEMENTS (if we can't restrict)
-    @abstractmethod
-    def test(
-        self,
-    ) -> FilterResult_T:  # should not modify underlying reads, but not currently enforced
-        """
-        Abstract filter test method for subclass override.
-        
-        Each filter must define a test method via override, respecting the method signature.
-
-        Filter test methods are for applying logic on the read data relevant to a variant, to decide whether to mark
-        the variant in the FILTER field of an output VCF (or use the result in some other way).
-
-        The test method of any subclass must return a tuple containing an object of type ReadCollection_T (Collection[AlignedSegment]
-        or Mapping[Any, AlignedSegment]), and an object of type FilterResult_T (a specific subclass of FilterResult),
-        where the specific types are set according to the FilterTester subclass definition. In simple terms, the test method must
-        return both reads, and the result of testing. The reason for this as follows - since some filters are expected
-        to mutate/drop reads from analysis as to exclude them for analysis in downstream filters, this enforced return type
-        ensures that the returned value of the test method can be used in largely the same way regardless of whether the
-        specific filter mutates the input reads. If a specific test does not need to drop reads from downstream analysis,
-        simply return the input reads unmodified.
-        """
-
-    def __call__(
-        self,
-        var_params: RunParams_T | None = None,
-        *,
-        _internal_switches: list[str] | None = None,  # hidden dev options
-    ):
-        """
-        run prefilter, test variant, and return result
-        """
-
-        switches = _internal_switches or []
-        force = True if "force" in switches else False
-        overwrite = True if "overwrite" in switches else False
-        execute_then_reset = True if "execute_then_reset" in switches else False
-
-        if self._executed and not force:
-            raise RuntimeError("Flagger executed, and has not been reset and loaded with new data! Cannot run flagger.")
-        if var_params is not None:
-            self.prime(var_params, overwrite)
-        else:
-            try:
-                self.run_params
-            except:
-                raise RuntimeError("var_params has not been set! Cannot run flagger.")
-        self._internal_prefilter()
-        user_filtered_reads = self.prefilter()
-        self._set_filtered_reads(user_filtered_reads)  # this is wasteful if prefiltering isn't overridden
-        result = self.test()
-        self._executed: bool = True
-        if execute_then_reset == True:
-            self.reset()  # disengage
-        return result
+        return flag_result

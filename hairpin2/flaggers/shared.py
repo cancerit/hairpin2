@@ -1,5 +1,5 @@
 from typing import Literal
-from hairpin2.abstractflaggers import PrefilterParams, RunParams
+from hairpin2.abstractflaggers import FixedParams, RunParams
 
 
 class RunParamsShared(RunParams):
@@ -7,7 +7,7 @@ class RunParamsShared(RunParams):
     mut_type: Literal['S', 'D', 'I']
 
 
-class PrefilterParamsShared(PrefilterParams):
+class PrefilterParamsShared(FixedParams):
     min_mapq: int
     min_avg_clipq: int
     min_baseq: int
