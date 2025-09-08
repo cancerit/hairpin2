@@ -51,6 +51,7 @@ def tag_overlap(
 @haf.require_read_properties(require_tags=['MC', 'zS'])  # require support, MC tag; exclude low qual  # TODO: this ALREADY needs a make_dag type function
 @haf.read_tagger(tagger_param_class=None, read_modifier_func=tag_overlap, adds_tag=OVERLAP_TAG)
 class TaggerOverlap(
-    haf.ReadAwareProcess  # TODO/BUG: ReadAwareProcess subclasses MUST define a specific type of run params that they use, or the contravariance with run_params is lost
+    haf.ReadAwareProcess,  # TODO/BUG: ReadAwareProcess subclasses MUST define a specific type of run params that they use, or the contravariance with run_params is lost
+    process_name='mark-overlap'
 ): pass
 

@@ -28,7 +28,7 @@ from typing import override
 from enum import IntEnum, auto
 from statistics import median, stdev
 
-FLAG_NAME = "ADF"
+_FLAG_NAME = "ADF"
 
 
 class CodesADF(IntEnum):
@@ -39,7 +39,7 @@ class CodesADF(IntEnum):
 
 class ResultADF(
     haf.FlagResult,
-    flag_name=FLAG_NAME,
+    flag_name=_FLAG_NAME,
     result_codes=tuple(CodesADF)
 ):
     alt: str
@@ -189,9 +189,10 @@ def test_anomalous_distribution(
 
 # require support, exclude stutter dups, overlapping second pair member, low quality
 @haf.require_read_properties(require_tags=['zS'], exclude_tags=['zD', 'zO', 'zQ'])  # TODO guard against accidentally providing just a string - which is an iterable[str]!!
-@haf.variant_flagger(flag_name=FLAG_NAME, flagger_param_class=FixedParamsADF, flagger_func=test_anomalous_distribution, result_type=ResultADF)
+@haf.variant_flagger(flag_name=_FLAG_NAME, flagger_param_class=FixedParamsADF, flagger_func=test_anomalous_distribution, result_type=ResultADF)
 class FlaggerADF(
-    haf.ReadAwareProcess
+    haf.ReadAwareProcess,
+    process_name=_FLAG_NAME
 ):
     # TODO: docstring
     """

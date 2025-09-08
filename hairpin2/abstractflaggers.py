@@ -153,13 +153,14 @@ def require_read_properties(
                 "perhaps you used the require_read_properties decorator twice?"
             )
         bases = (cls, _RequireReadProperties)
+        raf_subclass_kwds  = getattr(cls, '__decl_kwargs__', {}) 
 
         def body(ns: dict[str, Any]):
             ns["__module__"] = cls.__module__
             ns["__doc__"] = getattr(cls, "__doc__", None)
             ns["__qualname__"] = getattr(cls, "__qualname__", cls.__name__)
 
-        new_cls = cast(C, new_class(cls.__name__, bases, {}, body))
+        new_cls = cast(C, new_class(cls.__name__, bases, raf_subclass_kwds, body))
         setattr(new_cls, "RequireTags", tuple(require_tags) if require_tags else tuple())
         setattr(new_cls, "ExcludeTags", tuple(exclude_tags) if exclude_tags else tuple())
         setattr(new_cls, "RequireFields", tuple(require_fields) if require_fields else tuple())
@@ -212,6 +213,7 @@ def prefilter[FixedParams_T: FixedParams](
                 "perhaps you used the prefilter decorator twice?"
             )
 
+        raf_subclass_kwds  = getattr(cls, '__decl_kwargs__', {}) 
         bases = (cls, _PrefilterProcess)
 
         def body(ns: dict[str, Any]):
@@ -219,7 +221,7 @@ def prefilter[FixedParams_T: FixedParams](
             ns["__doc__"] = getattr(cls, "__doc__", None)
             ns["__qualname__"] = getattr(cls, "__qualname__", cls.__name__)
 
-        new_cls = cast(C, new_class(cls.__name__, bases, {}, body))
+        new_cls = cast(C, new_class(cls.__name__, bases, raf_subclass_kwds, body))
 
         setattr(new_cls, "PrefilterParamClass", prefilter_param_class)
         setattr(new_cls, "_ReadEvaluator", read_evaluator_func)
@@ -326,13 +328,14 @@ def read_tagger(
             bases = (cls, _NoParamsReadTaggerProcess)
         else:
             bases = (cls, _FixedParamsReadTaggerProcess)
+        raf_subclass_kwds  = getattr(cls, '__decl_kwargs__', {}) 
 
         def body(ns: dict[str, Any]):
             ns["__module__"] = cls.__module__  # so user class comes from the same module
             ns["__doc__"] = getattr(cls, "__doc__", None)  # ostensibly good pratice (shrug)
             ns["__qualname__"] = getattr(cls, "__qualname__", cls.__name__)
 
-        new_cls = cast(C, new_class(cls.__name__, bases, {}, body))
+        new_cls = cast(C, new_class(cls.__name__, bases, raf_subclass_kwds, body))
 
         setattr(new_cls, "ReadTaggerParamClass", tagger_param_class)
         setattr(new_cls, "_ReadModifier", read_modifier_func)
@@ -467,13 +470,14 @@ def variant_flagger(
                 "perhaps you used the decorator twice, or inherited as well as decorated?"
             )
         bases = (cls, _VariantFlagProcess)
+        raf_subclass_kwds  = getattr(cls, '__decl_kwargs__', {}) 
 
         def body(ns: dict[str, Any]):
             ns["__module__"] = cls.__module__
             ns["__doc__"] = getattr(cls, "__doc__", None)
             ns["__qualname__"] = getattr(cls, "__qualname__", cls.__name__)
 
-        new_cls = cast(C, new_class(cls.__name__, bases, {}, body))
+        new_cls = cast(C, new_class(cls.__name__, bases, raf_subclass_kwds, body))
 
         # runtime sanity checks
         if getattr(result_type, "FlagName", None) != flag_name:
@@ -493,25 +497,46 @@ def variant_flagger(
 # The key class which executes the behaviour injected via the mixins
 # TODO: mixin decorators should confirm class they are decorating
 # is a ReadAwareProcess
+# TODO: fix call typing
+# TODO: should allow no parameter init if appropriate
 class ReadAwareProcess(ABC):
     # TODO: update docstring
+    _ProcessName: ClassVar[str]
     __slots__ = ("_param_map", "_var_params", "_executed")  # pyright: ignore[reportUnannotatedClassAttribute]
+
+    def __init_subclass__(
+        cls,
+        *,
+        process_name: str,
+       **kwargs: Any
+    ) -> None:
+        # I don't know how robust this is
+        cls._ProcessName = process_name
+        super().__init_subclass__(**kwargs)
+        kwargs.update({'process_name': process_name})
+        cls.__decl_kwargs__: dict[str, Any] = dict(kwargs)   # stash for decorators
 
     def __init__(
         self,
         params: Mapping[str, Any],
         **kwargs: Any
     ):
-        self._param_map: Mapping[str, Any] = params
+
+        # will fail if key not present
+        # TODO: consider how to handle that
+        my_params = params[self._ProcessName]
+        
+        self._param_map: Mapping[str, Any] = my_params
         self._var_params: RunParams | None = None
         self._executed: bool = False
 
+        # TODO/NOTE: these all do the same thing
         if isinstance(self, _PrefilterProcess):
-            self.load_prefilter(params=params)
+            self.load_prefilter(params=my_params)
         if isinstance(self, _AbstractReadTaggerProcess):
-            self.load_tagger(params=params)
+            self.load_tagger(params=my_params)
         if isinstance(self, _VariantFlagProcess):
-            self.load_flagger(params=params)
+            self.load_flagger(params=my_params)
 
         super().__init__(**kwargs)
 

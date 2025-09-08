@@ -194,7 +194,8 @@ def test_duplicated_support_frac(
 @require_read_properties(require_tags=['MC', 'zS'], exclude_tags=['zQ'])  # require support  # NOTE: now different to below, could introduce regression
 @read_tagger(tagger_param_class=FixedParamsDupmark, read_modifier_func=tag_dups, adds_tag=STUTTER_DUP_TAG)
 class TaggerDupmark(
-    ReadAwareProcess
+    ReadAwareProcess,
+    process_name='mark-duplicates'
 ): pass
 
 
@@ -204,7 +205,8 @@ class TaggerDupmark(
 @require_read_properties(require_tags=['MC', 'zS'], exclude_tags=['zO', 'zQ'])  # require support, exclude overlapping second member
 @variant_flagger(flag_name=_FLAG_NAME, flagger_param_class=FixedParamsDVF, flagger_func=test_duplicated_support_frac, result_type=ResultDVF)
 class FlaggerDVF(
-    ReadAwareProcess
+    ReadAwareProcess,
+    process_name=_FLAG_NAME
 ):
     """
     duplication variant filter - a portion of the reads supporting the variant

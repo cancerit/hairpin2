@@ -219,119 +219,119 @@ def show_help(ctx, value):
     default=False
 )
 
-# === Config override groups (hidden by default) ===
-@optgroup.group("\nread validation config overrides", hidden=True)
-@optgroup.option(
-    '--min-clip-quality',
-    metavar='INT',
-    type=click.IntRange(*_PARAMS['min_clip_quality'].range),
-    show_default=str(_PARAMS['min_clip_quality'].default),
-    help='discard reads with mean base quality of aligned bases below this value, if they have soft-clipped bases'
-)
-@optgroup.option(
-    '--min-mapping-quality',
-    metavar='INT',
-    type=click.IntRange(*_PARAMS['min_mapping_quality'].range),
-    show_default=str(_PARAMS['min_mapping_quality'].default),
-    help='discard reads with mapping quality below this value'
-)
-@optgroup.option(
-    '--min-base-quality',
-    metavar='INT',
-    type=click.IntRange(*_PARAMS['min_base_quality'].range),
-    show_default=str(_PARAMS['min_base_quality'].default),
-    help='discard reads with base quality below this value at variant position'
-)
+# # === Config override groups (hidden by default) ===
+# @optgroup.group("\nread validation config overrides", hidden=True)
+# @optgroup.option(
+#     '--min-clip-quality',
+#     metavar='INT',
+#     type=click.IntRange(*_PARAMS['min_clip_quality'].range),
+#     show_default=str(_PARAMS['min_clip_quality'].default),
+#     help='discard reads with mean base quality of aligned bases below this value, if they have soft-clipped bases'
+# )
+# @optgroup.option(
+#     '--min-mapping-quality',
+#     metavar='INT',
+#     type=click.IntRange(*_PARAMS['min_mapping_quality'].range),
+#     show_default=str(_PARAMS['min_mapping_quality'].default),
+#     help='discard reads with mapping quality below this value'
+# )
+# @optgroup.option(
+#     '--min-base-quality',
+#     metavar='INT',
+#     type=click.IntRange(*_PARAMS['min_base_quality'].range),
+#     show_default=str(_PARAMS['min_base_quality'].default),
+#     help='discard reads with base quality below this value at variant position'
+# )
 
-@optgroup.group('\nDVF config overrides', hidden=True)
-@optgroup.option(
-    '--duplication-window-size',
-    metavar='INT',
-    type=click.IntRange(*_PARAMS['duplication_window_size'].range),
-    show_default=str(_PARAMS['duplication_window_size'].default),
-    help='inclusive maximum window size in number of bases within which read pairs supporting a variant may be considered possible duplicates of eachother. -1 will disable duplicate detection'
-)
-@optgroup.option(
-    '--loss-ratio',
-    metavar='FLOAT',
-    type=click.FloatRange(*_PARAMS['loss_ratio'].range),
-    show_default=str(_PARAMS['loss_ratio'].default),
-    help='ratio of the number of reads found to be duplicates against the total number of supporting reads, above which a variant is flagged DVF. In logical AND with a hardcoded test that at least 2 supporting reads are independent, i.e. not duplicates of each other, to ensure that regardless of the value of `loss_ratio` collapse of duplicates to only a single supporting read always results in a DVF flag. Smaller is more sensitive. Set to 0.99 to rely only on the hardcoded test (practically speaking).'
-)
+# @optgroup.group('\nDVF config overrides', hidden=True)
+# @optgroup.option(
+#     '--duplication-window-size',
+#     metavar='INT',
+#     type=click.IntRange(*_PARAMS['duplication_window_size'].range),
+#     show_default=str(_PARAMS['duplication_window_size'].default),
+#     help='inclusive maximum window size in number of bases within which read pairs supporting a variant may be considered possible duplicates of eachother. -1 will disable duplicate detection'
+# )
+# @optgroup.option(
+#     '--loss-ratio',
+#     metavar='FLOAT',
+#     type=click.FloatRange(*_PARAMS['loss_ratio'].range),
+#     show_default=str(_PARAMS['loss_ratio'].default),
+#     help='ratio of the number of reads found to be duplicates against the total number of supporting reads, above which a variant is flagged DVF. In logical AND with a hardcoded test that at least 2 supporting reads are independent, i.e. not duplicates of each other, to ensure that regardless of the value of `loss_ratio` collapse of duplicates to only a single supporting read always results in a DVF flag. Smaller is more sensitive. Set to 0.99 to rely only on the hardcoded test (practically speaking).'
+# )
 
-@optgroup.group("\nALF config overrides", hidden=True)
-@optgroup.option(
-    '--al-filter-threshold',
-    metavar='FLOAT',
-    type=click.FloatRange(*_PARAMS['al_filter_threshold'].range),
-    show_default=str(_PARAMS['al_filter_threshold'].default),
-    help='threshold for median of read alignment score per base of all relevant reads, at and below which a variant is flagged ALF'
-)
+# @optgroup.group("\nALF config overrides", hidden=True)
+# @optgroup.option(
+#     '--al-filter-threshold',
+#     metavar='FLOAT',
+#     type=click.FloatRange(*_PARAMS['al_filter_threshold'].range),
+#     show_default=str(_PARAMS['al_filter_threshold'].default),
+#     help='threshold for median of read alignment score per base of all relevant reads, at and below which a variant is flagged ALF'
+# )
 
-@optgroup.group("\nADF config overrides", hidden=True)
-@optgroup.option(
-    '--edge-definition',
-    metavar='FLOAT',
-    type=click.FloatRange(*_PARAMS['edge_definition'].range),
-    show_default=str(_PARAMS['edge_definition'].default),
-    help='percentage of a read that is considered to be "the edge" for the purposes of assessing variant position distribution'
-)
-@optgroup.option(
-    '--edge-fraction',
-    metavar='FLOAT',
-    type=click.FloatRange(*_PARAMS['edge_fraction'].range),
-    show_default=str(_PARAMS['edge_fraction'].default),
-    help='percentage of variants must occur within EDGE_FRACTION of read edges to mark ADF flag'
-)
-@optgroup.option(
-    '--min-mad-one-strand',
-    metavar='INT',
-    type=click.IntRange(*_PARAMS['min_mad_one_strand'].range),
-    show_default=str(_PARAMS['min_mad_one_strand'].default),
-    help='Mean Average Devaition of distances between variant position and read start above which a variant cannot be considered anomalous - used when only one strand has sufficient valid reads for testing'
-)  # 'above which' meaning exclusive
-@optgroup.option(
-    '--min-sd-one-strand',
-    metavar='FLOAT',
-    type=click.FloatRange(*_PARAMS['min_sd_one_strand'].range),
-    show_default=str(_PARAMS['min_sd_one_strand'].default),
-    help='stdev of distances between variant position and read start above which a variant cannot be considered anomalous - used when only one strand has sufficient valid reads for testing'
-)
-@optgroup.option(
-    '--min-mad-both-strand-weak',
-    metavar='INT',
-    type=click.IntRange(*_PARAMS['min_mad_both_strand_weak'].range),
-    show_default=str(_PARAMS['min_mad_both_strand_weak'].default),
-    help='Mean Average Devaition of distances between variant position and read start above which a variant cannot be considered anomalous - used when both strands have sufficient valid reads for testing, in logical AND with `min_sd_both_strand_weak`, and logical OR with corresponding strong condtion pair'
-)
-@optgroup.option(
-    '--min-sd-both-strand-weak',
-    metavar='FLOAT',
-    type=click.FloatRange(*_PARAMS['min_sd_both_strand_weak'].range),
-    show_default=str(_PARAMS['min_sd_both_strand_weak'].default),
-    help='stdev of distances between variant position and read start above which a variant cannot be considered anomalous - used when both strands have sufficient valid reads for testing, in logical AND with `min_mad_both_strand_weak`, and logical OR with corresponding strong condtion pair'
-)
-@optgroup.option(
-    '--min-mad-both-strand-strong',
-    metavar='INT',
-    type=click.IntRange(*_PARAMS['min_mad_both_strand_strong'].range),
-    show_default=str(_PARAMS['min_mad_both_strand_strong'].default),
-    help='Mean Average Devaition of distances between variant position and read start above which a variant cannot be considered anomalous - used when both strands have sufficient valid reads for testing, in logical AND with `min_sd_both_strand_strong`, and logical OR with corresponding weak condtion pair'
-)
-@optgroup.option(
-    '--min-sd-both-strand-strong',
-    metavar='FLOAT',
-    type=click.FloatRange(*_PARAMS['min_sd_both_strand_strong'].range),
-    show_default=str(_PARAMS['min_sd_both_strand_strong'].default),
-    help='stdev of distances between variant position and read start above which a variant cannot be considered anomalous - used when both strands have sufficient valid reads for testing, in logical AND with `min_mad_both_strand_weak`, and logical OR with the corresponding weak condtion pair'
-)
-@optgroup.option(
-    '--min-reads',
-    metavar='INT',
-    type=click.IntRange(*_PARAMS['min_reads'].range),
-    show_default=str(_PARAMS['min_reads'].default),
-    help='number of reads at and below which the hairpin filtering logic considers a strand to have insufficient reads for testing for a given variant'
-)
+# @optgroup.group("\nADF config overrides", hidden=True)
+# @optgroup.option(
+#     '--edge-definition',
+#     metavar='FLOAT',
+#     type=click.FloatRange(*_PARAMS['edge_definition'].range),
+#     show_default=str(_PARAMS['edge_definition'].default),
+#     help='percentage of a read that is considered to be "the edge" for the purposes of assessing variant position distribution'
+# )
+# @optgroup.option(
+#     '--edge-fraction',
+#     metavar='FLOAT',
+#     type=click.FloatRange(*_PARAMS['edge_fraction'].range),
+#     show_default=str(_PARAMS['edge_fraction'].default),
+#     help='percentage of variants must occur within EDGE_FRACTION of read edges to mark ADF flag'
+# )
+# @optgroup.option(
+#     '--min-mad-one-strand',
+#     metavar='INT',
+#     type=click.IntRange(*_PARAMS['min_mad_one_strand'].range),
+#     show_default=str(_PARAMS['min_mad_one_strand'].default),
+#     help='Mean Average Devaition of distances between variant position and read start above which a variant cannot be considered anomalous - used when only one strand has sufficient valid reads for testing'
+# )  # 'above which' meaning exclusive
+# @optgroup.option(
+#     '--min-sd-one-strand',
+#     metavar='FLOAT',
+#     type=click.FloatRange(*_PARAMS['min_sd_one_strand'].range),
+#     show_default=str(_PARAMS['min_sd_one_strand'].default),
+#     help='stdev of distances between variant position and read start above which a variant cannot be considered anomalous - used when only one strand has sufficient valid reads for testing'
+# )
+# @optgroup.option(
+#     '--min-mad-both-strand-weak',
+#     metavar='INT',
+#     type=click.IntRange(*_PARAMS['min_mad_both_strand_weak'].range),
+#     show_default=str(_PARAMS['min_mad_both_strand_weak'].default),
+#     help='Mean Average Devaition of distances between variant position and read start above which a variant cannot be considered anomalous - used when both strands have sufficient valid reads for testing, in logical AND with `min_sd_both_strand_weak`, and logical OR with corresponding strong condtion pair'
+# )
+# @optgroup.option(
+#     '--min-sd-both-strand-weak',
+#     metavar='FLOAT',
+#     type=click.FloatRange(*_PARAMS['min_sd_both_strand_weak'].range),
+#     show_default=str(_PARAMS['min_sd_both_strand_weak'].default),
+#     help='stdev of distances between variant position and read start above which a variant cannot be considered anomalous - used when both strands have sufficient valid reads for testing, in logical AND with `min_mad_both_strand_weak`, and logical OR with corresponding strong condtion pair'
+# )
+# @optgroup.option(
+#     '--min-mad-both-strand-strong',
+#     metavar='INT',
+#     type=click.IntRange(*_PARAMS['min_mad_both_strand_strong'].range),
+#     show_default=str(_PARAMS['min_mad_both_strand_strong'].default),
+#     help='Mean Average Devaition of distances between variant position and read start above which a variant cannot be considered anomalous - used when both strands have sufficient valid reads for testing, in logical AND with `min_sd_both_strand_strong`, and logical OR with corresponding weak condtion pair'
+# )
+# @optgroup.option(
+#     '--min-sd-both-strand-strong',
+#     metavar='FLOAT',
+#     type=click.FloatRange(*_PARAMS['min_sd_both_strand_strong'].range),
+#     show_default=str(_PARAMS['min_sd_both_strand_strong'].default),
+#     help='stdev of distances between variant position and read start above which a variant cannot be considered anomalous - used when both strands have sufficient valid reads for testing, in logical AND with `min_mad_both_strand_weak`, and logical OR with the corresponding weak condtion pair'
+# )
+# @optgroup.option(
+#     '--min-reads',
+#     metavar='INT',
+#     type=click.IntRange(*_PARAMS['min_reads'].range),
+#     show_default=str(_PARAMS['min_reads'].default),
+#     help='number of reads at and below which the hairpin filtering logic considers a strand to have insufficient reads for testing for a given variant'
+# )
 def hairpin2(
     vcf: str,
     alignments: list[str],
@@ -362,43 +362,43 @@ def hairpin2(
             sys.exit(EXIT_FAILURE)
 
     # verify config
-    for key in configd:
-        if key not in _PARAMS:
-            logging.error(f'unrecognised parameter {key!r} in config - check spelling and underscores?')
-            sys.exit(EXIT_FAILURE)
+    # for key in configd:
+    #     if key not in _PARAMS:
+    #         logging.error(f'unrecognised parameter {key!r} in config - check spelling and underscores?')
+    #         sys.exit(EXIT_FAILURE)
 
     # override from config and ensure all args are set
     # test args are sensible, exit if not
     # unfortunately necessary duplication with options since the config remains unverified
     # TODO: move to validation of FilterParams with pydantic, where there should be full validation anyway
-    for key in kwargs:
-        if kwargs[key] is None:
-            if key in configd.keys():
-                kwargs[key] = configd[key]
-            elif key in _PARAMS:
-                if not quiet: logging.info(f'parameter {key!r} not found in config or overridden on command line, falling back to standard default {_PARAMS[key].default}')
-                kwargs[key] = _PARAMS[key].default
-        if key not in _PARAMS:  # shouldn't happen
-            logging.error(f'unrecognised parameter {key!r} in kwargs - this is probably a bug!')
-            sys.exit(EXIT_FAILURE)
-        else:
-            assert kwargs[key] is not None
-            if not isinstance(kwargs[key], type(_PARAMS[key].default)):
-                logging.error(f'value {kwargs[key]!r} for parameter {key!r} is not of expected type {type(_PARAMS[key].default).__name__}')
-                sys.exit(EXIT_FAILURE)
-            pmin, pmax = _PARAMS[key].range
-            if (pmin is not None and pmin > kwargs[key]) or (pmax is not None and kwargs[key] > pmax):
-                logging.error(f'value {kwargs[key]!r} for parameter {key!r} out of range {pmin}<=x<={pmax}')
-                sys.exit(EXIT_FAILURE)
+    # for key in kwargs:
+    #     if kwargs[key] is None:
+    #         if key in configd.keys():
+    #             kwargs[key] = configd[key]
+    #         elif key in _PARAMS:
+    #             if not quiet: logging.info(f'parameter {key!r} not found in config or overridden on command line, falling back to standard default {_PARAMS[key].default}')
+    #             kwargs[key] = _PARAMS[key].default
+    #     if key not in _PARAMS:  # shouldn't happen
+    #         logging.error(f'unrecognised parameter {key!r} in kwargs - this is probably a bug!')
+    #         sys.exit(EXIT_FAILURE)
+    #     else:
+    #         assert kwargs[key] is not None
+    #         if not isinstance(kwargs[key], type(_PARAMS[key].default)):
+    #             logging.error(f'value {kwargs[key]!r} for parameter {key!r} is not of expected type {type(_PARAMS[key].default).__name__}')
+    #             sys.exit(EXIT_FAILURE)
+    #         pmin, pmax = _PARAMS[key].range
+    #         if (pmin is not None and pmin > kwargs[key]) or (pmax is not None and kwargs[key] > pmax):
+    #             logging.error(f'value {kwargs[key]!r} for parameter {key!r} out of range {pmin}<=x<={pmax}')
+    #             sys.exit(EXIT_FAILURE)
 
-    # set up params based on inputs
-    shared_prefilter_d = {
-        'min_mapq': kwargs['min_mapping_quality'],
-        'min_avg_clipq': kwargs['min_clip_quality'],
-        'min_baseq': kwargs['min_base_quality']
-    }
+    # # set up params based on inputs
+    # shared_prefilter_d = {
+    #     'min_mapq': kwargs['min_mapping_quality'],
+    #     'min_avg_clipq': kwargs['min_clip_quality'],
+    #     'min_baseq': kwargs['min_base_quality']
+    # }
 
-    kwargs.update(shared_prefilter_d,)
+    # kwargs.update(shared_prefilter_d,)
 
     try:
         vcf_in_handle = pysam.VariantFile(vcf)
@@ -522,7 +522,7 @@ def hairpin2(
     # init output  TODO: put these in filter modules as funcs
     out_head = vcf_in_handle.header
     out_head.add_line(
-        f'##FILTER=<ID=ALF,Description="Median alignment score of reads reporting variant less than {kwargs['al_filter_threshold']}">'
+        f'##FILTER=<ID=ALF,Description="Median alignment score of reads reporting variant less than PLACEHOLDER">'  # BUG/TODO: extract from config or just move this stuff
     )
     out_head.add_line(
         f'##FILTER=<ID=ADF,Description="Variant shows anomalous distribution in supporting reads">'
@@ -548,9 +548,9 @@ def hairpin2(
     out_head.add_line(
         f'##hairpin2_version={__version__}'
     )
-    out_head.add_line(
-        f'##hairpin2_params=[{json.dumps({k: kwargs[k] for k in _PARAMS})}]'
-    )
+    # out_head.add_line(  # BUG/TODO: reenable
+    #     f'##hairpin2_params=[{json.dumps({k: configd[k] for k in _PARAMS})}]'
+    # )
     out_head.add_line(
         f'##hairpin2_samples={vcf_sample_to_alignment_map.keys()}'
     )
@@ -564,15 +564,14 @@ def hairpin2(
 
     # NOTE: all this below should be excised into raf eventually
     # TODO: providing prefilter params should only be necessary if there are any
-    # dpp = dupmark.DupmarkPreprocessor(prefilter_params=dupmark_prefilter_params, fixed_params=dupmark_params)
-    sp = TaggerSupporting(kwargs)
-    ov = TaggerOverlap(kwargs)
-    dp = DVF.TaggerDupmark(kwargs)
-    lqt = TaggerLowQual(kwargs)
-    lqf = FlaggerLQF(kwargs)
-    ad = ADF.FlaggerADF(kwargs)
-    al = ALF.FlaggerALF(kwargs)
-    dv = DVF.FlaggerDVF(kwargs)
+    sp = TaggerSupporting(configd)
+    ov = TaggerOverlap(configd)
+    dp = DVF.TaggerDupmark(configd)
+    lqt = TaggerLowQual(configd)
+    lqf = FlaggerLQF(configd)
+    ad = ADF.FlaggerADF(configd)
+    al = ALF.FlaggerALF(configd)
+    dv = DVF.FlaggerDVF(configd)
     # test records
     prog_bar_counter = 0
     for record in vcf_in_handle.fetch():
@@ -674,6 +673,7 @@ def hairpin2(
             for ftype in record_filters:
                 if any(fres.flag == True for fres in record_filters[ftype]):
                     record.filter.add(ftype.FlagName)
+                # TODO: LQF prints no info!
                 record.info.update({ftype.FlagName: ','.join([fl.getinfo() for fl in record_filters[ftype]])})  # pyright: ignore[reportArgumentType]
 
         try:
@@ -695,7 +695,7 @@ def hairpin2(
             with open(output_config_path, "w") as output_json:
                 json.dump(
                     {
-                        k: kwargs[k]
+                        k: configd[k]
                         for k
                         in _PARAMS
                     },

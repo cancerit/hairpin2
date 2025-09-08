@@ -8,6 +8,5 @@ build/
 .coverage
 scratch/
 .DS_Store
-*.json
 data*/
 *.txt

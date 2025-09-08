@@ -32,6 +32,9 @@ from hairpin2.readqc import ValidatorFlags
 from hairpin2.ref2seq import ref2querypos, ref_end_via_cigar
 
 
+_FLAG_NAME = 'LQF'
+
+
 # TODO: make end user not need to import and inherit from IntEnum, provide some kind of construction method?
 class CodesLQF(IntEnum):
     INSUFFICIENT_READS = 0
@@ -40,7 +43,7 @@ class CodesLQF(IntEnum):
 
 class ResultLQF(
     haf.FlagResult,
-    flag_name="LQF",
+    flag_name=_FLAG_NAME,
     result_codes=tuple(CodesLQF)
 ):
     alt: str
@@ -51,11 +54,9 @@ class ResultLQF(
         return f"{self.alt}|{self.flag}|{self.code}|{self.loss_ratio}"  # TODO: report which samples?
 
 
-class FixedParamsLQF(PrefilterParamsShared):
+class FixedParamsLQF(haf.FixedParams):
     read_loss_threshold: float = 0.49  # percent threshold of N lq reads compared to N input reads for a given variant and sample, above which we call DVF
     nsamples_threshold: int = 0  # TODO: I'm not sure this param makes sense. I guess in a multi sample VCF it would imply less confidence in the call if only 1 sample reported duplication. But you'd still probably want to know about that sample? Discuss with Peter
-
-
 
 
 def qc_read(
@@ -142,7 +143,7 @@ LOW_QUAL_TAG = 'zQ'
 
 def tag_lq(
     run_params: RunParamsShared,
-    params: FixedParamsLQF  # placeholder maybe
+    params: PrefilterParamsShared # placeholder maybe
 ):
     for read in run_params.reads.all:
         if qc_read(
@@ -150,9 +151,9 @@ def tag_lq(
             run_params.record.start,
             run_params.alt,
             run_params.mut_type,
-            params.min_baseq,
-            params.min_mapq,
-            params.min_avg_clipq,
+            params.min_base_quality,
+            params.min_mapping_quality,
+            params.min_avg_clip_quality,
             
         ) != ValidatorFlags.CLEAR:  # if bad
             read.set_tag(LOW_QUAL_TAG, 1, 'i')
@@ -209,21 +210,23 @@ def test_variant_LQF(
     return fresult
 
 @haf.require_read_properties(require_tags=['zS'])  # require support
-@haf.read_tagger(tagger_param_class=FixedParamsLQF, read_modifier_func=tag_lq, adds_tag=LOW_QUAL_TAG)  # placeholder
+@haf.read_tagger(tagger_param_class=PrefilterParamsShared, read_modifier_func=tag_lq, adds_tag=LOW_QUAL_TAG)  # placeholder
 class TaggerLowQual(
-    haf.ReadAwareProcess
+    haf.ReadAwareProcess,
+    process_name="mark-low-qual"
 ): pass
 
 
 @haf.require_read_properties(require_tags=['zS'], exclude_tags=['zO'])  # exclude overlapping second pair member, require support  NOTE: do you actually want to exclude overlap when assessing this? it's not quite double counting per se if the overlapping read does show support...
 @haf.variant_flagger(
-    flag_name="LQF",
+    flag_name=_FLAG_NAME,
     flagger_func=test_variant_LQF,
     flagger_param_class=FixedParamsLQF,
     result_type=ResultLQF
 )
 class FlaggerLQF(
     haf.ReadAwareProcess,
+    process_name=_FLAG_NAME
 ):
     """
     """

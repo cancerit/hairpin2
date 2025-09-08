@@ -8,6 +8,6 @@ class RunParamsShared(RunParams):
 
 
 class PrefilterParamsShared(FixedParams):
-    min_mapq: int
-    min_avg_clipq: int
-    min_baseq: int
+    min_mapping_quality: int
+    min_avg_clip_quality: int
+    min_base_quality: int

@@ -108,7 +108,8 @@ def test_alignment_score(  # test supporting reads
 @haf.require_read_properties(require_tags=['zS'], exclude_tags=['zD', 'zQ', 'zO'])  # require support, exclude stutter dups, low qual, second overlapping fragment member
 @haf.variant_flagger(flag_name=_FLAG_NAME, flagger_param_class=FixedParamsALF, flagger_func=test_alignment_score,result_type=ResultALF)
 class FlaggerALF(
-    haf.ReadAwareProcess
+    haf.ReadAwareProcess,
+    process_name=_FLAG_NAME
 ):
     # TODO: docstring
     """

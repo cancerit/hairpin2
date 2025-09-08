@@ -73,6 +73,7 @@ def tag_supporting(
 
 @haf.read_tagger(tagger_param_class=None, read_modifier_func=tag_supporting, adds_tag=SUPPORT_TAG)  # TODO: guard against requiring/excluding and adding the same tag!
 class TaggerSupporting(
-    haf.ReadAwareProcess  # TODO/BUG: ReadAwareProcess subclasses MUST define a specific type of run params that they use, or the contravariance with run_params is lost
+    haf.ReadAwareProcess,  # TODO/BUG: ReadAwareProcess subclasses MUST define a specific type of run params that they use, or the contravariance with run_params is lost
+    process_name='mark-support'
 ): pass
 
