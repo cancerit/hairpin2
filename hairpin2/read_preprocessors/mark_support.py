@@ -1,7 +1,7 @@
-import hairpin2.abstractflaggers as haf
+import hairpin2.abstractions.readawareproc as haf
 from hairpin2.flaggers.shared import RunParamsShared
-from hairpin2.readqc import ValidatorFlags
-from hairpin2.ref2seq import ref2querypos
+from hairpin2.const import ValidatorFlags
+from hairpin2.utils.ref2seq import ref2querypos
 from pysam import AlignedSegment
 from typing import Literal, cast
 

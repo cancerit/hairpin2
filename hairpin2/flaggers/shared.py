@@ -1,5 +1,5 @@
 from typing import Literal
-from hairpin2.abstractflaggers import FixedParams, RunParams
+from hairpin2.abstractions.readawareproc import FixedParams, RunParams
 
 
 class RunParamsShared(RunParams):

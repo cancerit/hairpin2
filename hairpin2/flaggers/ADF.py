@@ -21,9 +21,9 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-import hairpin2.abstractflaggers as haf
+import hairpin2.abstractions.readawareproc as haf
 from hairpin2.flaggers.shared import RunParamsShared
-from hairpin2 import ref2seq as r2s
+from hairpin2.utils import ref2seq as r2s
 from typing import override
 from enum import IntEnum, auto
 from statistics import median, stdev

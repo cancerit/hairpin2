@@ -24,12 +24,12 @@
 from pathlib import Path
 import pysam
 from hairpin2 import  __version__
-from hairpin2.abstractflaggers import FlagResult
+from hairpin2.abstractions.readawareproc import FlagResult
 from hairpin2.flaggers.LQF import FlaggerLQF, ResultLQF, TaggerLowQual
 from hairpin2.flaggers.shared import RunParamsShared
 from hairpin2.read_preprocessors.mark_overlap import TaggerOverlap
 from hairpin2.read_preprocessors.mark_support import TaggerSupporting
-from hairpin2.structures import ReadView
+from hairpin2.abstractions.structures import ReadView
 from hairpin2.flaggers import ADF, ALF, DVF
 import logging
 import json

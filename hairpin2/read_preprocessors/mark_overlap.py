@@ -1,6 +1,6 @@
-import hairpin2.abstractflaggers as haf
+import hairpin2.abstractions.readawareproc as haf
 from hairpin2.flaggers.shared import RunParamsShared
-from hairpin2.ref2seq import ref_end_via_cigar
+from hairpin2.utils.ref2seq import ref_end_via_cigar
 from pysam import AlignedSegment
 
 

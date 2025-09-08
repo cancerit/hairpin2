@@ -42,10 +42,11 @@ from types import new_class
 from pydantic import BaseModel, ConfigDict, field_validator
 from typing import Callable, ClassVar, TypeVar, Any, cast, overload, override
 from pysam import AlignedSegment, VariantRecord
-from hairpin2.structures import ReadView
+from hairpin2.abstractions.structures import ReadView
 
 
 # TODO/BUG: docstrings completely outdated
+# TODO: move data structures into abstractions.structures
 
 
 
@@ -510,9 +511,9 @@ class ReadAwareProcess(ABC):
         process_name: str,
        **kwargs: Any
     ) -> None:
-        # I don't know how robust this is
-        cls._ProcessName = process_name
-        super().__init_subclass__(**kwargs)
+        # I don't know how robust this is but it does work
+        cls._ProcessName = process_name  # swallow process name
+        super().__init_subclass__(**kwargs)  # pass on the rest
         kwargs.update({'process_name': process_name})
         cls.__decl_kwargs__: dict[str, Any] = dict(kwargs)   # stash for decorators
 

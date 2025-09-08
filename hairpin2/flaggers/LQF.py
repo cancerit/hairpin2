@@ -24,12 +24,12 @@
 from array import array
 from statistics import mean
 from pysam import AlignedSegment
-import hairpin2.abstractflaggers as haf
+import hairpin2.abstractions.readawareproc as haf
 from typing import Any, cast, override
 from enum import IntEnum, auto
 from hairpin2.flaggers.shared import PrefilterParamsShared, RunParamsShared
-from hairpin2.readqc import ValidatorFlags
-from hairpin2.ref2seq import ref2querypos, ref_end_via_cigar
+from hairpin2.const import ValidatorFlags
+from hairpin2.utils.ref2seq import ref2querypos, ref_end_via_cigar
 
 
 _FLAG_NAME = 'LQF'

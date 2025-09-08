@@ -25,8 +25,8 @@ from pysam import AlignedSegment
 from typing import override
 from enum import IntEnum, auto
 from hairpin2.flaggers.shared import RunParamsShared
-from hairpin2.abstractflaggers import FixedParams, FlagResult, ReadAwareProcess, read_tagger, require_read_properties, variant_flagger
-from hairpin2 import ref2seq as r2s
+from hairpin2.abstractions.readawareproc import FixedParams, FlagResult, ReadAwareProcess, read_tagger, require_read_properties, variant_flagger
+from hairpin2.utils import ref2seq as r2s
 from typing import cast
 
 STUTTER_DUP_TAG = 'zD'
