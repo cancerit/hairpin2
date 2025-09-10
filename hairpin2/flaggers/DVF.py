@@ -115,11 +115,8 @@ class ResultDVF(
 
 
 class FixedParamsDVF(FixedParams):
-    # NOTE: neither of these options prevent read removal due to duplication,
-    # so `DVF.test()` always functions as QC and may still drop reads
-    # - I think this is fine, just document more
-    read_loss_threshold: float = 0.49  # percent threshold of N duplicate reads compared to N input reads for a given variant and sample, above which we call DVF
-    nsamples_threshold: int = 0  # TODO: I'm not sure this param makes sense. I guess in a multi sample VCF it would imply less confidence in the call if only 1 sample reported duplication. But you'd still probably want to know about that sample? Discuss with Peter
+    read_loss_threshold: float  # percent threshold of N duplicate reads compared to N input reads for a given variant and sample, above which we call DVF
+    nsamples_threshold: int  # TODO: I'm not sure this param makes sense. I guess in a multi sample VCF it would imply less confidence in the call if only 1 sample reported duplication. But you'd still probably want to know about that sample? Discuss with Peter
 
 
 # detect PCR duplicates previously missed due to slippage
@@ -176,18 +173,6 @@ def test_duplicated_support_frac(
     return fresult
 
 
-# (old note but worth keeping)
-# NOTE: since the tagger and flagger are tied to the same class, can't currently specify different/requires excludes
-# this is not ideal since we probably do want to dupmark low quality reads - though it does match the previous implementation
-# since low qual was already removed before dupmarking.
-# The solution seems to be to subsume required_read_properties into the other decorators, so each decorator gives independent
-# reqs. Oh, but then you can't solve the run order in the same way... I guess they should be separate.
-# Oh well, do this way first to check for regressions. And it may be possible still to solve run order just with a slightly
-# different approach in the internals - which would be nice because then you can keep stuff conceptually tied
-# TODO/BUG: overall params mapping in ReadAwareProcess doesn't handle namespacing of params with the same name!!
-# NOTE: used to exclude low quality - now not doing that per Phuong - NO WAIT YES I AM - have to check no regressions
-
-
 # TODO/BUG/NOTE: excluding zQ, low qual, because with a bad MC this will fail
 # but that's a specific sub property of lq which should itself be surfaced
 # it's basically whether the read in question properly paired or not
@@ -202,6 +187,8 @@ class TaggerDupmark(
 # NOTE/BUG/TODO: excludes low qual tag, assigned by FlaggerLQF in it's read tagger method
 # which also has a flagger method that relies on dup tag, assigned above.
 # Somewhat messy interdependence
+# can, but don't necessarily need to be, entirely independent via prefilter
+# TODO: hard=/global= arg for taggers, indicating that reads that fail them should be dropped entirely, so as to avoid needing to map via exclude tags
 @require_read_properties(require_tags=['MC', 'zS'], exclude_tags=['zO', 'zQ'])  # require support, exclude overlapping second member
 @variant_flagger(flag_name=_FLAG_NAME, flagger_param_class=FixedParamsDVF, flagger_func=test_duplicated_support_frac, result_type=ResultDVF)
 class FlaggerDVF(

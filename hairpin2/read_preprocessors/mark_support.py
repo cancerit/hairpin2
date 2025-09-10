@@ -9,6 +9,7 @@ from typing import Literal, cast
 SUPPORT_TAG = 'zS'
 
 
+# in an ideal world this would be a method on a VariantRecord
 def check_read_supporting(
     read: AlignedSegment,
     mut_type: Literal['S', 'I', 'D'],
@@ -16,6 +17,9 @@ def check_read_supporting(
     vcf_start: int,
     vcf_stop: int,
 ) -> ValidatorFlags:
+    """
+        confirm whether a read supports a variant
+    """
     if mut_type not in ['S', 'D', 'I']:
         raise ValueError(
             'unsupported mut_type: {} - supports \'S\' (SUB) \'D\' (DEL) \'I\' (INS)'.format(mut_type))

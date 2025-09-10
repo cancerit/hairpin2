@@ -522,16 +522,16 @@ def hairpin2(
     # init output  TODO: put these in filter modules as funcs
     out_head = vcf_in_handle.header
     out_head.add_line(
-        f'##FILTER=<ID=ALF,Description="Median alignment score of reads reporting variant less than PLACEHOLDER">'  # BUG/TODO: extract from config or just move this stuff
+        f'##FILTER=<ID=ALF,Description="Median alignment score of reads reporting variant less than {configd['ALF']['avg_AS_threshold']}">'  # TODO: move to result or flagger classes
     )
     out_head.add_line(
         f'##FILTER=<ID=ADF,Description="Variant shows anomalous distribution in supporting reads">'
     )
     out_head.add_line(
-        '##FILTER=<ID=DVF,Description="Variant consistent with PCR stuttering on supporting reads">'
+        f'##FILTER=<ID=DVF,Description="More than {configd['DVF']['read_loss_threshold']} of reads supporting this variant are considered PCR stutter duplicates">'
     )
-    out_head.add_line(  # BUG: placeholder
-        '##FILTER=<ID=LQF,Description="Variant consistent with PCR stuttering on supporting reads">'
+    out_head.add_line(
+        f'##FILTER=<ID=LQF,Description="More than {configd['LQF']['read_loss_threshold']} of reads supporting this variant are considered low quality">'
     )
     out_head.add_line(
         '##INFO=<ID=ADF,Number=1,Type=String,Description="alt|[True,False]|code indicating decision reason for each alt">'
@@ -542,15 +542,15 @@ def hairpin2(
     out_head.add_line(
         '##INFO=<ID=DVF,Number=1,Type=String,Description="alt|[True,False]|code|loss indicating decision reason for each alt and ratio of supporting reads suspected to be duplicates">'
     )
-    out_head.add_line(  # BUG: placeholder
-        '##INFO=<ID=LQF,Number=1,Type=String,Description="alt|[True,False]|code|loss indicating decision reason for each alt and ratio of supporting reads suspected to be duplicates">'
+    out_head.add_line(
+        '##INFO=<ID=LQF,Number=1,Type=String,Description="alt|[True,False]|code|loss indicating decision reason for each alt and ratio of supporting reads suspected to be low quality">'
     )
     out_head.add_line(
         f'##hairpin2_version={__version__}'
     )
-    # out_head.add_line(  # BUG/TODO: reenable
-    #     f'##hairpin2_params=[{json.dumps({k: configd[k] for k in _PARAMS})}]'
-    # )
+    out_head.add_line(
+        f'##hairpin2_params=[{json.dumps(configd)}]'
+    )
     out_head.add_line(
         f'##hairpin2_samples={vcf_sample_to_alignment_map.keys()}'
     )
@@ -653,7 +653,9 @@ def hairpin2(
                     sp(run_data)
                     ov(run_data)
                     lqt(run_data)
-                    dp(run_data)  # needs lqt run first - BUG: this isn't surfaced or guarded in any way
+                    dp(run_data)  # needs lqt run first - TODO: this fact isn't surfaced or guarded in any way
+                    # TODO: to test this, need to assess passing reads using these tag based methods vs passing reads in old qc funcs implementation. If they're the same
+                    # then the only remaining problem space is the LQF implementation
                     lq_result = lqf(run_data)
                     dv_result = dv(run_data)
                     al_result = al(run_data)

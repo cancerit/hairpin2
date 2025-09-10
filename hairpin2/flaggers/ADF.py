@@ -50,15 +50,15 @@ class ResultADF(
 
 
 class FixedParamsADF(haf.FixedParams):
-    edge_definition: float = 0.15  # relative proportion, by percentage, of a read to be considered 'the edge'
-    edge_clustering_threshold: float = 0.9  # percentage threshold
-    min_MAD_one_strand: int = 0  # exclusive (and subsequent params)
-    min_sd_one_strand: float = 4
-    min_MAD_both_strand_weak: int = 2
-    min_sd_both_strand_weak: float = 2
-    min_MAD_both_strand_strong: int = 1
-    min_sd_both_strand_strong: float = 10
-    min_reads: int = 1  # inclusive
+    edge_definition: float  # relative proportion, by percentage, of a read to be considered 'the edge'
+    edge_clustering_threshold: float  # percentage threshold
+    min_MAD_one_strand: int  # exclusive (and subsequent params)
+    min_sd_one_strand: float
+    min_MAD_both_strand_weak: int
+    min_sd_both_strand_weak: float
+    min_MAD_both_strand_strong: int
+    min_sd_both_strand_strong: float
+    min_reads: int  # inclusive
 
 
 # def prefilter(

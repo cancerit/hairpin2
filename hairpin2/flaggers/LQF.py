@@ -54,9 +54,10 @@ class ResultLQF(
         return f"{self.alt}|{self.flag}|{self.code}|{self.loss_ratio}"  # TODO: report which samples?
 
 
+# TODO/BUG: defaults bad!
 class FixedParamsLQF(haf.FixedParams):
-    read_loss_threshold: float = 0.49  # percent threshold of N lq reads compared to N input reads for a given variant and sample, above which we call DVF
-    nsamples_threshold: int = 0  # TODO: I'm not sure this param makes sense. I guess in a multi sample VCF it would imply less confidence in the call if only 1 sample reported duplication. But you'd still probably want to know about that sample? Discuss with Peter
+    read_loss_threshold: float  # percent threshold of N lq reads compared to N input reads for a given variant and sample, above which we call DVF
+    nsamples_threshold: int  # TODO: I'm not sure this param makes sense. I guess in a multi sample VCF it would imply less confidence in the call if only 1 sample reported duplication. But you'd still probably want to know about that sample? Discuss with Peter
 
 
 def qc_read(
@@ -79,11 +80,6 @@ def qc_read(
     """
     invalid_flag = ValidatorFlags.CLEAR  # 0 - evaluates false
 
-    """
-    When testing a variant, test a read for various features specific to the variant
-    at hand which would identify that read as a poor source of support for that
-    variant. Used to disqualify reads for use in testing a variant.
-    """
     try:
         mate_cig = str(read.get_tag('MC'))
     except KeyError:
@@ -108,25 +104,25 @@ def qc_read(
                 mean(read.query_alignment_qualities) < min_clipqual):  # pyright: ignore[reportUnknownMemberType, reportArgumentType]
             invalid_flag |= ValidatorFlags.CLIPQUAL
 
-        # avoid analysing both read1 and mate if they both cover the variant
+        # avoid analysing both read1 and mate if they both cover the variant  - MOVED TO mark_support.py
         # NOTE: introduces strand bias!!
-        if (not (invalid_flag & ValidatorFlags.FLAG)
-                and not (read.flag & 0x40)):
-            read_range = range(read.reference_start,
-                               read.reference_end)  # pyright: ignore[reportArgumentType]
-            mate_range = range(read.next_reference_start,
-                               ref_end_via_cigar(mate_cig,  # pyright: ignore[reportArgumentType]
-                                                     read.next_reference_start))
-            ref_overlap = set(read_range).intersection(mate_range)
-            if vcf_start in ref_overlap:
-                invalid_flag |= ValidatorFlags.OVERLAP
+        # if (not (invalid_flag & ValidatorFlags.FLAG)
+        #         and not (read.flag & 0x40)):
+        #     read_range = range(read.reference_start,
+        #                        read.reference_end)  # pyright: ignore[reportArgumentType]
+        #     mate_range = range(read.next_reference_start,
+        #                        ref_end_via_cigar(mate_cig,  # pyright: ignore[reportArgumentType]
+        #                                              read.next_reference_start))
+        #     ref_overlap = set(read_range).intersection(mate_range)
+        #     if vcf_start in ref_overlap:
+        #         invalid_flag |= ValidatorFlags.OVERLAP
 
 
     if mut_type == 'S':
         try:
             mut_pos = ref2querypos(read, vcf_start)
         except ValueError:
-            invalid_flag |= ValidatorFlags.NOT_ALIGNED
+            raise ValueError(f"read: {read.query_name} appears not to cover variant at {vcf_start} - this function should only be run on reads confirmed to be supporting the variant")
         else:
             if any(
                 [bq < min_basequal

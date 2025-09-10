@@ -43,11 +43,30 @@ from pydantic import BaseModel, ConfigDict, field_validator
 from typing import Callable, ClassVar, TypeVar, Any, cast, overload, override
 from pysam import AlignedSegment, VariantRecord
 from hairpin2.abstractions.structures import ReadView
+from inspect import BoundArguments, Parameter, Signature, signature as inspect_sig
 
 
 # TODO/BUG: docstrings completely outdated
 # TODO: move data structures into abstractions.structures
-
+# TODO: consider using wrapt more
+# TODO: consider using decorator to inspect sigs of scientific functions and wrap them
+# allowing for scientific logic to be near independent of knowing anything
+# about this package. Oh if possible this would be great - could extract args and typehints
+# and use that to request fixed params, and even runtime params, without
+# definition of a param dataclass. THIS IS NICE
+# Also, since the type reqs for doing this is simply that an object is callable,
+# for any stateful approaches across multiple records/positions/bundles of reads
+# just use a class def with a __call__ method for advanced users 
+# 
+# NOTE: mixin approach allows overrides in the user class definition of mixin methods
+# without my injected methods stomping on them
+# can still duck type regardless if desired
+# TODO: use init_subclass in mixins, and pass decorator args into those as keywords
+# this will allow definition time validation and guard against misspellings and stuff
+# and don't set any other vars outside of exec body func
+# TODO: decorators from deco factories should return protocols for the thing they're returning - won't obscure user typing, and will add type hints
+# for injected behaviour - lies, doesn't work at definition time (but does at runtime, which I don't know if I want or care about)
+# TODO: focus on structures lol don't get too carried away here make sure I'm doing stuff for the aim - make this easy for scientists!
 
 
 
@@ -111,7 +130,7 @@ class _RequireReadProperties:
     ExcludeTags: ClassVar[tuple[str, ...]]
     RequireFields: ClassVar[tuple[str, ...]]
 
-    def require_properties_check(
+    def require_properties_check(  # NOTE/TODO: this could live on the main class and can just inject attributes with decorator, or add to these fields with the other decos
         self,
         run_params: RunParams
     ):
@@ -175,7 +194,7 @@ def require_read_properties(
 
 class _PrefilterProcess:
     PrefilterParamClass: ClassVar[type[FixedParams]]
-    _ReadEvaluator: ClassVar[Callable[[AlignedSegment, VariantRecord, FixedParams], bool]]
+    _ReadEvaluator: ClassVar[Callable[[AlignedSegment, VariantRecord, FixedParams], bool]]  # TODO: allow class with __call__?
     _prefilter_params: FixedParams | None = None
 
     def load_prefilter(self, *, params: Mapping[str, Any]) -> None:
@@ -183,7 +202,7 @@ class _PrefilterProcess:
         kv = {k: v for k, v in params.items() if k in requisite}
         self._prefilter_params = self.PrefilterParamClass(**kv)
 
-    # “sensible default” implementation; override if needed - # BUG: well you can't if it's _private! (ok you can but you shouldn't)
+    # “sensible default” implementation; override if needed
     def filter_reads(self, run_params: RunParams) -> Mapping[Any, Sequence[AlignedSegment]]:
         if self.prefilter_params is None:
             raise RuntimeError("Prefilter not loaded; call load_prefilter() first")
@@ -228,6 +247,7 @@ def prefilter[FixedParams_T: FixedParams](
         setattr(new_cls, "_ReadEvaluator", read_evaluator_func)
         return new_cls
     return deco
+
 
 
 # TODO: all mixins should probably allow for both fixed params and no fixed params subtypes
@@ -292,8 +312,18 @@ class _NoParamsReadTaggerProcess(_AbstractReadTaggerProcess):
 
     @property
     @override
-    def tagger_params(self) -> None:
+    def tagger_params(self) -> None:  # TODO: raise error - simplifies typing elsewhere
         return self._read_proc_params
+
+
+# # basic exposed surface - NOTE: doesn't work, covers user methods
+# class ReadTaggerProtocol(Protocol):
+#     AddsTag: ClassVar[str]
+#     ReadTaggerParamClass: ClassVar[type[FixedParams] | None]
+
+#     def modify_reads(self, run_params: RunParams) -> None: ...
+#     @property
+#     def tagger_params(self) -> FixedParams | None: ...
 
 
 # decorator
@@ -493,6 +523,69 @@ def variant_flagger(
 
 
 # END SECTION: Behaviour Mixins -------------------------
+
+# class DescribedFunc(ABC):
+#     ProcName: ClassVar[str]
+#     Func: ClassVar[Callable[..., Any]]
+#     FuncSig: ClassVar[Signature]
+#     _bound_args: BoundArguments | None = None
+
+
+#     def __init_subclass__(
+#         cls,
+#         proc_name: str,
+#         func: Callable[..., Any]
+#     ) -> None:
+#         cls.ProcName = proc_name
+#         cls.Func = func
+#         cls.FuncSig = inspect_sig(func)  # TODO: fail on positional only args present
+
+#     @property
+#     def requests_args(
+#         self
+#     ):
+#         # TODO: that aren't alignedsegment/variantrecord or container of only - need to separate fixed params from runtime params
+#         # ahhhh that actually might need sig explosion in the decorator then
+#         # or some of these should be classmethods idk
+#         return set(self.FuncSig.parameters.keys())
+
+#     def load(
+#         self,
+#         params: Mapping[str, Any]
+#     ):
+#         kv = {k: v for k,v in params.items() if k in self.requests_args}
+#         # TODO: can't bind till we have runtime params also!!
+#         self._bound_args = self.FuncSig.bind(**kv)
+
+
+
+
+
+# NOTE: actually this needs to decorate a class def since the free func needs to remain free!
+# def wrap_func(func: Callable[..., Any], step_type: Literal['tagger', 'flagger'], proc_name: str):
+#     sig = inspect_sig(func)
+
+
+#     match step_type:
+#         case 'tagger':
+#             polymorphic_arg = cast(OrderedDict[str, Parameter], sig.parameters.copy()).popitem(last=False)
+#             # check type is alignedsegment, list[alignedsegment] or mapping[Any, AlignedSegement], get appropriate mixin (or config) to inject based on that
+
+#         case 'flagger':
+#             # check for variant record, ReadView/Mapping/List arg - should only be one acceptable sig pattern I think. N.B. fixed args can be mutable if you need stateful info across many variants.
+#             # Oh actually you could also provide a run params class to the decorator which we could look for args in first. Not important now.
+#             # NOTE: trying to be too generic now will kill this project
+
+
+#     bases = (DescribedFunc, )
+
+#     subclass_kwds = {
+#         'proc_name': proc_name,
+#         'func': func
+#     }
+
+#     new_cls = new_class(proc_name + '_DescribedFunc', bases, subclass_kwds)
+#     return new_cls
 
 
 # The key class which executes the behaviour injected via the mixins

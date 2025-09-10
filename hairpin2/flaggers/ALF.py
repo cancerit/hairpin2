@@ -56,7 +56,7 @@ class ResultALF(
 
 
 class FixedParamsALF(haf.FixedParams):
-    al_thresh: float = 0.93
+    avg_AS_threshold: float
 
 def test_alignment_score(  # test supporting reads
     run_params: RunParamsShared,
@@ -82,7 +82,7 @@ def test_alignment_score(  # test supporting reads
             avg_as = median(aln_scores)
             code = CodesALF.ON_THRESHOLD
             flag = False
-            if avg_as <= fixed_params.al_thresh:
+            if avg_as <= fixed_params.avg_AS_threshold:
                 flag = True
             fresult = ResultALF(
                 flag=flag,
