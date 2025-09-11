@@ -151,7 +151,7 @@ def test_duplicated_support_frac(
             if ntotal > 1:
                 ndup = sum(read.has_tag('zD') for read in reads)
                 ntrue = abs(ndup - ntotal)
-                assert ntotal > ndup > -1  # sanity check - TODO: should probably throw an interpretable error
+                assert ntotal >= ndup > -1  # sanity check - TODO: should probably throw an interpretable error
                 assert ntotal >= ntrue > -1
                 sample_loss_ratio = ndup / ntotal
                 if sample_loss_ratio > fixed_params.read_loss_threshold or ntrue < 2:
