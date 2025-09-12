@@ -27,8 +27,9 @@ from pysam import AlignedSegment
 import hairpin2.abstractions.readawareproc as haf
 from typing import Any, cast, override
 from enum import IntEnum, auto
+from hairpin2.abstractions.structures import ExtendedRead
 from hairpin2.flaggers.shared import PrefilterParamsShared, RunParamsShared
-from hairpin2.const import ValidatorFlags
+from hairpin2.const import TagEnum, ValidatorFlags
 from hairpin2.utils.ref2seq import ref2querypos, ref_end_via_cigar
 
 
@@ -54,14 +55,13 @@ class ResultLQF(
         return f"{self.alt}|{self.flag}|{self.code}|{self.loss_ratio}"  # TODO: report which samples?
 
 
-# TODO/BUG: defaults bad!
 class FixedParamsLQF(haf.FixedParams):
     read_loss_threshold: float  # percent threshold of N lq reads compared to N input reads for a given variant and sample, above which we call DVF
     nsamples_threshold: int  # TODO: I'm not sure this param makes sense. I guess in a multi sample VCF it would imply less confidence in the call if only 1 sample reported duplication. But you'd still probably want to know about that sample? Discuss with Peter
 
 
 def qc_read(
-    read: AlignedSegment,
+    read: ExtendedRead | AlignedSegment,
     vcf_start: int,
     alt: str,
     mut_type: str,
@@ -80,42 +80,29 @@ def qc_read(
     """
     invalid_flag = ValidatorFlags.CLEAR  # 0 - evaluates false
 
-    try:
-        mate_cig = str(read.get_tag('MC'))
-    except KeyError:
-        mate_cig = None
-    if any(flg is None for flg in
-            [read.reference_end,
-                read.query_sequence,
-                read.query_qualities,
-                read.query_alignment_qualities,
-                read.cigarstring,
-                read.cigartuples,
-                mate_cig]):
-        invalid_flag |= ValidatorFlags.READ_FIELDS_MISSING
-    else:
-        if not (read.flag & 0x2) or read.flag & 0xE00:
-            invalid_flag |= ValidatorFlags.FLAG
 
-        if read.mapping_quality < min_mapqual:
-            invalid_flag |= ValidatorFlags.MAPQUAL
+    if not (read.flag & 0x2) or read.flag & 0xE00:
+        invalid_flag |= ValidatorFlags.FLAG
 
-        if ('S' in read.cigarstring and  # pyright: ignore[reportOperatorIssue]
-                mean(read.query_alignment_qualities) < min_clipqual):  # pyright: ignore[reportUnknownMemberType, reportArgumentType]
-            invalid_flag |= ValidatorFlags.CLIPQUAL
+    if read.mapping_quality < min_mapqual:
+        invalid_flag |= ValidatorFlags.MAPQUAL
 
-        # avoid analysing both read1 and mate if they both cover the variant  - MOVED TO mark_support.py
-        # NOTE: introduces strand bias!!
-        # if (not (invalid_flag & ValidatorFlags.FLAG)
-        #         and not (read.flag & 0x40)):
-        #     read_range = range(read.reference_start,
-        #                        read.reference_end)  # pyright: ignore[reportArgumentType]
-        #     mate_range = range(read.next_reference_start,
-        #                        ref_end_via_cigar(mate_cig,  # pyright: ignore[reportArgumentType]
-        #                                              read.next_reference_start))
-        #     ref_overlap = set(read_range).intersection(mate_range)
-        #     if vcf_start in ref_overlap:
-        #         invalid_flag |= ValidatorFlags.OVERLAP
+    if ('S' in read.cigarstring and  # pyright: ignore[reportOperatorIssue]
+            mean(read.query_alignment_qualities) < min_clipqual):  # pyright: ignore[reportUnknownMemberType, reportArgumentType]
+        invalid_flag |= ValidatorFlags.CLIPQUAL
+
+    # avoid analysing both read1 and mate if they both cover the variant  - MOVED TO mark_support.py
+    # NOTE: introduces strand bias!!
+    # if (not (invalid_flag & ValidatorFlags.FLAG)
+    #         and not (read.flag & 0x40)):
+    #     read_range = range(read.reference_start,
+    #                        read.reference_end)  # pyright: ignore[reportArgumentType]
+    #     mate_range = range(read.next_reference_start,
+    #                        ref_end_via_cigar(mate_cig,  # pyright: ignore[reportArgumentType]
+    #                                              read.next_reference_start))
+    #     ref_overlap = set(read_range).intersection(mate_range)
+    #     if vcf_start in ref_overlap:
+    #         invalid_flag |= ValidatorFlags.OVERLAP
 
 
     if mut_type == 'S':
@@ -134,15 +121,13 @@ def qc_read(
     return invalid_flag
 
 
-LOW_QUAL_TAG = 'zQ'
-
-
+# TODO: predefined functions for handing back bools from scientist funcs, and I'll handle the tagging
 def tag_lq(
     run_params: RunParamsShared,
     params: PrefilterParamsShared # placeholder maybe
 ):
     for read in run_params.reads.all:
-        if qc_read(
+        flag = qc_read(
             read,
             run_params.record.start,
             run_params.alt,
@@ -151,8 +136,10 @@ def tag_lq(
             params.min_mapping_quality,
             params.min_avg_clip_quality,
             
-        ) != ValidatorFlags.CLEAR:  # if bad
-            read.set_tag(LOW_QUAL_TAG, 1, 'i')
+        )
+        if flag != ValidatorFlags.CLEAR:
+            read.ext_mark(TagEnum.LOW_QUAL)
+        read.record_ext_op('mark-low-qual')
 
 
 
@@ -181,7 +168,7 @@ def test_variant_LQF(
             ntotal = nreads_by_sample[sample_key]
             sample_loss_ratio = 0
             if ntotal > 1:
-                nlq = sum((read.has_tag(LOW_QUAL_TAG) or read.has_tag('zD')) for read in reads)
+                nlq = sum((read.has_ext_mark(TagEnum.LOW_QUAL) or read.has_ext_mark(TagEnum.STUTTER_DUP)) for read in reads)
                 ntrue = abs(nlq - ntotal)
                 assert ntotal >= nlq > -1  # sanity check - TODO: should probably throw an interpretable error
                 assert ntotal >= ntrue > -1
@@ -205,25 +192,29 @@ def test_variant_LQF(
 
     return fresult
 
-@haf.require_read_properties(require_tags=['zS'])  # require support
-@haf.read_tagger(tagger_param_class=PrefilterParamsShared, read_modifier_func=tag_lq, adds_tag=LOW_QUAL_TAG)  # placeholder
+@haf.read_tagger(
+    tagger_param_class=PrefilterParamsShared,
+    read_modifier_func=tag_lq,
+    adds_marks=[TagEnum.LOW_QUAL],
+)
 class TaggerLowQual(
     haf.ReadAwareProcess,
-    process_name="mark-low-qual"
+    process_namespace="mark-low-qual"
 ): pass
 
 
-@haf.require_read_properties(require_tags=['zS'], exclude_tags=['zO'])  # exclude overlapping second pair member, require support  NOTE: do you actually want to exclude overlap when assessing this? it's not quite double counting per se if the overlapping read does show support...
+# exclude overlapping second pair member, require support  NOTE: do you actually want to exclude overlap when assessing this? it's not quite double counting per se if the overlapping read does show support...
 @haf.variant_flagger(
     flag_name=_FLAG_NAME,
     flagger_func=test_variant_LQF,
     flagger_param_class=FixedParamsLQF,
-    result_type=ResultLQF
+    result_type=ResultLQF,
 )
 class FlaggerLQF(
     haf.ReadAwareProcess,
-    process_name=_FLAG_NAME
+    process_namespace=_FLAG_NAME
 ):
     """
     """
     # NOTE: checks dups, meaning dupmarking must have run first - not at all surfaced in this implementation
+    # hence move to boolean tags, and away from exclude tags

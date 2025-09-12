@@ -21,15 +21,15 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from pysam import AlignedSegment
 from typing import override
 from enum import IntEnum, auto
+from hairpin2.abstractions.structures import ExtendedRead
+from hairpin2.const import TagEnum
 from hairpin2.flaggers.shared import RunParamsShared
-from hairpin2.abstractions.readawareproc import FixedParams, FlagResult, ReadAwareProcess, read_tagger, require_read_properties, variant_flagger
+from hairpin2.abstractions.readawareproc import FixedParams, FlagResult, ReadAwareProcess, read_tagger, variant_flagger
 from hairpin2.utils import ref2seq as r2s
 from typing import cast
 
-STUTTER_DUP_TAG = 'zD'
 _FLAG_NAME = "DVF"
 
 
@@ -49,7 +49,7 @@ def tag_dups(
             continue
 
         # prep data
-        sample_pair_endpoints: list[tuple[AlignedSegment, tuple[int, int, int, int]]] = []
+        sample_pair_endpoints: list[tuple[ExtendedRead, tuple[int, int, int, int]]] = []
         for read in run_params.reads.all:
             next_ref_end = r2s.ref_end_via_cigar(str(read.get_tag('MC')), read.next_reference_start)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
             pair_endpoints: tuple[int, int, int, int] = cast(
@@ -64,6 +64,7 @@ def tag_dups(
                 )
             )
             sample_pair_endpoints.append((read, pair_endpoints))
+            read.record_ext_op('mark-duplicates')
         sample_pair_endpoints = sorted(sample_pair_endpoints, key=lambda x: x[1][0])
 
         # test data
@@ -87,12 +88,13 @@ def tag_dups(
             if all([x <= fixed_params.duplication_window_size for x in max_diff_per_comparison]):
                 # then the read pair being examined is a duplicate of the others in the pool
                 dup_endpoint_comparison_pool.append(testing_endpoints)  # add it to the comparison pool
-                read.set_tag(STUTTER_DUP_TAG, 1, 'i')  # TODO: surface this a bit more - this is our stutter dup tag
+                read.ext_mark(TagEnum.STUTTER_DUP)  # TODO: surface this a bit more - this is our stutter dup tag
                 # read.is_duplicate = True  # dupmark
             else:
                 # read at i is not dup of reads in dup_endpoint_test_pool
                 # start again, test read at i against reads subsequent from i in ends_sorted
                 dup_endpoint_comparison_pool = [testing_endpoints]
+
 
 
 # TODO: make end user not need to import and inherit from IntEnum, provide some kind of construction method?
@@ -149,7 +151,7 @@ def test_duplicated_support_frac(
             ntotal = nreads_by_sample[sample_key]
             sample_loss_ratio = 0
             if ntotal > 1:
-                ndup = sum(read.has_tag('zD') for read in reads)
+                ndup = sum(read.has_ext_mark(TagEnum.STUTTER_DUP) for read in reads)
                 ntrue = abs(ndup - ntotal)
                 assert ntotal >= ndup > -1  # sanity check - TODO: should probably throw an interpretable error
                 assert ntotal >= ntrue > -1
@@ -176,24 +178,30 @@ def test_duplicated_support_frac(
 # TODO/BUG/NOTE: excluding zQ, low qual, because with a bad MC this will fail
 # but that's a specific sub property of lq which should itself be surfaced
 # it's basically whether the read in question properly paired or not
-@require_read_properties(require_tags=['MC', 'zS'], exclude_tags=['zQ'])  # require support  # NOTE: now different to below, could introduce regression
-@read_tagger(tagger_param_class=FixedParamsDupmark, read_modifier_func=tag_dups, adds_tag=STUTTER_DUP_TAG)
+@read_tagger(
+    tagger_param_class=FixedParamsDupmark,
+    read_modifier_func=tag_dups,
+    adds_marks=[TagEnum.STUTTER_DUP],
+    # require_marks=[TagEnum.SUPPORT],
+    # exclude_marks=[TagEnum.LOW_QUAL]
+)
 class TaggerDupmark(
     ReadAwareProcess,
-    process_name='mark-duplicates'
+    process_namespace='mark-duplicates'
 ): pass
 
 
-# NOTE/BUG/TODO: excludes low qual tag, assigned by FlaggerLQF in it's read tagger method
-# which also has a flagger method that relies on dup tag, assigned above.
-# Somewhat messy interdependence
-# can, but don't necessarily need to be, entirely independent via prefilter
+# NOTE: can, but don't necessarily need to be, entirely independent via prefilter
 # TODO: hard=/global= arg for taggers, indicating that reads that fail them should be dropped entirely, so as to avoid needing to map via exclude tags
-@require_read_properties(require_tags=['MC', 'zS'], exclude_tags=['zO', 'zQ'])  # require support, exclude overlapping second member
-@variant_flagger(flag_name=_FLAG_NAME, flagger_param_class=FixedParamsDVF, flagger_func=test_duplicated_support_frac, result_type=ResultDVF)
+@variant_flagger(
+    flag_name=_FLAG_NAME,
+    flagger_param_class=FixedParamsDVF,
+    flagger_func=test_duplicated_support_frac,
+    result_type=ResultDVF,
+)
 class FlaggerDVF(
     ReadAwareProcess,
-    process_name=_FLAG_NAME
+    process_namespace=_FLAG_NAME
 ):
     """
     duplication variant filter - a portion of the reads supporting the variant

@@ -1,10 +1,8 @@
 import hairpin2.abstractions.readawareproc as haf
+from hairpin2.const import TagEnum
 from hairpin2.flaggers.shared import RunParamsShared
 from hairpin2.utils.ref2seq import ref_end_via_cigar
 from pysam import AlignedSegment
-
-
-OVERLAP_TAG = 'zO'
 
 
 def check_fragment_overlap(
@@ -40,18 +38,25 @@ def tag_overlap(
     run_params: RunParamsShared,
 ):
     for read in run_params.reads.all:
-        overlap = check_fragment_overlap(
+        if check_fragment_overlap(
             read,
             run_params.record.start,
-        )
-        if overlap:  # if bad
-            read.set_tag(OVERLAP_TAG, 1, 'i')
+        ):  # if overlapping second pair member
+            read.ext_mark(
+                TagEnum.OVERLAP,
+            )
+        read.record_ext_op('mark-overlap')
 
 
-@haf.require_read_properties(require_tags=['MC', 'zS'])  # require support, MC tag; exclude low qual  # TODO: this ALREADY needs a make_dag type function
-@haf.read_tagger(tagger_param_class=None, read_modifier_func=tag_overlap, adds_tag=OVERLAP_TAG)
+# TODO/BUG - need some way to require and assure presence of bam-level tags, e.g. MC
+# @haf.require_read_properties(require_tags=['MC', 'zS'])  # require support, MC tag; exclude low qual  # TODO: this ALREADY needs a make_dag type function
+@haf.read_tagger(
+    tagger_param_class=None,
+    read_modifier_func=tag_overlap,
+    adds_marks=[TagEnum.OVERLAP],
+)
 class TaggerOverlap(
     haf.ReadAwareProcess,  # TODO/BUG: ReadAwareProcess subclasses MUST define a specific type of run params that they use, or the contravariance with run_params is lost
-    process_name='mark-overlap'
+    process_namespace='mark-overlap'
 ): pass
 

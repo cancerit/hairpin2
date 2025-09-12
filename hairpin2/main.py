@@ -25,6 +25,7 @@ from pathlib import Path
 import pysam
 from hairpin2 import  __version__
 from hairpin2.abstractions.readawareproc import FlagResult
+from hairpin2.const import TagEnum
 from hairpin2.flaggers.LQF import FlaggerLQF, ResultLQF, TaggerLowQual
 from hairpin2.flaggers.shared import RunParamsShared
 from hairpin2.read_preprocessors.mark_overlap import TaggerOverlap
@@ -563,15 +564,15 @@ def hairpin2(
 
 
     # NOTE: all this below should be excised into raf eventually
-    # TODO: providing prefilter params should only be necessary if there are any
-    sp = TaggerSupporting(configd)
-    ov = TaggerOverlap(configd)
-    dp = DVF.TaggerDupmark(configd)
-    lqt = TaggerLowQual(configd)
-    lqf = FlaggerLQF(configd)
-    ad = ADF.FlaggerADF(configd)
-    al = ALF.FlaggerALF(configd)
-    dv = DVF.FlaggerDVF(configd)
+    sp = TaggerSupporting(configd, [], [])
+    ov = TaggerOverlap(configd, [TagEnum.SUPPORT], [])
+    lqt = TaggerLowQual(configd, [TagEnum.SUPPORT], [])
+    dp = DVF.TaggerDupmark(configd, [TagEnum.SUPPORT], [TagEnum.LOW_QUAL])
+
+    lqf = FlaggerLQF(configd, [TagEnum.SUPPORT], [TagEnum.OVERLAP])
+    ad = ADF.FlaggerADF(configd, [TagEnum.SUPPORT], [TagEnum.STUTTER_DUP, TagEnum.OVERLAP, TagEnum.LOW_QUAL])
+    al = ALF.FlaggerALF(configd, [TagEnum.SUPPORT], [TagEnum.OVERLAP, TagEnum.LOW_QUAL, TagEnum.STUTTER_DUP])
+    dv = DVF.FlaggerDVF(configd, [TagEnum.SUPPORT], [TagEnum.OVERLAP, TagEnum.LOW_QUAL])
     # test records
     prog_bar_counter = 0
     for record in vcf_in_handle.fetch():
@@ -641,7 +642,7 @@ def hairpin2(
                     # and tag registries etc
                     # TODO/NOTE: dict-by-tag bevhaviour in ReadView will allow for really neat subselection of reads based on
                     # intersection of include/exclude tags
-                    test_reads = ReadView(reads_by_sample)
+                    test_reads = ReadView(ReadView.convert_pysam_to_extread(reads_by_sample, validate=True))
                     run_data = RunParamsShared(record=record, reads=test_reads, alt=alt, mut_type=mut_type)  # TODO: allow positional args
                     # dpp(dupmark.RunParamsDupmark(record=record, reads=test_reads, alt=alt, mut_type=mut_type))
 

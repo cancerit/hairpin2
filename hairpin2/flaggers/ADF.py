@@ -21,6 +21,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import sys
 import hairpin2.abstractions.readawareproc as haf
 from hairpin2.flaggers.shared import RunParamsShared
 from hairpin2.utils import ref2seq as r2s
@@ -130,7 +131,7 @@ def test_anomalous_distribution(
                 )
                 la2ms_f.append(la2m)
 
-        # hairpin conditions from Ellis et al. 2020, Nature Protocols
+       # hairpin conditions from Ellis et al. 2020, Nature Protocols
         # sometimes reported as 2021
         if len(la2ms_f) <= fixed_params.min_reads and len(la2ms_r) <= fixed_params.min_reads:
             fresult = ResultADF(
@@ -188,11 +189,16 @@ def test_anomalous_distribution(
 
 
 # require support, exclude stutter dups, overlapping second pair member, low quality
-@haf.require_read_properties(require_tags=['zS'], exclude_tags=['zD', 'zO', 'zQ'])  # TODO guard against accidentally providing just a string - which is an iterable[str]!!
-@haf.variant_flagger(flag_name=_FLAG_NAME, flagger_param_class=FixedParamsADF, flagger_func=test_anomalous_distribution, result_type=ResultADF)
+# @haf.require_read_properties(require_tags=['zS'], exclude_tags=['zD', 'zO', 'zQ'])  # TODO guard against accidentally providing just a string - which is an iterable[str]!!
+@haf.variant_flagger(
+    flag_name=_FLAG_NAME,
+    flagger_param_class=FixedParamsADF,
+    flagger_func=test_anomalous_distribution,
+    result_type=ResultADF
+)
 class FlaggerADF(
     haf.ReadAwareProcess,
-    process_name=_FLAG_NAME
+    process_namespace=_FLAG_NAME
 ):
     # TODO: docstring
     """

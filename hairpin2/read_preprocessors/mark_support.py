@@ -1,12 +1,9 @@
 import hairpin2.abstractions.readawareproc as haf
 from hairpin2.flaggers.shared import RunParamsShared
-from hairpin2.const import ValidatorFlags
+from hairpin2.const import TagEnum, ValidatorFlags
 from hairpin2.utils.ref2seq import ref2querypos
 from pysam import AlignedSegment
 from typing import Literal, cast
-
-
-SUPPORT_TAG = 'zS'
 
 
 # in an ideal world this would be a method on a VariantRecord
@@ -25,7 +22,25 @@ def check_read_supporting(
             'unsupported mut_type: {} - supports \'S\' (SUB) \'D\' (DEL) \'I\' (INS)'.format(mut_type))
 
     invalid_flag = ValidatorFlags.CLEAR
-    if mut_type in ['S', 'I']:
+    try:
+        mate_cig = str(read.get_tag('MC'))
+    except KeyError:
+        mate_cig = None
+    else:
+        if (not mate_cig[0].isdigit() or
+            not all([(c.isalnum() or c == '=') for c in mate_cig]) or
+                len(mate_cig) < 2):
+            mate_cig = None
+    if any(flg is None for flg in
+            [read.reference_end,
+                read.query_sequence,
+                read.query_qualities,
+                read.query_alignment_qualities,
+                read.cigarstring,
+                read.cigartuples,
+                mate_cig]):
+        invalid_flag |= ValidatorFlags.READ_FIELDS_MISSING
+    elif mut_type in ['S', 'I']:
         try:
             mut_pos = ref2querypos(read, vcf_start)
         except ValueError:
@@ -72,12 +87,22 @@ def tag_supporting(
             run_params.record.start,
             run_params.record.stop,
         ) == ValidatorFlags.CLEAR:  # if good
-            read.set_tag(SUPPORT_TAG, 1, 'i')
+            read.ext_mark(
+                TagEnum.SUPPORT,
+            )
+        read.record_ext_op('mark-support')  # TODO: handle in backend
 
 
-@haf.read_tagger(tagger_param_class=None, read_modifier_func=tag_supporting, adds_tag=SUPPORT_TAG)  # TODO: guard against requiring/excluding and adding the same tag!
+# TODO: require/exclude bools to be set by config, and at init not subclassing
+@haf.read_tagger(
+    tagger_param_class=None,
+    read_modifier_func=tag_supporting,
+    adds_marks=[TagEnum.SUPPORT],
+    # require_marks=[],
+    # exclude_marks=[]
+)
 class TaggerSupporting(
     haf.ReadAwareProcess,  # TODO/BUG: ReadAwareProcess subclasses MUST define a specific type of run params that they use, or the contravariance with run_params is lost
-    process_name='mark-support'
+    process_namespace='mark-support'
 ): pass
 
