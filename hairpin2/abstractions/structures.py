@@ -2,18 +2,18 @@
 # pyright: reportAny=false
 # pyright: reportUnnecessaryIsInstance=false
 # from abc import ABC
-from abc import ABC
+from abc import ABC, abstractmethod
+from pydantic import BaseModel, ConfigDict, field_validator
 from pysam import AlignedSegment, VariantRecord
 from itertools import chain
-from collections.abc import Iterator, Sequence, Mapping
-from typing import override, Any, ClassVar, Generic, Literal, TypeVar, TypedDict, final, overload, TYPE_CHECKING 
-
+from collections.abc import Iterable, Iterator, Sequence, Mapping
+from typing import ClassVar, cast, override, Any, Generic, Literal, TypeVar, final, overload, TYPE_CHECKING 
 
 
 # Ideally I'd like to pass a typeddict or similar with a fixed set of keys
 # such that get ext data has stronger return guarantees
 wrap_T = TypeVar("wrap_T")
-class WrappedWithDataStore(ABC, Generic[wrap_T]):
+class _DataExtensionBase(ABC, Generic[wrap_T]):
     __wrap_obj: wrap_T
     __data_store: dict[str, Any]
     __tag_store: set[str]
@@ -38,25 +38,25 @@ class WrappedWithDataStore(ABC, Generic[wrap_T]):
     ):
         return self.__wrap_obj
 
-    def record_ext_op(
+    def _record_ext_op(
         self,
         op: str
     ):
         self.__operation_record.add(op)
 
     @property
-    def get_operation_history(
+    def _operation_history(
         self
     ):
         return self.__operation_record
 
-    def ext_mark(
+    def _ext_mark(
         self,
         mark: str,
     ):
         self.__tag_store.add(mark)
 
-    def has_ext_mark(
+    def _has_ext_mark(
         self,
         mark: str
     ):
@@ -118,7 +118,7 @@ class WrappedWithDataStore(ABC, Generic[wrap_T]):
 _AlSegShim = AlignedSegment if TYPE_CHECKING else object
 @final
 class ExtendedRead(  # pyright: ignore[reportUnsafeMultipleInheritance] - because we're not really inheriting
-    WrappedWithDataStore[AlignedSegment],
+    _DataExtensionBase[AlignedSegment],
     _AlSegShim,
 ):
 
@@ -144,10 +144,28 @@ class ExtendedRead(  # pyright: ignore[reportUnsafeMultipleInheritance] - becaus
     pass
 
 
+def make_extended_read(
+    read: AlignedSegment | ExtendedRead
+) -> ExtendedRead:
+    if isinstance(read, ExtendedRead):
+        return read
+    elif isinstance(read, AlignedSegment):
+        return ExtendedRead(read)
+    else:
+        raise TypeError('data extension on read objects is only supported for pysam.AlignedSegment at this time')  # pyright: ignore[reportUnreachable]
+
+
+def mark_read(
+    read: ExtendedRead,
+    mark: str
+) -> None:
+    read._ext_mark(mark)  # pyright: ignore[reportPrivateUsage]
+
+
 _VarRecShim = VariantRecord if TYPE_CHECKING else object
 @final
 class ExtendedVariant(
-    WrappedWithDataStore[VariantRecord],
+    _DataExtensionBase[VariantRecord],
     _VarRecShim,
 ): pass
 
@@ -188,11 +206,11 @@ class ReadView(Mapping[Any, tuple[Read_T, ...]]):
         return self._data.keys()
 
     @override
-    def values(self):
+    def values(self):  # pyright: ignore[reportIncompatibleMethodOverride]
         return self._data.values()
 
     @override
-    def items(self):
+    def items(self):  # pyright: ignore[reportIncompatibleMethodOverride]
         return self._data.items()
 
     @property
@@ -220,4 +238,83 @@ class ReadView(Mapping[Any, tuple[Read_T, ...]]):
         for ky, vals in read_map.items():
             retd[ky] = [ExtendedRead(val) for val in vals]
         return retd
+
+
+# NOTE/TODO: FlagResult is the part of the abstractflaggers model about which I am most skeptical
+# since it uses init_subclass over a decorator, making it different
+# and because it requires the user to override an abstract method
+class FlagResult(BaseModel, ABC):  # pyright: ignore[reportUnsafeMultipleInheritance]
+    """
+    Parent ABC/pydantic BaseModel defining the implementation that must be followed by result subclasses - subclasses to hold results of running
+    the `test()` method of a specific subclass of FilterTester on a variant (e.g. for `FooFilter.test()`, the return value should include an instance of `FooResult`).
+    All filters should use subclasses that inherit from this class to hold their results, as enforced by the FilterTester ABC.
+    Defines and guarantees basic properties that must be shared by all filter results:
+        - a 'getinfo' method for returning a string to report to the INFO field of the VCF record - a basic default is provided, but
+          subclasses probably want to override this.
+        - A basic set of instance variables, which may be extended in a subclass as necessary:
+            - name, a string id for the filter to be used in the VCF FILTER field.
+            - a flag, a boolean indicating if the filter is True/False, or None if untested.
+            - a code, an integer code from a set of possibilities, indicating the basis on which the test has returned True/False, or None if untested.
+    """
+    FlagName: ClassVar[str]
+    AllowedCodes: ClassVar[tuple[int, ...] | tuple[str, ...] | None]
+    CodeType: ClassVar[type]
+    flag: bool | None
+    code: int | str | None = None
+
+    model_config: ConfigDict = ConfigDict(  # pyright: ignore[reportIncompatibleVariableOverride]
+        strict=True,
+        frozen=True,
+        arbitrary_types_allowed=True
+    )
+
+    @field_validator('code', mode='after')
+    @classmethod
+    def validate_code(
+        cls,
+        value: int | str | None
+    ):
+        if cls.AllowedCodes is None and value is not None:
+            raise AttributeError(f"The class definition for FlagResult {cls.FlagName!r} does not specify result codes, so you cannot set a result code")
+        elif cls.AllowedCodes is not None and value is None:
+            raise AttributeError(f"The class definition for FlagResult {cls.FlagName!r} does specifies result codes, so you must set a result code")
+        elif not isinstance(value, cls.CodeType):
+            raise TypeError(f"Attempting to set result code for FlagResult {cls.FlagName!r} with value {value} of type {type(value)}, but this FlagResult specifies codes must be of type {cls.CodeType}")
+        elif value is not None and cls.AllowedCodes is not None and value not in cls.AllowedCodes:
+            raise ValueError(f"Attempting to set code with value {value}, but this FlagResult {cls.FlagName!r} only allows {cls.AllowedCodes}")
+        return value
+
+    def __init_subclass__(
+        cls,
+        *,
+        flag_name: str,
+        result_codes: Iterable[int] | Sequence[str] | None,
+        **kwargs: Any
+    ) -> None:
+
+        cls.FlagName = flag_name
+
+        match result_codes:
+            case None:
+                cls.AllowedCodes = None
+            case [*items] if all(isinstance(el, int) for el in items):
+                cls.AllowedCodes = cast(tuple[int, ...], tuple(result_codes))
+                cls.CodeType = int
+            case [*items] if all(isinstance(el, str) for el in items):
+                cls.AllowedCodes = cast(tuple[str, ...], tuple(result_codes))
+                cls.CodeType = str
+            case _:
+                raise TypeError(f"allowed_codes for FlagResult {cls.FlagName} provided must be an iterable of all int, or all str; or None")
+        
+        super().__init_subclass__(**kwargs)
+
+    @abstractmethod
+    def getinfo(self) -> str:
+        """
+        Return basic filter info in a string formatted for use in the VCF INFO field - "<flag>|<code>".
+
+        Each filter must return INFO as it should be formatted for the VCF INFO field, or None if not applicable.
+        Subclasses must override this method to return more specific info.
+        """
+
 

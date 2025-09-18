@@ -21,7 +21,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from hairpin2.readqc import qc_read_broad, ValidatorFlags
+from hairpin2.readqc import qc_read, ValidatorFlags
 import pysam
 from pysam.libcalignedsegment import SAM_FLAGS as s
 import copy
@@ -43,7 +43,7 @@ r.set_tag('MC', '10M')
 
 def test_path_clear():
     expected = ValidatorFlags.CLEAR
-    result = qc_read_broad(read=r,
+    result = qc_read(read=r,
                              vcf_start=99,
                              min_mapqual=11,
                              min_clipqual=35)
@@ -54,7 +54,7 @@ def test_path_missing_mc():
     expected = ValidatorFlags.READ_FIELDS_MISSING
     rc = copy.deepcopy(r)
     rc.set_tag('MC', None)
-    result = qc_read_broad(read=rc,
+    result = qc_read(read=rc,
                              vcf_start=99,
                              min_mapqual=11,
                              min_clipqual=35)
@@ -65,7 +65,7 @@ def test_path_missing_field():
     expected = ValidatorFlags.READ_FIELDS_MISSING
     rc = copy.deepcopy(r)
     rc.cigarstring = None
-    result = qc_read_broad(read=rc,
+    result = qc_read(read=rc,
                              vcf_start=99,
                              min_mapqual=11,
                              min_clipqual=35)
@@ -79,7 +79,7 @@ def test_path_set_flag_mapqual_clipqual():
     rc = copy.deepcopy(r)
     rc.flag = s.FQCFAIL  # 0x200
     rc.cigarstring = '1S9M'
-    result = qc_read_broad(read=rc,
+    result = qc_read(read=rc,
                              vcf_start=99,
                              min_mapqual=30,
                              min_clipqual=40)
@@ -90,7 +90,7 @@ def test_path_overlap():
     expected = ValidatorFlags.OVERLAP
     rc = copy.deepcopy(r)
     rc.flag = s.FPAIRED | s.FPROPER_PAIR | s.FREAD2  # 0x80
-    result = qc_read_broad(read=rc,
+    result = qc_read(read=rc,
                              vcf_start=99,
                              min_mapqual=11,
                              min_clipqual=40)
@@ -102,7 +102,7 @@ def test_path_no_overlap():
     rc = copy.deepcopy(r)
     rc.flag = s.FPAIRED | s.FPROPER_PAIR | s.FREAD2  # 0x80
     rc.set_tag('MC', '3M')
-    result = qc_read_broad(read=rc,
+    result = qc_read(read=rc,
                              vcf_start=99,
                              min_mapqual=11,
                              min_clipqual=40)

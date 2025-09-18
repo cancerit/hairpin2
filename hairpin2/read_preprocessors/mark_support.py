@@ -90,11 +90,11 @@ def tag_supporting(
             read.ext_mark(
                 TagEnum.SUPPORT,
             )
-        read.record_ext_op('mark-support')  # TODO: handle in backend
+        read._record_ext_op('mark-support')  # TODO: handle in backend, probably on readview
 
 
 # TODO: require/exclude bools to be set by config, and at init not subclassing
-@haf.read_tagger(
+@haf.make_read_processor(
     tagger_param_class=None,
     read_modifier_func=tag_supporting,
     adds_marks=[TagEnum.SUPPORT],
@@ -103,6 +103,6 @@ def tag_supporting(
 )
 class TaggerSupporting(
     haf.ReadAwareProcess,  # TODO/BUG: ReadAwareProcess subclasses MUST define a specific type of run params that they use, or the contravariance with run_params is lost
-    process_namespace='mark-support'
+    process_param_namespace='mark-support'
 ): pass
 

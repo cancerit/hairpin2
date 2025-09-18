@@ -28,9 +28,15 @@ import hairpin2.abstractions.readawareproc as haf
 from typing import Any, cast, override
 from enum import IntEnum, auto
 from hairpin2.abstractions.structures import ExtendedRead
-from hairpin2.flaggers.shared import PrefilterParamsShared, RunParamsShared
 from hairpin2.const import TagEnum, ValidatorFlags
-from hairpin2.utils.ref2seq import ref2querypos, ref_end_via_cigar
+from hairpin2.flaggers.shared import RunParamsShared
+from hairpin2.utils.ref2seq import ref2querypos
+
+
+class QualParams(haf.FixedParams):
+    min_mapping_quality: int
+    min_avg_clip_quality: int
+    min_base_quality: int
 
 
 _FLAG_NAME = 'LQF'
@@ -124,7 +130,7 @@ def qc_read(
 # TODO: predefined functions for handing back bools from scientist funcs, and I'll handle the tagging
 def tag_lq(
     run_params: RunParamsShared,
-    params: PrefilterParamsShared # placeholder maybe
+    params: QualParams # placeholder maybe
 ):
     for read in run_params.reads.all:
         flag = qc_read(
@@ -139,7 +145,7 @@ def tag_lq(
         )
         if flag != ValidatorFlags.CLEAR:
             read.ext_mark(TagEnum.LOW_QUAL)
-        read.record_ext_op('mark-low-qual')
+        read._record_ext_op('mark-low-qual')
 
 
 
@@ -192,29 +198,26 @@ def test_variant_LQF(
 
     return fresult
 
-@haf.read_tagger(
-    tagger_param_class=PrefilterParamsShared,
+
+@haf.make_read_processor(
+    process_param_namespace="mark-low-qual",
+    tagger_param_class=QualParams,
     read_modifier_func=tag_lq,
     adds_marks=[TagEnum.LOW_QUAL],
 )
-class TaggerLowQual(
-    haf.ReadAwareProcess,
-    process_namespace="mark-low-qual"
-): pass
+class TaggerLowQual: pass
 
 
 # exclude overlapping second pair member, require support  NOTE: do you actually want to exclude overlap when assessing this? it's not quite double counting per se if the overlapping read does show support...
-@haf.variant_flagger(
+@haf.make_variant_flagger(
     flag_name=_FLAG_NAME,
     flagger_func=test_variant_LQF,
     flagger_param_class=FixedParamsLQF,
     result_type=ResultLQF,
 )
-class FlaggerLQF(
-    haf.ReadAwareProcess,
-    process_namespace=_FLAG_NAME
-):
+class FlaggerLQF:
     """
     """
     # NOTE: checks dups, meaning dupmarking must have run first - not at all surfaced in this implementation
     # hence move to boolean tags, and away from exclude tags
+    # DOCSTRINGS

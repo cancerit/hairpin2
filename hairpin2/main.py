@@ -38,9 +38,7 @@ from itertools import tee
 from typing import Any
 import sys
 import click
-from click_option_group import optgroup
 from dataclasses import dataclass, fields
-# pyright: reportUnusedCallResult=false
 # pyright: reportAny=false
 # pyright: reportExplicitAny=false
 # pyright: reportImplicitStringConcatenation=false

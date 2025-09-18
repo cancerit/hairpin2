@@ -50,7 +50,7 @@ def tag_overlap(
 
 # TODO/BUG - need some way to require and assure presence of bam-level tags, e.g. MC
 # @haf.require_read_properties(require_tags=['MC', 'zS'])  # require support, MC tag; exclude low qual  # TODO: this ALREADY needs a make_dag type function
-@haf.read_tagger(
+@haf.make_read_processor(
     tagger_param_class=None,
     read_modifier_func=tag_overlap,
     adds_marks=[TagEnum.OVERLAP],

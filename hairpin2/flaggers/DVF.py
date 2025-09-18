@@ -26,7 +26,7 @@ from enum import IntEnum, auto
 from hairpin2.abstractions.structures import ExtendedRead
 from hairpin2.const import TagEnum
 from hairpin2.flaggers.shared import RunParamsShared
-from hairpin2.abstractions.readawareproc import FixedParams, FlagResult, ReadAwareProcess, read_tagger, variant_flagger
+from hairpin2.abstractions.readawareproc import FixedParams, FlagResult, ReadAwareProcess, make_read_processor, make_variant_flagger
 from hairpin2.utils import ref2seq as r2s
 from typing import cast
 
@@ -64,7 +64,7 @@ def tag_dups(
                 )
             )
             sample_pair_endpoints.append((read, pair_endpoints))
-            read.record_ext_op('mark-duplicates')
+            read._record_ext_op('mark-duplicates')
         sample_pair_endpoints = sorted(sample_pair_endpoints, key=lambda x: x[1][0])
 
         # test data
@@ -178,7 +178,7 @@ def test_duplicated_support_frac(
 # TODO/BUG/NOTE: excluding zQ, low qual, because with a bad MC this will fail
 # but that's a specific sub property of lq which should itself be surfaced
 # it's basically whether the read in question properly paired or not
-@read_tagger(
+@make_read_processor(
     tagger_param_class=FixedParamsDupmark,
     read_modifier_func=tag_dups,
     adds_marks=[TagEnum.STUTTER_DUP],
@@ -193,7 +193,7 @@ class TaggerDupmark(
 
 # NOTE: can, but don't necessarily need to be, entirely independent via prefilter
 # TODO: hard=/global= arg for taggers, indicating that reads that fail them should be dropped entirely, so as to avoid needing to map via exclude tags
-@variant_flagger(
+@make_variant_flagger(
     flag_name=_FLAG_NAME,
     flagger_param_class=FixedParamsDVF,
     flagger_func=test_duplicated_support_frac,

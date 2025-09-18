@@ -106,7 +106,7 @@ def test_alignment_score(  # test supporting reads
 # TODO: make actual mixins not importable so I stop accidentally importing them
 # NOTE: consider mapping more informative tags, such as 'SUPPORT', to 2 char htslib tags internally (e.g. 'zS')
 # @haf.require_read_properties(require_tags=['zS'], exclude_tags=['zD', 'zQ', 'zO'])  # require support, exclude stutter dups, low qual, second overlapping fragment member
-@haf.variant_flagger(
+@haf.make_variant_flagger(
     flag_name=_FLAG_NAME,
     flagger_param_class=FixedParamsALF,
     flagger_func=test_alignment_score,result_type=ResultALF

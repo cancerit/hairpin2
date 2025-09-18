@@ -21,7 +21,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-import sys
 import hairpin2.abstractions.readawareproc as haf
 from hairpin2.flaggers.shared import RunParamsShared
 from hairpin2.utils import ref2seq as r2s
@@ -190,7 +189,7 @@ def test_anomalous_distribution(
 
 # require support, exclude stutter dups, overlapping second pair member, low quality
 # @haf.require_read_properties(require_tags=['zS'], exclude_tags=['zD', 'zO', 'zQ'])  # TODO guard against accidentally providing just a string - which is an iterable[str]!!
-@haf.variant_flagger(
+@haf.make_variant_flagger(
     flag_name=_FLAG_NAME,
     flagger_param_class=FixedParamsADF,
     flagger_func=test_anomalous_distribution,
