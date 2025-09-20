@@ -181,9 +181,15 @@ class RAExec:
     def run(  # TODO
         self,
         run_data: RunParams
-    ):
+    ) -> tuple[FlagResult, ...]:
         for proc in self.taggers:
             proc(run_data)
+
+        res: list[FlagResult] = []
+        for proc in self.flaggers:
+            res.append(proc(run_data))
+
+        return tuple(res)
 
     
 
