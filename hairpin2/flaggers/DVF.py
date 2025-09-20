@@ -23,10 +23,12 @@
 # SOFTWARE.
 from typing import override
 from enum import IntEnum, auto
-from hairpin2.abstractions.structures import ExtendedRead
+from hairpin2.abstractions.configure_funcs import make_read_processor, make_variant_flagger
+from hairpin2.abstractions.process import ReadAwareProcess
+from hairpin2.abstractions.process_params import FixedParams
+from hairpin2.abstractions.structures import ExtendedRead, FlagResult, mark_read, read_has_mark, record_operation
 from hairpin2.const import TagEnum
 from hairpin2.flaggers.shared import RunParamsShared
-from hairpin2.abstractions.readawareproc import FixedParams, FlagResult, ReadAwareProcess, make_read_processor, make_variant_flagger
 from hairpin2.utils import ref2seq as r2s
 from typing import cast
 
@@ -64,7 +66,7 @@ def tag_dups(
                 )
             )
             sample_pair_endpoints.append((read, pair_endpoints))
-            read._record_ext_op('mark-duplicates')
+            record_operation(read, 'mark-duplicates')
         sample_pair_endpoints = sorted(sample_pair_endpoints, key=lambda x: x[1][0])
 
         # test data
@@ -88,7 +90,7 @@ def tag_dups(
             if all([x <= fixed_params.duplication_window_size for x in max_diff_per_comparison]):
                 # then the read pair being examined is a duplicate of the others in the pool
                 dup_endpoint_comparison_pool.append(testing_endpoints)  # add it to the comparison pool
-                read.ext_mark(TagEnum.STUTTER_DUP)  # TODO: surface this a bit more - this is our stutter dup tag
+                mark_read(read, TagEnum.STUTTER_DUP)  # TODO: surface this a bit more - this is our stutter dup tag
                 # read.is_duplicate = True  # dupmark
             else:
                 # read at i is not dup of reads in dup_endpoint_test_pool
@@ -117,7 +119,12 @@ class ResultDVF(
 
 
 class FixedParamsDVF(FixedParams):
-    read_loss_threshold: float  # percent threshold of N duplicate reads compared to N input reads for a given variant and sample, above which we call DVF
+    """
+        read_loss_threshold - percent threshold of N lq reads compared to N input reads for a given variant and sample, above which we flag DVF
+        min_pass_reads - the absolute mininum number of reads required for a variant not to be flagged DVF
+    """
+    read_loss_threshold: float
+    min_pass_reads: int
     nsamples_threshold: int  # TODO: I'm not sure this param makes sense. I guess in a multi sample VCF it would imply less confidence in the call if only 1 sample reported duplication. But you'd still probably want to know about that sample? Discuss with Peter
 
 
@@ -151,12 +158,12 @@ def test_duplicated_support_frac(
             ntotal = nreads_by_sample[sample_key]
             sample_loss_ratio = 0
             if ntotal > 1:
-                ndup = sum(read.has_ext_mark(TagEnum.STUTTER_DUP) for read in reads)
+                ndup = sum(read_has_mark(read, TagEnum.STUTTER_DUP) for read in reads)
                 ntrue = abs(ndup - ntotal)
                 assert ntotal >= ndup > -1  # sanity check - TODO: should probably throw an interpretable error
                 assert ntotal >= ntrue > -1
                 sample_loss_ratio = ndup / ntotal
-                if sample_loss_ratio > fixed_params.read_loss_threshold or ntrue < 2:
+                if sample_loss_ratio > fixed_params.read_loss_threshold or ntrue < fixed_params.min_pass_reads:
                     nsamples_with_duplication += 1
 
             loss_ratio.append(sample_loss_ratio)
@@ -178,30 +185,28 @@ def test_duplicated_support_frac(
 # TODO/BUG/NOTE: excluding zQ, low qual, because with a bad MC this will fail
 # but that's a specific sub property of lq which should itself be surfaced
 # it's basically whether the read in question properly paired or not
+# NOTE/TODO: global 'read must fulfill these constraints to be testable' filter
 @make_read_processor(
+    process_namespace='mark-duplicates',
     tagger_param_class=FixedParamsDupmark,
     read_modifier_func=tag_dups,
     adds_marks=[TagEnum.STUTTER_DUP],
-    # require_marks=[TagEnum.SUPPORT],
-    # exclude_marks=[TagEnum.LOW_QUAL]
 )
 class TaggerDupmark(
     ReadAwareProcess,
-    process_namespace='mark-duplicates'
 ): pass
 
 
 # NOTE: can, but don't necessarily need to be, entirely independent via prefilter
 # TODO: hard=/global= arg for taggers, indicating that reads that fail them should be dropped entirely, so as to avoid needing to map via exclude tags
 @make_variant_flagger(
-    flag_name=_FLAG_NAME,
+    process_namespace=_FLAG_NAME,
     flagger_param_class=FixedParamsDVF,
     flagger_func=test_duplicated_support_frac,
     result_type=ResultDVF,
 )
 class FlaggerDVF(
     ReadAwareProcess,
-    process_namespace=_FLAG_NAME
 ):
     """
     duplication variant filter - a portion of the reads supporting the variant

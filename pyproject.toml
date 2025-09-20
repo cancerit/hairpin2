@@ -7,7 +7,7 @@ include = ["hairpin2*"]
 
 [project]
 name = "hairpin2"
-version = "3.0.0-alpha3"
+version = "3.0.0-alpha4"
 description = "CLI for running read-aware artefactual variant flagging algorithms over VCFs"
 authors = [
   {name = "Alex Byrne"}
@@ -30,4 +30,12 @@ dev = [
 
 [project.scripts]
 hairpin2 = "hairpin2.main:hairpin2"
+
+[tool.pyright]
+failOnWarnings = false
+ignore = ["scratch-api.py", 'examples/*']
+reportAny = false
+reportExplicitAny = false
+reportUnnecessaryIsInstance = false
+reportUnnecessaryComparison = false
 

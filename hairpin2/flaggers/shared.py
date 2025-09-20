@@ -1,5 +1,6 @@
 from typing import Literal
-from hairpin2.abstractions.readawareproc import RunParams
+
+from hairpin2.abstractions.process_params import RunParams
 
 
 class RunParamsShared(RunParams):

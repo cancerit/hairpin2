@@ -21,12 +21,16 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-import hairpin2.abstractions.readawareproc as haf
+from hairpin2.abstractions.configure_funcs import make_variant_flagger
+from hairpin2.abstractions.process import ReadAwareProcess
+from hairpin2.abstractions.process_params import FixedParams
+from hairpin2.abstractions.structures import FlagResult
 from hairpin2.flaggers.shared import RunParamsShared
 from hairpin2.utils import ref2seq as r2s
 from typing import override
 from enum import IntEnum, auto
 from statistics import median, stdev
+
 
 _FLAG_NAME = "ADF"
 
@@ -38,7 +42,7 @@ class CodesADF(IntEnum):
 
 
 class ResultADF(
-    haf.FlagResult,
+    FlagResult,
     flag_name=_FLAG_NAME,
     result_codes=tuple(CodesADF)
 ):
@@ -49,7 +53,7 @@ class ResultADF(
         return f'{self.alt}|{self.flag}|{self.code}'
 
 
-class FixedParamsADF(haf.FixedParams):
+class FixedParamsADF(FixedParams):
     edge_definition: float  # relative proportion, by percentage, of a read to be considered 'the edge'
     edge_clustering_threshold: float  # percentage threshold
     min_MAD_one_strand: int  # exclusive (and subsequent params)
@@ -61,34 +65,15 @@ class FixedParamsADF(haf.FixedParams):
     min_reads: int  # inclusive
 
 
-# def prefilter(
-#     self
-# ):
-#     filtered_reads: dict[Any, list[AlignedSegment]] = {}
-#     for sample_key, reads in self.run_params.reads.items():
-#         passed_reads: list[AlignedSegment] = []
-#         for read in reads:
-#             invalid = qc_read(
-#                 read,
-#                 self.run_params.record.start,
-#                 self.run_params.record.stop,
-#                 self.run_params.alt,
-#                 self.run_params.mut_type,
-#                 self.prefilter_params.min_baseq,
-#                 self.prefilter_params.min_mapq,
-#                 self.prefilter_params.min_avg_clipq,
-                
-#             )
-#             if not invalid:
-#                 passed_reads.append(read)
-#         filtered_reads[sample_key] = passed_reads
-#     return filtered_reads
-
-
 # NOTE/TODO:
 # per paper, can set hairpin for mutations distant from alignment start
 # in the case where both strands have sufficient supporting reads
 # discuss with Peter
+# TODO: hts-flow. The idea with the function signature decomp is to be able
+# to write functions that can be used with no knowledge
+# of anything defined by hts-flow such that they're reusable elsewhere.
+# Exactly what this looks like is tbd. One could request knowledge of ExtendedRead
+# or one could enforce annotation of parameters with Annotated. Try both
 def test_anomalous_distribution(
     run_params: RunParamsShared,
     fixed_params: FixedParamsADF
@@ -189,15 +174,14 @@ def test_anomalous_distribution(
 
 # require support, exclude stutter dups, overlapping second pair member, low quality
 # @haf.require_read_properties(require_tags=['zS'], exclude_tags=['zD', 'zO', 'zQ'])  # TODO guard against accidentally providing just a string - which is an iterable[str]!!
-@haf.make_variant_flagger(
-    flag_name=_FLAG_NAME,
+@make_variant_flagger(
+    process_namespace=_FLAG_NAME,
     flagger_param_class=FixedParamsADF,
     flagger_func=test_anomalous_distribution,
     result_type=ResultADF
 )
 class FlaggerADF(
-    haf.ReadAwareProcess,
-    process_namespace=_FLAG_NAME
+    ReadAwareProcess,
 ):
     # TODO: docstring
     """

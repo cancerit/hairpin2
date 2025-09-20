@@ -3,53 +3,57 @@
 ## --- configuration decos
 
 
-from types import new_class
-from typing import Any, Callable, cast, overload
+from typing import Any, Callable, overload
 from collections.abc import Mapping, Sequence
 from hairpin2.abstractions.process import ReadAwareProcess
-from hairpin2.abstractions.process_engines import FixedParams_T, FlagResult_T, ProcessEngineProtocol, ProcessTypeEnum, ReadTaggerEngine, RunParams_contraT, VariantFlaggerEngine
+from hairpin2.abstractions.process_engines import EngineResult_T, FixedParams_T, FlagResult_T, ProcessEngineProtocol, ProcessTypeEnum, ReadTaggerEngine, RunParams_contraT, VariantFlaggerEngine
 
 
 def _create_generic_configure_deco(
     process_namespace: str | None,
-    factory_func: Callable[[Mapping[str, Any]], ProcessEngineProtocol],
-    process_type: ProcessTypeEnum
+    factory_func: Callable[[Mapping[str, Any]], ProcessEngineProtocol[EngineResult_T]],
+    process_type: ProcessTypeEnum,
+    adds_marks: set[str] | None = None
 ) -> Callable[[type[ReadAwareProcess]], type[ReadAwareProcess]]:
     def deco(cls: type[ReadAwareProcess]) -> type[ReadAwareProcess]:
-        if not issubclass(cls, ReadAwareProcess):  # pyright: ignore[reportUnnecessaryIsInstance]
+        if not issubclass(cls, ReadAwareProcess):
             raise TypeError('Class does not appear to inherit from ReadAwareProcess')  # pyright: ignore[reportUnreachable]
 
         if cls.EngineFactory is not None:
             raise TypeError('Class already appears to be manually configured as EngineFactory is present - do not combine manual configuration with decorator')
         if cls.ProcessType is not None:
             raise TypeError('Class already appears to be manually configured as ProcessType is present - do not combine manual configuration with decorator')
+        if cls.AddsMarks is not None:
+            raise TypeError('Class already appears to be manually configured as AddsMarks is present - do not combine manual configuration with decorator')
 
-        bases = (cls,)
-
-        subclass_kwds: dict[str, Any] = {}
-
+        cls_proc_ns =  None  # hack to stop type checker getting bizarrely upset on rebind of process_namespace
         if cls.ProcessNamespace is None:
             if process_namespace is None:
                 raise ValueError('namespace not set in decorated class, nor provided to configuration decorator. One of these options must be used')
-            subclass_ns = process_namespace
         else:
             if process_namespace is not None:
                 raise ValueError('namespace set in decorated class, and provided to configuration decorator. Only one of these options may be used!')
-            subclass_ns = cls.ProcessNamespace
+            cls_proc_ns = cls.ProcessNamespace
 
-        subclass_kwds['process_param_namespace'] = subclass_ns
-        subclass_kwds['engine_factory'] = factory_func
-        subclass_kwds['process_type'] = process_type
+        cls.ProcessNamespace = process_namespace if cls_proc_ns is None else cls_proc_ns
+        cls.EngineFactory = factory_func
+        cls.ProcessType = process_type
+        cls.AddsMarks = adds_marks
 
-        # TODO: look at wrapt for this
-        def body(ns: dict[str, Any]):
-            ns["__module__"] = cls.__module__  # so user class comes from the same module
-            ns["__doc__"] = getattr(cls, "__doc__", None)  # so doc is user doc (might actually want to use provided func doc)
-            ns["__qualname__"] = getattr(cls, "__qualname__", cls.__name__)
+        # subclass_kwds['process_param_namespace'] = subclass_ns
+        # subclass_kwds['engine_factory'] = factory_func
+        # subclass_kwds['process_type'] = process_type
+        # subclass_kwds['adds_marks'] = adds_marks  # should probably cross reference against type, but the AddsMarks class var is a stopgap solution anyway
 
-        new_cls = cast(type[ReadAwareProcess], new_class(cls.__name__, bases, subclass_kwds, body))
+        # # TODO: look at wrapt for this
+        # def body(ns: dict[str, Any]):
+        #     ns["__module__"] = cls.__module__  # so user class comes from the same module
+        #     ns["__doc__"] = getattr(cls, "__doc__", None)  # so doc is user doc (might actually want to use provided func doc)
+        #     ns["__qualname__"] = getattr(cls, "__qualname__", cls.__name__)
 
-        return new_cls
+        # new_cls = cast(type[ReadAwareProcess], new_class(cls.__name__, bases, subclass_kwds, body))
+
+        return cls
     return deco
 
 
@@ -89,7 +93,8 @@ def make_read_processor(
     return _create_generic_configure_deco(
         process_namespace,
         init_engine,
-        ProcessTypeEnum.TAGGER
+        ProcessTypeEnum.TAGGER,
+        set(adds_marks)
     )
 
 

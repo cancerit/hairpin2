@@ -1,4 +1,6 @@
-import hairpin2.abstractions.readawareproc as haf
+from hairpin2.abstractions.configure_funcs import make_read_processor
+from hairpin2.abstractions.process import ReadAwareProcess
+from hairpin2.abstractions.structures import mark_read, record_operation
 from hairpin2.const import TagEnum
 from hairpin2.flaggers.shared import RunParamsShared
 from hairpin2.utils.ref2seq import ref_end_via_cigar
@@ -42,21 +44,21 @@ def tag_overlap(
             read,
             run_params.record.start,
         ):  # if overlapping second pair member
-            read.ext_mark(
+            mark_read(
+                read,
                 TagEnum.OVERLAP,
             )
-        read.record_ext_op('mark-overlap')
+        record_operation(read, 'mark-overlap')
 
 
-# TODO/BUG - need some way to require and assure presence of bam-level tags, e.g. MC
-# @haf.require_read_properties(require_tags=['MC', 'zS'])  # require support, MC tag; exclude low qual  # TODO: this ALREADY needs a make_dag type function
-@haf.make_read_processor(
+# TODO - need some way to require and assure presence of bam-level tags, e.g. MC
+@make_read_processor(
+    process_namespace='mark-overlap',
     tagger_param_class=None,
     read_modifier_func=tag_overlap,
     adds_marks=[TagEnum.OVERLAP],
 )
 class TaggerOverlap(
-    haf.ReadAwareProcess,  # TODO/BUG: ReadAwareProcess subclasses MUST define a specific type of run params that they use, or the contravariance with run_params is lost
-    process_namespace='mark-overlap'
+    ReadAwareProcess,  # TODO/BUG: ReadAwareProcess subclasses MUST define a specific type of run params that they use, or the contravariance with run_params is lost -- later, TODO: I don't know what I meant by this, must investigate
 ): pass
 

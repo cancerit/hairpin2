@@ -22,25 +22,18 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# pyright: reportExplicitAny=false
-# pyright: reportAny=false
-# pyright: reportIncompatibleVariableOverride=false
-# pyright: reportUnnecessaryIsInstance=false
 # pyright: reportImplicitStringConcatenation=false
 
 from abc import abstractmethod
 from collections.abc import Mapping, Sequence
-from enum import Enum
+import enum
 from typing import Callable, Protocol, TypeVar, Any, cast, override, runtime_checkable
 
 from hairpin2.abstractions.process_params import FixedParams, RunParams
 from hairpin2.abstractions.structures import FlagResult
-# from inspect import BoundArguments, Parameter, Signature, signature as inspect_sig
 
 
 # TODO/BUG: docstrings completely outdated
-# TODO: move data structures into abstractions.structures
-# TODO: consider using wrapt more
 # TODO: consider using decorator to inspect sigs of scientific functions and wrap them
 # allowing for scientific logic to be near independent of knowing anything
 # about this package. Oh if possible this would be great - could extract args and typehints
@@ -50,15 +43,6 @@ from hairpin2.abstractions.structures import FlagResult
 # for any stateful approaches across multiple records/positions/bundles of reads
 # just use a class def with a __call__ method for advanced users 
 # 
-# NOTE: mixin approach allows overrides in the user class definition of mixin methods
-# without my injected methods stomping on them
-# can still duck type regardless if desired
-# TODO: use init_subclass in mixins, and pass decorator args into those as keywords
-# this will allow definition time validation and guard against misspellings and stuff
-# and don't set any other vars outside of exec body func
-# TODO: decorators from deco factories should return protocols for the thing they're returning - won't obscure user typing, and will add type hints
-# for injected behaviour - lies, doesn't work at definition time (but does at runtime, which I don't know if I want or care about)
-# TODO: focus on structures lol don't get too carried away here make sure I'm doing stuff for the aim - make this easy for scientists!
 
 
 # SECTION: Behaviour Mixins --------------------------------
@@ -71,23 +55,23 @@ from hairpin2.abstractions.structures import FlagResult
 # for easy export and testing. This approach also allows
 # for pretty effective leveraging of the type checker compared to
 # e.g. __init_subclass__.
-# TODO: decorators could have better nomenclature, so they look less like regular funcs
 
 
 # TODO: use elsewhere, complete typing
 RunParams_contraT = TypeVar("RunParams_contraT", bound=RunParams, contravariant=True)
 FixedParams_T = TypeVar("FixedParams_T", bound=FixedParams)
 FlagResult_T = TypeVar('FlagResult_T', bound=FlagResult)
+EngineResult_T = TypeVar("EngineResult_T", None, FlagResult, covariant=True)
 
 
 @runtime_checkable
-class ProcessEngineProtocol(Protocol):
+class ProcessEngineProtocol(Protocol[EngineResult_T]):
 
     @abstractmethod
     def run_process(  # pyright: ignore[reportInvalidAbstractMethod]
         self,
         run_params: RunParams
-    ) -> Any:
+    ) -> EngineResult_T:
         raise NotImplementedError
 
 
@@ -99,7 +83,7 @@ class ProcessEngineProtocol(Protocol):
 
 # A bit hacky, but functional for now
 class ReadTaggerEngine(
-    ProcessEngineProtocol
+    ProcessEngineProtocol[None]
 ):
     _adds_marks: set[str]
     _param_class: type[FixedParams] | None
@@ -117,7 +101,9 @@ class ReadTaggerEngine(
         self._param_class = param_class
         if param_class is None:
             self._parameterless_modifier = cast(Callable[[RunParams], None], mod_func)
+            self._parameterised_modifier = None
         else:
+            self._parameterless_modifier = None
             self._parameterised_modifier = cast(Callable[[RunParams, FixedParams], None], mod_func)
         self._adds_marks = set(adds_marks)
 
@@ -141,7 +127,7 @@ class ReadTaggerEngine(
 
 
 class VariantFlaggerEngine(
-    ProcessEngineProtocol
+    ProcessEngineProtocol[FlagResult_T]
 ):
     _param_class: type[FixedParams]
     _result_type: type[FlagResult]
@@ -165,7 +151,7 @@ class VariantFlaggerEngine(
 
     @override
     def run_process(self, run_params: RunParams) -> FlagResult:
-        res = type(self)._flagger_func(run_params, self.flagger_params)
+        res = self._flagger_func(run_params, self.flagger_params)
         if not isinstance(res, self._result_type):
             raise RuntimeError("Flagger returned wrong result type - engine misconfigured")
         return res
@@ -179,7 +165,7 @@ class VariantFlaggerEngine(
 
 # END SECTION: Behaviour Mixins -------------------------
 
-
-class ProcessTypeEnum(Enum):
+@enum.unique
+class ProcessTypeEnum(enum.Enum):
     TAGGER = ReadTaggerEngine
     FLAGGER = VariantFlaggerEngine

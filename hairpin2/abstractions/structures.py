@@ -14,6 +14,19 @@ from typing import ClassVar, cast, override, Any, Generic, Literal, TypeVar, fin
 # such that get ext data has stronger return guarantees
 wrap_T = TypeVar("wrap_T")
 class _DataExtensionBase(ABC, Generic[wrap_T]):
+    """
+    Wrapper adding metadata handling to object, and forwarding
+    other methods to the wrapped object.
+    
+    pysam objects which we expect to operate on are C extensions.
+    This means no monkey patching. One could store associated metadata
+    in a seperate object but the ergonomics of doing so clash with the
+    intention of this library. Hence this approach - a wrapper that
+    uses method forwarding to the wrapped object, and adds non-clashing
+    methods of it's own to store per-object level data. Note that the
+    wrapper is intentionally non-transparent, i.e. it will not pass
+    an isinstance check against the type of the wrapped object.
+    """
     __wrap_obj: wrap_T
     __data_store: dict[str, Any]
     __tag_store: set[str]
@@ -42,6 +55,13 @@ class _DataExtensionBase(ABC, Generic[wrap_T]):
         self,
         op: str
     ):
+        """
+        Record having performed a process on this object,
+        regardless of outcome. Useful when using _ext_mark,
+        as objects may be checked, but on the outcome, not
+        marked. Without this record it would not be clear
+        that they had been checked at all.
+        """
         self.__operation_record.add(op)
 
     @property
@@ -54,6 +74,9 @@ class _DataExtensionBase(ABC, Generic[wrap_T]):
         self,
         mark: str,
     ):
+        """
+        record a truth tag on this object
+        """
         self.__tag_store.add(mark)
 
     def _has_ext_mark(
@@ -115,6 +138,30 @@ class _DataExtensionBase(ABC, Generic[wrap_T]):
         return obj
 
 
+
+def record_operation(
+    ext_obj: _DataExtensionBase[Any],
+    op: str
+):
+    ext_obj._record_ext_op(op)  # pyright: ignore[reportPrivateUsage]
+
+
+def mark_ext_obj(
+    ext_obj: _DataExtensionBase[Any],
+    mark: str
+) -> None:
+    ext_obj._ext_mark(mark)  # pyright: ignore[reportPrivateUsage]
+
+
+def ext_obj_has_mark(
+    ext_obj: _DataExtensionBase[Any],
+    mark: str
+):
+    return ext_obj._has_ext_mark(mark)  # pyright: ignore[reportPrivateUsage]
+
+
+# TODO: hold private ref to Optional[ReadView] which this ExtendedRead is a part of
+# record tags/operations at that level also
 _AlSegShim = AlignedSegment if TYPE_CHECKING else object
 @final
 class ExtendedRead(  # pyright: ignore[reportUnsafeMultipleInheritance] - because we're not really inheriting
@@ -147,6 +194,11 @@ class ExtendedRead(  # pyright: ignore[reportUnsafeMultipleInheritance] - becaus
 def make_extended_read(
     read: AlignedSegment | ExtendedRead
 ) -> ExtendedRead:
+    """
+    free func and functional style so as to minimise pain points:
+        - ease of converting from AlignedSegment to ExtendedRead, no-op if already extended
+        - 
+    """
     if isinstance(read, ExtendedRead):
         return read
     elif isinstance(read, AlignedSegment):
@@ -156,10 +208,24 @@ def make_extended_read(
 
 
 def mark_read(
+    read: ExtendedRead,  # | AlignedSegment - TODO
+    mark: str
+    # write_to_segment: bool - TODO
+) -> None:
+    """
+    free func and functional style so as to minimise pain points:
+        - since ExtendedRead uses method forwarding, type checker is unhelpful when using .method() style
+        - can add behaviour on recieving unwrapped AlignedSegment rather than extended read
+    """
+    mark_ext_obj(read, mark)
+
+
+# TODO: handle alignedsegment(?)
+def read_has_mark(
     read: ExtendedRead,
     mark: str
-) -> None:
-    read._ext_mark(mark)  # pyright: ignore[reportPrivateUsage]
+) -> bool:
+    return ext_obj_has_mark(read, mark)
 
 
 _VarRecShim = VariantRecord if TYPE_CHECKING else object
@@ -210,7 +276,7 @@ class ReadView(Mapping[Any, tuple[Read_T, ...]]):
         return self._data.values()
 
     @override
-    def items(self):  # pyright: ignore[reportIncompatibleMethodOverride]
+    def items(self):
         return self._data.items()
 
     @property

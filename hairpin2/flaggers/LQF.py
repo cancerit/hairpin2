@@ -24,16 +24,18 @@
 from array import array
 from statistics import mean
 from pysam import AlignedSegment
-import hairpin2.abstractions.readawareproc as haf
 from typing import Any, cast, override
 from enum import IntEnum, auto
-from hairpin2.abstractions.structures import ExtendedRead
+from hairpin2.abstractions.configure_funcs import make_read_processor, make_variant_flagger
+from hairpin2.abstractions.process import ReadAwareProcess
+from hairpin2.abstractions.process_params import FixedParams
+from hairpin2.abstractions.structures import ExtendedRead, FlagResult, mark_read, read_has_mark, record_operation
 from hairpin2.const import TagEnum, ValidatorFlags
 from hairpin2.flaggers.shared import RunParamsShared
 from hairpin2.utils.ref2seq import ref2querypos
 
 
-class QualParams(haf.FixedParams):
+class QualParams(FixedParams):
     min_mapping_quality: int
     min_avg_clip_quality: int
     min_base_quality: int
@@ -49,7 +51,7 @@ class CodesLQF(IntEnum):
 
 
 class ResultLQF(
-    haf.FlagResult,
+    FlagResult,
     flag_name=_FLAG_NAME,
     result_codes=tuple(CodesLQF)
 ):
@@ -61,8 +63,13 @@ class ResultLQF(
         return f"{self.alt}|{self.flag}|{self.code}|{self.loss_ratio}"  # TODO: report which samples?
 
 
-class FixedParamsLQF(haf.FixedParams):
-    read_loss_threshold: float  # percent threshold of N lq reads compared to N input reads for a given variant and sample, above which we call DVF
+class FixedParamsLQF(FixedParams):
+    """
+        read_loss_threshold - percent threshold of N lq reads compared to N input reads for a given variant and sample, above which we flag LQF
+        min_pass_reads - the absolute mininum number of reads required for a variant not to be flagged LQF
+    """
+    read_loss_threshold: float
+    min_pass_reads: int
     nsamples_threshold: int  # TODO: I'm not sure this param makes sense. I guess in a multi sample VCF it would imply less confidence in the call if only 1 sample reported duplication. But you'd still probably want to know about that sample? Discuss with Peter
 
 
@@ -97,20 +104,6 @@ def qc_read(
             mean(read.query_alignment_qualities) < min_clipqual):  # pyright: ignore[reportUnknownMemberType, reportArgumentType]
         invalid_flag |= ValidatorFlags.CLIPQUAL
 
-    # avoid analysing both read1 and mate if they both cover the variant  - MOVED TO mark_support.py
-    # NOTE: introduces strand bias!!
-    # if (not (invalid_flag & ValidatorFlags.FLAG)
-    #         and not (read.flag & 0x40)):
-    #     read_range = range(read.reference_start,
-    #                        read.reference_end)  # pyright: ignore[reportArgumentType]
-    #     mate_range = range(read.next_reference_start,
-    #                        ref_end_via_cigar(mate_cig,  # pyright: ignore[reportArgumentType]
-    #                                              read.next_reference_start))
-    #     ref_overlap = set(read_range).intersection(mate_range)
-    #     if vcf_start in ref_overlap:
-    #         invalid_flag |= ValidatorFlags.OVERLAP
-
-
     if mut_type == 'S':
         try:
             mut_pos = ref2querypos(read, vcf_start)
@@ -144,8 +137,8 @@ def tag_lq(
             
         )
         if flag != ValidatorFlags.CLEAR:
-            read.ext_mark(TagEnum.LOW_QUAL)
-        read._record_ext_op('mark-low-qual')
+            mark_read(read, TagEnum.LOW_QUAL)
+        record_operation(read, 'mark-low-qual')
 
 
 
@@ -174,13 +167,13 @@ def test_variant_LQF(
             ntotal = nreads_by_sample[sample_key]
             sample_loss_ratio = 0
             if ntotal > 1:
-                nlq = sum((read.has_ext_mark(TagEnum.LOW_QUAL) or read.has_ext_mark(TagEnum.STUTTER_DUP)) for read in reads)
+                nlq = sum((read_has_mark(read, TagEnum.LOW_QUAL) or read_has_mark(read, TagEnum.STUTTER_DUP)) for read in reads)
                 ntrue = abs(nlq - ntotal)
                 assert ntotal >= nlq > -1  # sanity check - TODO: should probably throw an interpretable error
                 assert ntotal >= ntrue > -1
                 assert ntotal == nlq + ntrue
                 sample_loss_ratio = nlq / ntotal
-                if sample_loss_ratio > fixed_params.read_loss_threshold or ntrue < 2:
+                if sample_loss_ratio > fixed_params.read_loss_threshold or ntrue < fixed_params.min_pass_reads:
                     nsamples_with_lowqual += 1
 
             loss_ratio.append(sample_loss_ratio)
@@ -199,23 +192,27 @@ def test_variant_LQF(
     return fresult
 
 
-@haf.make_read_processor(
-    process_param_namespace="mark-low-qual",
+@make_read_processor(
+    process_namespace="mark-low-qual",
     tagger_param_class=QualParams,
     read_modifier_func=tag_lq,
     adds_marks=[TagEnum.LOW_QUAL],
 )
-class TaggerLowQual: pass
+class TaggerLowQual(
+    ReadAwareProcess
+): pass
 
 
 # exclude overlapping second pair member, require support  NOTE: do you actually want to exclude overlap when assessing this? it's not quite double counting per se if the overlapping read does show support...
-@haf.make_variant_flagger(
-    flag_name=_FLAG_NAME,
+@make_variant_flagger(
+    process_namespace=_FLAG_NAME,
     flagger_func=test_variant_LQF,
     flagger_param_class=FixedParamsLQF,
     result_type=ResultLQF,
 )
-class FlaggerLQF:
+class FlaggerLQF(
+    ReadAwareProcess
+):
     """
     """
     # NOTE: checks dups, meaning dupmarking must have run first - not at all surfaced in this implementation

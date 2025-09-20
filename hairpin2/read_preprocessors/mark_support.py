@@ -1,4 +1,6 @@
-import hairpin2.abstractions.readawareproc as haf
+from hairpin2.abstractions.configure_funcs import make_read_processor
+from hairpin2.abstractions.process import ReadAwareProcess
+from hairpin2.abstractions.structures import mark_read, record_operation
 from hairpin2.flaggers.shared import RunParamsShared
 from hairpin2.const import TagEnum, ValidatorFlags
 from hairpin2.utils.ref2seq import ref2querypos
@@ -87,22 +89,21 @@ def tag_supporting(
             run_params.record.start,
             run_params.record.stop,
         ) == ValidatorFlags.CLEAR:  # if good
-            read.ext_mark(
+            mark_read(
+                read,
                 TagEnum.SUPPORT,
             )
-        read._record_ext_op('mark-support')  # TODO: handle in backend, probably on readview
+        record_operation(read, 'mark-support')  # TODO: handle in backend, probably on readview
 
 
 # TODO: require/exclude bools to be set by config, and at init not subclassing
-@haf.make_read_processor(
+@make_read_processor(
+    process_namespace='mark-support',
     tagger_param_class=None,
     read_modifier_func=tag_supporting,
     adds_marks=[TagEnum.SUPPORT],
-    # require_marks=[],
-    # exclude_marks=[]
 )
 class TaggerSupporting(
-    haf.ReadAwareProcess,  # TODO/BUG: ReadAwareProcess subclasses MUST define a specific type of run params that they use, or the contravariance with run_params is lost
-    process_param_namespace='mark-support'
+    ReadAwareProcess,  # TODO/BUG: ReadAwareProcess subclasses MUST define a specific type of run params that they use, or the contravariance with run_params is lost
 ): pass
 

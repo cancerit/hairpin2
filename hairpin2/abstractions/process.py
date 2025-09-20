@@ -28,21 +28,60 @@
 # pyright: reportUnnecessaryIsInstance=false
 # pyright: reportImplicitStringConcatenation=false
 
-from abc import ABC, abstractmethod
+from abc import ABC
 from collections.abc import Mapping
-from typing import Any, Callable, ClassVar
+from typing import Any, Callable, ClassVar, Protocol
 from collections.abc import Sequence
 
 # from hairpin2.abstractions.process_engines import ProcessEngineProtocol, ProcessTypeEnum
-from hairpin2.abstractions.process_engines import ProcessEngineProtocol, ProcessTypeEnum
+from hairpin2.abstractions.process_engines import EngineResult_T, ProcessEngineProtocol, ProcessTypeEnum
 from hairpin2.abstractions.process_params import RunParams
-from hairpin2.abstractions.structures import ExtendedRead, FlagResult, ReadView
+from hairpin2.abstractions.structures import ExtendedRead, FlagResult, ReadView, read_has_mark
+
+
+class ReadAwareProcessProtocol(Protocol[EngineResult_T]):
+    ProcessNamespace: ClassVar[str]
+    EngineFactory: ClassVar[Callable[[Mapping[str, Any]], ProcessEngineProtocol[Any]]]
+    ProcessType: ClassVar[ProcessTypeEnum]
+    AddsMarks: ClassVar[set[str] | None]
+
+    def __init__(
+        self,
+        process_namespace_fixed_params: Mapping[str, Any],
+        require_marks: Sequence[str],
+        exclude_marks: Sequence[str],
+    ): ...
+
+    @property
+    def require_marks(
+        self
+    ) -> set[str]: ...
+
+    @property
+    def exclude_marks(
+        self
+    ) -> set[str]:
+        ...
+
+    @property
+    def fixed_params(self) -> Mapping[str, Any]: ...
+
+    @property
+    def run_params(self) -> RunParams: ...
+
+    def __call__(
+        self,
+        call_run_params: RunParams | None = None,
+        *,
+        _internal_switches: Sequence[str] | None = None,  # hidden dev options
+    ) -> EngineResult_T: ...
 
 
 class ReadAwareProcess(ABC):
     ProcessNamespace: ClassVar[str | None] = None
-    EngineFactory: ClassVar[Callable[[Mapping[str, Any]], ProcessEngineProtocol] | None] = None
-    ProcessType: ClassVar[ProcessTypeEnum] | None = None
+    EngineFactory: ClassVar[Callable[[Mapping[str, Any]], ProcessEngineProtocol[Any]] | None] = None
+    ProcessType: ClassVar[ProcessTypeEnum | None] = None
+    AddsMarks: ClassVar[set[str] | None] = None  # ok for now, but really I'd like this to be stored on the engine
     # TODO: update docstring
     __slots__: tuple[str, ...] = ("_param_map", "_var_params", "_executed", "_require_marks", "_exclude_marks", "_engine")
 
@@ -51,12 +90,12 @@ class ReadAwareProcess(ABC):
         process_namespace_fixed_params: Mapping[str, Any],
         require_marks: Sequence[str],
         exclude_marks: Sequence[str],
-        **kwargs: Any
     ):
         cls = type(self)
-        
         if any(x is None for x in (cls.ProcessNamespace, cls.EngineFactory, cls.ProcessType)):
-            raise RuntimeError('Process not configured! Missing EngineFactory or ProcessNamespace')
+            raise TypeError('Process not configured! Missing EngineFactory, ProcessNamespace, or ProcessType')
+        if cls.ProcessType == ProcessTypeEnum.TAGGER and cls.AddsMarks is None:
+            raise TypeError('taggers must declare added marks')
 
         self._param_map: Mapping[str, Any] = process_namespace_fixed_params
         self._var_params: RunParams | None = None
@@ -71,20 +110,22 @@ class ReadAwareProcess(ABC):
 
         # init engine
         assert cls.EngineFactory is not None  # type checker..., and refactor safeguard
-        self._engine: ProcessEngineProtocol = cls.EngineFactory(self.fixed_params)
+        self._engine: ProcessEngineProtocol[Any] = cls.EngineFactory(self.fixed_params)
 
         if not isinstance(self._engine, ProcessEngineProtocol):
             raise RuntimeError('Engine does not appear to satisfy necessay protocol, Process misconfigured')
 
-    @abstractmethod
     def __init_subclass__(
         cls,
-        *,
-        process_param_namespace: str | None = None,
-        engine_factory: Callable[[Mapping[str, Any]], ProcessEngineProtocol] | None = None,
-    ) -> None:
-        cls.ProcessNamespace = process_param_namespace
+        process_namespace: str | None = None,
+        engine_factory: Callable[[Mapping[str, Any]], ProcessEngineProtocol[Any]] | None = None,
+        process_type: ProcessTypeEnum | None = None,
+        adds_marks: set[str] | None = None
+    ):
+        cls.ProcessNamespace = process_namespace
         cls.EngineFactory = engine_factory
+        cls.ProcessType = process_type
+        cls.AddsMarks = adds_marks
 
     # since marks are based only on presence
     # the lack of an exclude mark is enough to pass a check
@@ -109,9 +150,9 @@ class ReadAwareProcess(ABC):
             passed_reads: list[ExtendedRead] = []
             for read in reads:
                 rpass = True
-                if self.require_marks and not all(read.has_ext_mark(mark) for mark in self.require_marks):
+                if self.require_marks and not all(read_has_mark(read, mark) for mark in self.require_marks):
                     rpass = False
-                if self.exclude_marks and any(read.has_ext_mark(mark) for mark in self.exclude_marks):
+                if self.exclude_marks and any(read_has_mark(read, mark) for mark in self.exclude_marks):
                     rpass = False
                 if rpass:
                     passed_reads.append(read)
@@ -201,8 +242,6 @@ class ReadAwareProcess(ABC):
         overwrite = True if "overwrite" in switches else False
         execute_then_reset = True if "execute_then_reset" in switches else False
 
-        flag_result: FlagResult | None = None
-
         if self._executed and not force:
             # TODO: use subclass name via fstring
             raise RuntimeError("Process executed, and has not been reset and loaded with new data! Cannot run process.")
@@ -225,7 +264,6 @@ class ReadAwareProcess(ABC):
         # if isinstance(self, VariantFlagProcess):
         #     flag_result = self.flag_variant(self.run_params)
 
-        # TODO: make a property
         ret = self._engine.run_process(self.run_params)
 
         self._executed = True

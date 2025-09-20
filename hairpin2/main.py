@@ -24,18 +24,17 @@
 from pathlib import Path
 import pysam
 from hairpin2 import  __version__
-from hairpin2.abstractions.readawareproc import FlagResult
 from hairpin2.const import TagEnum
 from hairpin2.flaggers.LQF import FlaggerLQF, ResultLQF, TaggerLowQual
 from hairpin2.flaggers.shared import RunParamsShared
 from hairpin2.read_preprocessors.mark_overlap import TaggerOverlap
 from hairpin2.read_preprocessors.mark_support import TaggerSupporting
-from hairpin2.abstractions.structures import ReadView
+from hairpin2.abstractions.structures import FlagResult, ReadView
 from hairpin2.flaggers import ADF, ALF, DVF
 import logging
 import json
 from itertools import tee
-from typing import Any
+from typing import Any, override
 import sys
 import click
 from dataclasses import dataclass, fields
@@ -103,8 +102,14 @@ writeable_file_path = click.Path(
 )
 
 class JSONOrFile(click.ParamType):
-    def convert(self, value, param, ctx):
-        # ty to interpret as path
+    @override
+    def convert(
+        self,
+        value: Any,
+        param: Any,
+        ctx: Any
+    ):
+        # try to interpret as path
         path_type = click.Path(exists=True, readable=True, dir_okay=False)
         try:
             file_path = path_type.convert(value, param, ctx)
@@ -123,19 +128,6 @@ class JSONOrFile(click.ParamType):
 
 
 
-def show_help(ctx, value):
-    if value > 1:
-        # unhide hidden
-        for param in ctx.command.params:
-            if hasattr(param, "hidden"):
-                param.hidden = False
-            # for click-option-group: also unhide the parent group if needed
-            if hasattr(param, "opt_group") and hasattr(param.opt_group, "hidden"):
-                param.opt_group.hidden = False
-    click.echo(ctx.get_help())
-    ctx.exit()
-
-
 @click.command(
     epilog='see documentation at https://github.com/cancerit/hairpin2 or at tool install location for further information',
     options_metavar='[-h, --help] [OPTIONS]',
@@ -148,8 +140,7 @@ def show_help(ctx, value):
     count=True,
     is_eager=True,
     expose_value=False,
-    callback=lambda ctx, param, value: show_help(ctx, value) if value else None,
-    help='show help (-h for basic, -hh for extended including config override options)'
+    help='show help'
 )
 @click.argument(
     'vcf',
@@ -340,7 +331,6 @@ def hairpin2(
     cram_reference_path: str | None,
     quiet: int,
     progress_bar: bool,
-    **kwargs: Any,
 ) -> None:
     '''
     read-aware artefactual variant flagging algorithms. Flag variants in VCF using statistics calculated from supporting reads found in ALIGNMENTS, and emit the flagged VCF to stdout.
@@ -440,7 +430,7 @@ def hairpin2(
             sys.exit(EXIT_FAILURE)
         # grab the sample name from first SM field
         # in header field RG
-        aln_sm = alignment.header.to_dict()['RG'][0]['SM']
+        aln_sm = alignment.header.to_dict()['RG'][0]['SM']  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
         sm_to_aln_map[aln_sm] = alignment
         filename_to_aln_map[path.name] = alignment
 
@@ -508,7 +498,7 @@ def hairpin2(
                 sys.exit(EXIT_FAILURE)
             vcf_sample_to_alignment_map = sm_to_aln_map
         case _:
-            logging.error(f'name mapping misformatted. Expected deserialised JSON, recieved {type(name_mapping)}, containing {name_mapping}')
+            logging.error(f'name mapping misformatted. Expected deserialised JSON, recieved {type(name_mapping)}, containing {name_mapping}')  # pyright: ignore[reportUnreachable]
             sys.exit(EXIT_FAILURE)
 
     if set(vcf_names) != vcf_sample_to_alignment_map.keys():
@@ -562,15 +552,15 @@ def hairpin2(
 
 
     # NOTE: all this below should be excised into raf eventually
-    sp = TaggerSupporting(configd, [], [])
-    ov = TaggerOverlap(configd, [TagEnum.SUPPORT], [])
-    lqt = TaggerLowQual(configd, [TagEnum.SUPPORT], [])
-    dp = DVF.TaggerDupmark(configd, [TagEnum.SUPPORT], [TagEnum.LOW_QUAL])
+    sp = TaggerSupporting(configd[TaggerSupporting.ProcessNamespace], [], [])
+    ov = TaggerOverlap(configd[TaggerOverlap.ProcessNamespace], [TagEnum.SUPPORT], [])
+    lqt = TaggerLowQual(configd[TaggerLowQual.ProcessNamespace], [TagEnum.SUPPORT], [])
+    dp = DVF.TaggerDupmark(configd[DVF.TaggerDupmark.ProcessNamespace], [TagEnum.SUPPORT], [TagEnum.LOW_QUAL])
 
-    lqf = FlaggerLQF(configd, [TagEnum.SUPPORT], [TagEnum.OVERLAP])
-    ad = ADF.FlaggerADF(configd, [TagEnum.SUPPORT], [TagEnum.STUTTER_DUP, TagEnum.OVERLAP, TagEnum.LOW_QUAL])
-    al = ALF.FlaggerALF(configd, [TagEnum.SUPPORT], [TagEnum.OVERLAP, TagEnum.LOW_QUAL, TagEnum.STUTTER_DUP])
-    dv = DVF.FlaggerDVF(configd, [TagEnum.SUPPORT], [TagEnum.OVERLAP, TagEnum.LOW_QUAL])
+    lqf = FlaggerLQF(configd[FlaggerLQF.ProcessNamespace], [TagEnum.SUPPORT], [TagEnum.OVERLAP])
+    ad = ADF.FlaggerADF(configd[ADF.FlaggerADF.ProcessNamespace], [TagEnum.SUPPORT], [TagEnum.STUTTER_DUP, TagEnum.OVERLAP, TagEnum.LOW_QUAL])
+    al = ALF.FlaggerALF(configd[ALF.FlaggerALF.ProcessNamespace], [TagEnum.SUPPORT], [TagEnum.OVERLAP, TagEnum.LOW_QUAL, TagEnum.STUTTER_DUP])
+    dv = DVF.FlaggerDVF(configd[DVF.FlaggerDVF.ProcessNamespace], [TagEnum.SUPPORT], [TagEnum.OVERLAP, TagEnum.LOW_QUAL])  # BUG/NOTE: this needs to be strongly and clearly linked to the dupmark tagger
     # test records
     prog_bar_counter = 0
     for record in vcf_in_handle.fetch():
@@ -649,10 +639,10 @@ def hairpin2(
 
 
                     # SUCCESS! NO REGRESSIONS AGAINST 2.0.0 ON MY DATA. TODO: separate args, wire up to CLI interface properly
-                    sp(run_data)
-                    ov(run_data)
-                    lqt(run_data)
-                    dp(run_data)  # needs lqt run first - TODO: this fact isn't surfaced or guarded in any way
+                    _ = sp(run_data)
+                    _ = ov(run_data)
+                    _ = lqt(run_data)
+                    _ = dp(run_data)  # needs lqt run first - TODO: this fact isn't surfaced or guarded in any way
                     # TODO: to test this, need to assess passing reads using these tag based methods vs passing reads in old qc funcs implementation. If they're the same
                     # then the only remaining problem space is the LQF implementation
                     lq_result = lqf(run_data)
@@ -675,10 +665,10 @@ def hairpin2(
                 if any(fres.flag == True for fres in record_filters[ftype]):
                     record.filter.add(ftype.FlagName)
                 # TODO: LQF prints no info!
-                record.info.update({ftype.FlagName: ','.join([fl.getinfo() for fl in record_filters[ftype]])})  # pyright: ignore[reportArgumentType]
+                record.info.update({ftype.FlagName: ','.join([fl.getinfo() for fl in record_filters[ftype]])})  # pyright: ignore[reportArgumentType, reportUnknownMemberType]
 
         try:
-            vcf_out_handle.write(record)
+            _ = vcf_out_handle.write(record)
         except Exception as e:
             logging.error(msg='failed to write to vcf, reporting: {}'.format(e))
             sys.exit(EXIT_FAILURE)

@@ -21,11 +21,14 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-import hairpin2.abstractions.readawareproc as haf
 # TODO: minimise necessary imports for end user...
 from typing import override
 from enum import IntEnum, auto
 from statistics import median
+from hairpin2.abstractions.configure_funcs import make_variant_flagger
+from hairpin2.abstractions.process import ReadAwareProcess
+from hairpin2.abstractions.process_params import FixedParams
+from hairpin2.abstractions.structures import FlagResult
 from hairpin2.flaggers.shared import RunParamsShared
 
 # If you're here just to examine the scientific implementation of each filter,
@@ -43,7 +46,7 @@ class CodesALF(IntEnum):
 
 
 class ResultALF(
-    haf.FlagResult,
+    FlagResult,
     flag_name="ALF",
     result_codes=tuple(CodesALF)
 ):
@@ -55,7 +58,7 @@ class ResultALF(
         return f"{self.alt}|{self.flag}|{self.code}|{self.avg_as}"
 
 
-class FixedParamsALF(haf.FixedParams):
+class FixedParamsALF(FixedParams):
     avg_AS_threshold: float
 
 def test_alignment_score(  # test supporting reads
@@ -106,14 +109,13 @@ def test_alignment_score(  # test supporting reads
 # TODO: make actual mixins not importable so I stop accidentally importing them
 # NOTE: consider mapping more informative tags, such as 'SUPPORT', to 2 char htslib tags internally (e.g. 'zS')
 # @haf.require_read_properties(require_tags=['zS'], exclude_tags=['zD', 'zQ', 'zO'])  # require support, exclude stutter dups, low qual, second overlapping fragment member
-@haf.make_variant_flagger(
-    flag_name=_FLAG_NAME,
+@make_variant_flagger(
+    process_namespace=_FLAG_NAME,  # TODO: optionally allow different process namespace to flag name
     flagger_param_class=FixedParamsALF,
     flagger_func=test_alignment_score,result_type=ResultALF
 )
 class FlaggerALF(
-    haf.ReadAwareProcess,
-    process_namespace=_FLAG_NAME
+    ReadAwareProcess,
 ):
     # TODO: docstring
     """
