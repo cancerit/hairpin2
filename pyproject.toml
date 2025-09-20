@@ -31,7 +31,7 @@ dev = [
 [project.scripts]
 hairpin2 = "hairpin2.main:hairpin2"
 
-[tool.pyright]
+[tool.pyright]  # basedpyright recommended
 failOnWarnings = false
 ignore = ["scratch-api.py", 'examples/*']
 reportAny = false

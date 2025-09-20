@@ -5,9 +5,6 @@ from hairpin2.abstractions.process import ReadAwareProcessProtocol
 from hairpin2.abstractions.process_engines import EngineResult_T, FlagResult_T, ProcessTypeEnum
 from hairpin2.abstractions.process_params import RunParams
 from hairpin2.abstractions.structures import FlagResult
-# pyright: reportAny=false
-# pyright: reportExplicitAny=false
-# pyright: reportUnnecessaryIsInstance=false
 
 class RAExec:
     _mandate_excludes: bool
@@ -23,7 +20,7 @@ class RAExec:
         self._mandate_excludes = mandate_excludes
         _, tags_added = self.validate_tagger_order(taggers_in_order, mandate_excludes, raise_on_fail=True)
         _ = self.validate_flagger_exec(flaggers_in_order, tags_added, mandate_excludes, raise_on_fail=True)
-        self._taggers = tuple(taggers_in_order)  # TODO: validate
+        self._taggers = tuple(taggers_in_order)
         self._flaggers = tuple(flaggers_in_order)
 
     @property

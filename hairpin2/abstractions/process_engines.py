@@ -33,7 +33,7 @@ from hairpin2.abstractions.process_params import FixedParams, RunParams
 from hairpin2.abstractions.structures import FlagResult
 
 
-# TODO/BUG: docstrings completely outdated
+# TODO: docstrings completely outdated
 # TODO: consider using decorator to inspect sigs of scientific functions and wrap them
 # allowing for scientific logic to be near independent of knowing anything
 # about this package. Oh if possible this would be great - could extract args and typehints
@@ -57,7 +57,6 @@ from hairpin2.abstractions.structures import FlagResult
 # e.g. __init_subclass__.
 
 
-# TODO: use elsewhere, complete typing
 RunParams_contraT = TypeVar("RunParams_contraT", bound=RunParams, contravariant=True)
 FixedParams_T = TypeVar("FixedParams_T", bound=FixedParams)
 FlagResult_T = TypeVar('FlagResult_T', bound=FlagResult)
@@ -78,7 +77,7 @@ class ProcessEngineProtocol(Protocol[EngineResult_T]):
 
 
 # TODO: may also want to modify variants, filter variants...
-# more mixins to come
+# more engines to come
 
 
 # A bit hacky, but functional for now

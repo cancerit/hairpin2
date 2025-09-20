@@ -106,9 +106,7 @@ def test_alignment_score(  # test supporting reads
     return fresult
 
 
-# TODO: make actual mixins not importable so I stop accidentally importing them
 # NOTE: consider mapping more informative tags, such as 'SUPPORT', to 2 char htslib tags internally (e.g. 'zS')
-# @haf.require_read_properties(require_tags=['zS'], exclude_tags=['zD', 'zQ', 'zO'])  # require support, exclude stutter dups, low qual, second overlapping fragment member
 @make_variant_flagger(
     process_namespace=_FLAG_NAME,  # TODO: optionally allow different process namespace to flag name
     flagger_param_class=FixedParamsALF,
@@ -117,7 +115,6 @@ def test_alignment_score(  # test supporting reads
 class FlaggerALF(
     ReadAwareProcess,
 ):
-    # TODO: docstring
     """
     Alignment score filter based on AS tag
     """

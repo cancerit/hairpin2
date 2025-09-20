@@ -90,8 +90,7 @@ def tag_dups(
             if all([x <= fixed_params.duplication_window_size for x in max_diff_per_comparison]):
                 # then the read pair being examined is a duplicate of the others in the pool
                 dup_endpoint_comparison_pool.append(testing_endpoints)  # add it to the comparison pool
-                mark_read(read, TagEnum.STUTTER_DUP)  # TODO: surface this a bit more - this is our stutter dup tag
-                # read.is_duplicate = True  # dupmark
+                mark_read(read, TagEnum.STUTTER_DUP)
             else:
                 # read at i is not dup of reads in dup_endpoint_test_pool
                 # start again, test read at i against reads subsequent from i in ends_sorted
@@ -182,9 +181,6 @@ def test_duplicated_support_frac(
     return fresult
 
 
-# TODO/BUG/NOTE: excluding zQ, low qual, because with a bad MC this will fail
-# but that's a specific sub property of lq which should itself be surfaced
-# it's basically whether the read in question properly paired or not
 # NOTE/TODO: global 'read must fulfill these constraints to be testable' filter
 @make_read_processor(
     process_namespace='mark-duplicates',
@@ -197,8 +193,6 @@ class TaggerDupmark(
 ): pass
 
 
-# NOTE: can, but don't necessarily need to be, entirely independent via prefilter
-# TODO: hard=/global= arg for taggers, indicating that reads that fail them should be dropped entirely, so as to avoid needing to map via exclude tags
 @make_variant_flagger(
     process_namespace=_FLAG_NAME,
     flagger_param_class=FixedParamsDVF,

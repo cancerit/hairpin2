@@ -22,10 +22,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# pyright: reportExplicitAny=false
-# pyright: reportAny=false
-# pyright: reportIncompatibleVariableOverride=false
-# pyright: reportUnnecessaryIsInstance=false
 # pyright: reportImplicitStringConcatenation=false
 
 from abc import ABC
@@ -33,7 +29,6 @@ from collections.abc import Mapping
 from typing import Any, Callable, ClassVar, Protocol
 from collections.abc import Sequence
 
-# from hairpin2.abstractions.process_engines import ProcessEngineProtocol, ProcessTypeEnum
 from hairpin2.abstractions.process_engines import EngineResult_T, ProcessEngineProtocol, ProcessTypeEnum
 from hairpin2.abstractions.process_params import RunParams
 from hairpin2.abstractions.structures import ExtendedRead, FlagResult, ReadView, read_has_mark
@@ -217,15 +212,6 @@ class ReadAwareProcess(ABC):
     ):
         self._var_params = None
         self._executed = False
-
-    # @overload
-    # def __call__(
-    #     self: VariantFlagProcess  # BUG: these don't work because VariantFlagProcess isn't a subclass of this base
-    # ) -> FlagResult: ...
-    # @overload
-    # def __call__(
-    #     self
-    # ) -> None: ...
     
     def __call__(
         self,
@@ -243,26 +229,19 @@ class ReadAwareProcess(ABC):
         execute_then_reset = True if "execute_then_reset" in switches else False
 
         if self._executed and not force:
-            # TODO: use subclass name via fstring
-            raise RuntimeError("Process executed, and has not been reset and loaded with new data! Cannot run process.")
+            raise RuntimeError(f"Process {type(self).__name__} with namespace {type(self).ProcessNamespace} has been executed, and has not been reset and loaded with new data! Cannot run process.")
         if call_run_params is not None:
             self.prime(call_run_params, overwrite)
         else:
             try:
                 self.run_params
             except:
-                raise RuntimeError("Process has not been primed with data! Cannot run process.")
+                raise RuntimeError(f"Process {type(self).__name__} with namespace {type(self).ProcessNamespace} has not been primed with data! Cannot run process.")
 
         if self.require_marks or self.exclude_marks:
             self._set_filtered_reads(self.require_properties_check(self.run_params))
 
         # TODO: add back prefilter functionality
-        
-        # OLD
-        # if isinstance(self, _AbstractReadTaggerProcess):
-        #     self.modify_reads(self.run_params)
-        # if isinstance(self, VariantFlagProcess):
-        #     flag_result = self.flag_variant(self.run_params)
 
         ret = self._engine.run_process(self.run_params)
 
@@ -270,4 +249,4 @@ class ReadAwareProcess(ABC):
         if execute_then_reset == True:
             self.reset()  # disengage
 
-        return ret  # TODO: make it such that the static analyser knows if it's going to return somethign or not
+        return ret

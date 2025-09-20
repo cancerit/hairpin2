@@ -22,7 +22,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 from enum import IntEnum, Flag
-# pyright: reportExplicitAny=false
 
 
 def print_flag(
@@ -38,4 +37,4 @@ def print_flag(
 def print_enum(
     print_enum: IntEnum
 ) -> None:
-    print([e for e in print_enum])  # pyright: ignore[reportGeneralTypeIssues] - iterating works fine
+    print([e for e in print_enum])  # pyright: ignore[reportGeneralTypeIssues, reportUnknownArgumentType, reportUnknownVariableType] - iterating works fine

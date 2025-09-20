@@ -96,7 +96,6 @@ def tag_supporting(
         record_operation(read, 'mark-support')  # TODO: handle in backend, probably on readview
 
 
-# TODO: require/exclude bools to be set by config, and at init not subclassing
 @make_read_processor(
     process_namespace='mark-support',
     tagger_param_class=None,
@@ -104,6 +103,6 @@ def tag_supporting(
     adds_marks=[TagEnum.SUPPORT],
 )
 class TaggerSupporting(
-    ReadAwareProcess,  # TODO/BUG: ReadAwareProcess subclasses MUST define a specific type of run params that they use, or the contravariance with run_params is lost
+    ReadAwareProcess,
 ): pass
 

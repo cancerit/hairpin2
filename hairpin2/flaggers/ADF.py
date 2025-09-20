@@ -173,7 +173,6 @@ def test_anomalous_distribution(
 
 
 # require support, exclude stutter dups, overlapping second pair member, low quality
-# @haf.require_read_properties(require_tags=['zS'], exclude_tags=['zD', 'zO', 'zQ'])  # TODO guard against accidentally providing just a string - which is an iterable[str]!!
 @make_variant_flagger(
     process_namespace=_FLAG_NAME,
     flagger_param_class=FixedParamsADF,
@@ -183,7 +182,6 @@ def test_anomalous_distribution(
 class FlaggerADF(
     ReadAwareProcess,
 ):
-    # TODO: docstring
     """
     Anomalous Distribution Filter based on hairpin filtering algorthim described in Ellis et al. 2020 (DOI: 10.1038/s41596-020-00437-6) 
     """

@@ -21,6 +21,9 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
+# pyright: reportImplicitStringConcatenation=false
+ 
 from pathlib import Path
 import pysam
 from hairpin2 import  __version__
@@ -38,9 +41,7 @@ from typing import Any, override
 import sys
 import click
 from dataclasses import dataclass, fields
-# pyright: reportAny=false
-# pyright: reportExplicitAny=false
-# pyright: reportImplicitStringConcatenation=false
+
 
 EXIT_SUCCESS = 0
 EXIT_FAILURE = 1
@@ -626,8 +627,6 @@ def hairpin2(
                     # NOTE: doubly so if multithreading in future
                     # reasonably immutable view of test data
                     # if further immutablility is needed will have to wrap alignedsegment internally when priming
-                    # TODO/NOTE: wrapping pysam types with wrapt or similar for more defined behaviour with method forwarding
-                    # and tag registries etc
                     # TODO/NOTE: dict-by-tag bevhaviour in ReadView will allow for really neat subselection of reads based on
                     # intersection of include/exclude tags
                     test_reads = ReadView(ReadView.convert_pysam_to_extread(reads_by_sample, validate=True))
@@ -637,18 +636,15 @@ def hairpin2(
                     # run the flaggers
                     # TODO: run all via centralised runner
 
-
-                    # SUCCESS! NO REGRESSIONS AGAINST 2.0.0 ON MY DATA. TODO: separate args, wire up to CLI interface properly
+                    # TODO: run order currently relies on hardcoding
                     _ = sp(run_data)
                     _ = ov(run_data)
                     _ = lqt(run_data)
-                    _ = dp(run_data)  # needs lqt run first - TODO: this fact isn't surfaced or guarded in any way
-                    # TODO: to test this, need to assess passing reads using these tag based methods vs passing reads in old qc funcs implementation. If they're the same
-                    # then the only remaining problem space is the LQF implementation
+                    _ = dp(run_data)
                     lq_result = lqf(run_data)
                     dv_result = dv(run_data)
                     al_result = al(run_data)
-                    ad_result = ad(run_data)
+                    ad_result = ad(run_data)  # TODO: secondary structure test of suspicious variants
                     for res in (al_result, ad_result, dv_result, lq_result):
                         assert res is not None
                         record_filters[type(res)].append(res)

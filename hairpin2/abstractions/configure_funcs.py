@@ -1,8 +1,3 @@
-# pyright: reportExplicitAny=false
-
-## --- configuration decos
-
-
 from typing import Any, Callable, overload
 from collections.abc import Mapping, Sequence
 from hairpin2.abstractions.process import ReadAwareProcess
@@ -45,7 +40,6 @@ def _create_generic_configure_deco(
         # subclass_kwds['process_type'] = process_type
         # subclass_kwds['adds_marks'] = adds_marks  # should probably cross reference against type, but the AddsMarks class var is a stopgap solution anyway
 
-        # # TODO: look at wrapt for this
         # def body(ns: dict[str, Any]):
         #     ns["__module__"] = cls.__module__  # so user class comes from the same module
         #     ns["__doc__"] = getattr(cls, "__doc__", None)  # so doc is user doc (might actually want to use provided func doc)

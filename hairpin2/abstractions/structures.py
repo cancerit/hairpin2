@@ -1,6 +1,3 @@
-# pyright: reportExplicitAny=false
-# pyright: reportAny=false
-# pyright: reportUnnecessaryIsInstance=false
 # from abc import ABC
 from abc import ABC, abstractmethod
 from pydantic import BaseModel, ConfigDict, field_validator
@@ -207,6 +204,8 @@ def make_extended_read(
         raise TypeError('data extension on read objects is only supported for pysam.AlignedSegment at this time')  # pyright: ignore[reportUnreachable]
 
 
+# TODO: on reflection, this should attempt to mark the underlying object
+# in addition to the proxy.
 def mark_read(
     read: ExtendedRead,  # | AlignedSegment - TODO
     mark: str
@@ -238,8 +237,6 @@ class ExtendedVariant(
 
 # TODO: record processes executed on readview object (for execution flow)
 # TODO: quick access to reads by tags, both union and intersections of
-# TODO: Generic over ExtendedRead, AlignedSegment
-
 Read_T = TypeVar('Read_T', ExtendedRead, AlignedSegment, covariant=True)
 class ReadView(Mapping[Any, tuple[Read_T, ...]]):
     __slots__ = ("_data",)  # pyright: ignore[reportUnannotatedClassAttribute]
@@ -272,7 +269,7 @@ class ReadView(Mapping[Any, tuple[Read_T, ...]]):
         return self._data.keys()
 
     @override
-    def values(self):  # pyright: ignore[reportIncompatibleMethodOverride]
+    def values(self):
         return self._data.values()
 
     @override
