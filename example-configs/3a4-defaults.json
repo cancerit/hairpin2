@@ -1,36 +1,104 @@
 {
-  "mark-support": {},
-  "mark-overlap": {},
-  "mark-low-qual": {
-    "min_avg_clip_quality": 35,
-    "min_mapping_quality": 11,
-    "min_base_quality": 25
+  "read-processors": {
+    "mark-support": {
+      "require-marks": [],
+      "exclude-marks": [],
+      "params": {}
+    },
+    "mark-overlap": {
+      "require-marks": [
+        "SUPPORTS-VAR"
+      ],
+      "exclude-marks": [],
+      "params": {}
+    },
+    "mark-low-qual": {
+      "require-marks": [
+        "SUPPORTS-VAR"
+      ],
+      "exclude-marks": [],
+      "params": {
+        "min_avg_clip_quality": 35,
+        "min_mapping_quality": 11,
+        "min_base_quality": 25
+      }
+    },
+    "mark-duplicates": {
+      "require-marks": [
+        "SUPPORTS-VAR"
+      ],
+      "exclude-marks": [
+        "LOW-QUAL"
+      ],
+      "params": {
+        "duplication_window_size": 6
+      }
+    }
   },
-  "mark-duplicates": {
-    "duplication_window_size": 6
+  "variant-flaggers": {
+    "LQF": {
+      "require-marks": [
+        "SUPPORTS-VAR"
+      ],
+      "exclude-marks": [
+        "IS-OVERLAPPING-READ2"
+      ],
+      "params": {
+        "read_loss_threshold": 0.99,
+        "min_pass_reads": 2,
+        "nsamples_threshold": 0
+      }
+    },
+    "DVF": {
+      "require-marks": [
+        "SUPPORTS-VAR"
+      ],
+      "exclude-marks": [
+        "IS-OVERLAPPING-READ2",
+        "LOW-QUAL"
+      ],
+      "params": {
+        "read_loss_threshold": 0.49,
+        "min_pass_reads": 2,
+        "nsamples_threshold": 0
+      }
+    },
+    "ALF": {
+      "require-marks": [
+        "SUPPORTS-VAR"
+      ],
+      "exclude-marks": [
+        "LOW-QUAL",
+        "IS-OVERLAPPING-READ2",
+        "IS-STUTTER-DUP"
+      ],
+      "params": {
+        "avg_AS_threshold": 0.93
+      }
+    },
+    "ADF": {
+      "require-marks": [
+        "SUPPORTS-VAR"
+      ],
+      "exclude-marks": [
+        "LOW-QUAL",
+        "IS-OVERLAPPING-READ2",
+        "IS-STUTTER-DUP"
+      ],
+      "params": {
+        "edge_definition": 0.15,
+        "edge_clustering_threshold": 0.9,
+        "min_MAD_one_strand": 0,
+        "min_sd_one_strand": 4.0,
+        "min_MAD_both_strand_weak": 2,
+        "min_sd_both_strand_weak": 2.0,
+        "min_MAD_both_strand_strong": 1,
+        "min_sd_both_strand_strong": 10.0,
+        "min_reads": 1
+      }
+    }
   },
-  "LQF": {
-    "read_loss_threshold": 0.99,
-    "min_pass_reads": 2,
-    "nsamples_threshold": 0
-  },
-  "DVF": {
-    "read_loss_threshold": 0.49,
-    "min_pass_reads": 2,
-    "nsamples_threshold": 0
-  },
-  "ALF": {
-    "avg_AS_threshold": 0.93
-  },
-  "ADF": {
-    "edge_definition": 0.15,
-    "edge_clustering_threshold": 0.9,
-    "min_MAD_one_strand": 0,
-    "min_sd_one_strand": 4.0,
-    "min_MAD_both_strand_weak": 2,
-    "min_sd_both_strand_weak": 2.0,
-    "min_MAD_both_strand_strong": 1,
-    "min_sd_both_strand_strong": 10.0,
-    "min_reads": 1
+  "opts": {
+    "mandate-excludes": true
   }
 }

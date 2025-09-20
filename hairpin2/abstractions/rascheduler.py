@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 from typing import Any, Self, cast
 
-from hairpin2.abstractions.process import ReadAwareProcessProtocol
+from hairpin2.abstractions.process import ReadAwareProcess, ReadAwareProcessProtocol
 from hairpin2.abstractions.process_engines import EngineResult_T, FlagResult_T, ProcessTypeEnum
 from hairpin2.abstractions.process_params import RunParams
 from hairpin2.abstractions.structures import FlagResult
@@ -62,7 +62,7 @@ class RAExec:
                     if not taggers_all_registered:
                         taggers_all_registered = True
                     flaggerl.append(cast(ReadAwareProcessProtocol[FlagResult], proc))
-                case _:  # pyright: ignore[reportUnnecessaryComparison]
+                case _:
                     raise TypeError  # pyright: ignore[reportUnreachable]
         return valid, (tuple(taggerl), tuple(flaggerl))
 
@@ -86,15 +86,23 @@ class RAExec:
                 valid = RAExec.validate_flagger_exec(part_procs[1], tags_added, mandate_excludes, raise_on_fail)
         return valid, part_procs
 
-    # need to make clearer pattern of boolean read marks
-    # and data holding read marks
-    # and make wrapped read register itself as marked in it's parent readview if there is one
+    # make wrapped read register itself as marked in it's parent readview if there is one
     @staticmethod
     def validate_tagger_order(
         processes: Iterable[ReadAwareProcessProtocol[None]],
         mandate_excludes: bool,
         raise_on_fail: bool = False
     ) -> tuple[bool, set[str]]:
+        """
+        validate that the order of tagger processes as provided in the processses iterable can be run without error.
+        In pratice this means checking that at a minimum, all marks/tags listed in a given process as required (i.e.
+        in require_marks) have been checked and applied by processes occuring prior in the run order.
+
+        Args:
+            processes (Iterable): Iterable of processes, the order of which defines the run order
+            mandate_excludes (bool): if true, then for each process, all marks listed as exclude_marks must have been applied by tagger processes coming prior in the run order, in addition to require_marks
+            raise_on_fail (bool): whether to throw an error on recieving an illegal order, or just return a bool
+        """
         tags_set: set[str] = set()
         valid = True
         for proc in processes:
@@ -138,9 +146,14 @@ class RAExec:
     def from_config(
         cls,
         configd: dict[str, Any],
-        tagger_pool: list[type[ReadAwareProcessProtocol[None]]],
-        flagger_pool: list[type[ReadAwareProcessProtocol[FlagResult]]]
+        tagger_pool: Iterable[type[ReadAwareProcess]],
+        flagger_pool: Iterable[type[ReadAwareProcess]]
     ) -> Self:
+        cast_tagger_pool = cast(Iterable[type[ReadAwareProcessProtocol[None]]], tagger_pool)
+        # TODO: use insinstance check on protocol, as it's runtime checkable
+        cast_flagger_pool= cast(Iterable[type[ReadAwareProcessProtocol[FlagResult]]], flagger_pool)
+
+        
         if not set(['read-processors', 'variant-flaggers', 'opts']) == configd.keys():
             raise ValueError('config does not have correct top-level keys')
 
@@ -154,11 +167,11 @@ class RAExec:
         if not isinstance(flagger_paramd, dict):
             raise ValueError
 
-        if not cls.check_namespacing_clashfree(tagger_pool + flagger_pool):
+        if not cls.check_namespacing_clashfree([*cast_tagger_pool, *cast_flagger_pool]):
             raise ValueError('Processes with clashing namespaces')
 
-        tagger_nsd = {proc_type.ProcessNamespace: proc_type for proc_type in tagger_pool}
-        flagger_nsd = {proc_type.ProcessNamespace: proc_type for proc_type in flagger_pool}
+        tagger_nsd = {proc_type.ProcessNamespace: proc_type for proc_type in cast_tagger_pool}
+        flagger_nsd = {proc_type.ProcessNamespace: proc_type for proc_type in cast_flagger_pool}
 
         if not set(tagger_paramd.keys()).issubset(tagger_nsd):
             raise ValueError('config requesting unknown taggers')
@@ -169,8 +182,8 @@ class RAExec:
         # then clearly need pydantic validated config dataclass (may suffice in the meantime anyway since this is hp2 not htsflow)
         # TODO: stop using hypens, given config keys will mostly correspond to python symbols
         # config order defines execution order
-        ordered_req_taggers = [tagger_nsd[proc_name](config_params, config_params['require-marks'], config_params['exclude-marks']) for proc_name, config_params in tagger_paramd.items()]
-        ordered_req_flaggers = [flagger_nsd[proc_name](config_params, config_params['require-marks'], config_params['exclude-marks']) for proc_name, config_params in flagger_paramd.items()]
+        ordered_req_taggers = tuple(tagger_nsd[proc_name](config_params["params"], config_params['require-marks'], config_params['exclude-marks']) for proc_name, config_params in tagger_paramd.items())
+        ordered_req_flaggers = tuple(flagger_nsd[proc_name](config_params["params"], config_params['require-marks'], config_params['exclude-marks']) for proc_name, config_params in flagger_paramd.items())
 
         _, tags_added = cls.validate_tagger_order(ordered_req_taggers, excludes_opt, raise_on_fail=True)
         _ = cls.validate_flagger_exec(ordered_req_flaggers, tags_added, excludes_opt, raise_on_fail=True)
@@ -178,16 +191,18 @@ class RAExec:
         ra_ex = cls(ordered_req_taggers, ordered_req_flaggers, excludes_opt)
         return ra_ex
 
-    def run(  # TODO
+    def run(
         self,
         run_data: RunParams
     ) -> tuple[FlagResult, ...]:
         for proc in self.taggers:
             proc(run_data)
+            proc.reset()
 
         res: list[FlagResult] = []
         for proc in self.flaggers:
             res.append(proc(run_data))
+            proc.reset()
 
         return tuple(res)
 

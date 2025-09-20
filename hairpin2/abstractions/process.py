@@ -64,6 +64,10 @@ class ReadAwareProcessProtocol(Protocol[EngineResult_T]):
     @property
     def run_params(self) -> RunParams: ...
 
+    def reset(
+        self
+    ) -> None: ...
+
     def __call__(
         self,
         call_run_params: RunParams | None = None,

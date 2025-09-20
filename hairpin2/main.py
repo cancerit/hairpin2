@@ -27,13 +27,12 @@
 from pathlib import Path
 import pysam
 from hairpin2 import  __version__
-from hairpin2.const import TagEnum
-from hairpin2.flaggers.LQF import FlaggerLQF, ResultLQF, TaggerLowQual
+from hairpin2.abstractions.rascheduler import RAExec
 from hairpin2.flaggers.shared import RunParamsShared
 from hairpin2.read_preprocessors.mark_overlap import TaggerOverlap
 from hairpin2.read_preprocessors.mark_support import TaggerSupporting
 from hairpin2.abstractions.structures import FlagResult, ReadView
-from hairpin2.flaggers import ADF, ALF, DVF
+from hairpin2.flaggers import ADF, ALF, DVF, LQF
 import logging
 import json
 from itertools import tee
@@ -209,120 +208,7 @@ class JSONOrFile(click.ParamType):
     help='display progress bar on stderr during run',
     default=False
 )
-
-# # === Config override groups (hidden by default) ===
-# @optgroup.group("\nread validation config overrides", hidden=True)
-# @optgroup.option(
-#     '--min-clip-quality',
-#     metavar='INT',
-#     type=click.IntRange(*_PARAMS['min_clip_quality'].range),
-#     show_default=str(_PARAMS['min_clip_quality'].default),
-#     help='discard reads with mean base quality of aligned bases below this value, if they have soft-clipped bases'
-# )
-# @optgroup.option(
-#     '--min-mapping-quality',
-#     metavar='INT',
-#     type=click.IntRange(*_PARAMS['min_mapping_quality'].range),
-#     show_default=str(_PARAMS['min_mapping_quality'].default),
-#     help='discard reads with mapping quality below this value'
-# )
-# @optgroup.option(
-#     '--min-base-quality',
-#     metavar='INT',
-#     type=click.IntRange(*_PARAMS['min_base_quality'].range),
-#     show_default=str(_PARAMS['min_base_quality'].default),
-#     help='discard reads with base quality below this value at variant position'
-# )
-
-# @optgroup.group('\nDVF config overrides', hidden=True)
-# @optgroup.option(
-#     '--duplication-window-size',
-#     metavar='INT',
-#     type=click.IntRange(*_PARAMS['duplication_window_size'].range),
-#     show_default=str(_PARAMS['duplication_window_size'].default),
-#     help='inclusive maximum window size in number of bases within which read pairs supporting a variant may be considered possible duplicates of eachother. -1 will disable duplicate detection'
-# )
-# @optgroup.option(
-#     '--loss-ratio',
-#     metavar='FLOAT',
-#     type=click.FloatRange(*_PARAMS['loss_ratio'].range),
-#     show_default=str(_PARAMS['loss_ratio'].default),
-#     help='ratio of the number of reads found to be duplicates against the total number of supporting reads, above which a variant is flagged DVF. In logical AND with a hardcoded test that at least 2 supporting reads are independent, i.e. not duplicates of each other, to ensure that regardless of the value of `loss_ratio` collapse of duplicates to only a single supporting read always results in a DVF flag. Smaller is more sensitive. Set to 0.99 to rely only on the hardcoded test (practically speaking).'
-# )
-
-# @optgroup.group("\nALF config overrides", hidden=True)
-# @optgroup.option(
-#     '--al-filter-threshold',
-#     metavar='FLOAT',
-#     type=click.FloatRange(*_PARAMS['al_filter_threshold'].range),
-#     show_default=str(_PARAMS['al_filter_threshold'].default),
-#     help='threshold for median of read alignment score per base of all relevant reads, at and below which a variant is flagged ALF'
-# )
-
-# @optgroup.group("\nADF config overrides", hidden=True)
-# @optgroup.option(
-#     '--edge-definition',
-#     metavar='FLOAT',
-#     type=click.FloatRange(*_PARAMS['edge_definition'].range),
-#     show_default=str(_PARAMS['edge_definition'].default),
-#     help='percentage of a read that is considered to be "the edge" for the purposes of assessing variant position distribution'
-# )
-# @optgroup.option(
-#     '--edge-fraction',
-#     metavar='FLOAT',
-#     type=click.FloatRange(*_PARAMS['edge_fraction'].range),
-#     show_default=str(_PARAMS['edge_fraction'].default),
-#     help='percentage of variants must occur within EDGE_FRACTION of read edges to mark ADF flag'
-# )
-# @optgroup.option(
-#     '--min-mad-one-strand',
-#     metavar='INT',
-#     type=click.IntRange(*_PARAMS['min_mad_one_strand'].range),
-#     show_default=str(_PARAMS['min_mad_one_strand'].default),
-#     help='Mean Average Devaition of distances between variant position and read start above which a variant cannot be considered anomalous - used when only one strand has sufficient valid reads for testing'
-# )  # 'above which' meaning exclusive
-# @optgroup.option(
-#     '--min-sd-one-strand',
-#     metavar='FLOAT',
-#     type=click.FloatRange(*_PARAMS['min_sd_one_strand'].range),
-#     show_default=str(_PARAMS['min_sd_one_strand'].default),
-#     help='stdev of distances between variant position and read start above which a variant cannot be considered anomalous - used when only one strand has sufficient valid reads for testing'
-# )
-# @optgroup.option(
-#     '--min-mad-both-strand-weak',
-#     metavar='INT',
-#     type=click.IntRange(*_PARAMS['min_mad_both_strand_weak'].range),
-#     show_default=str(_PARAMS['min_mad_both_strand_weak'].default),
-#     help='Mean Average Devaition of distances between variant position and read start above which a variant cannot be considered anomalous - used when both strands have sufficient valid reads for testing, in logical AND with `min_sd_both_strand_weak`, and logical OR with corresponding strong condtion pair'
-# )
-# @optgroup.option(
-#     '--min-sd-both-strand-weak',
-#     metavar='FLOAT',
-#     type=click.FloatRange(*_PARAMS['min_sd_both_strand_weak'].range),
-#     show_default=str(_PARAMS['min_sd_both_strand_weak'].default),
-#     help='stdev of distances between variant position and read start above which a variant cannot be considered anomalous - used when both strands have sufficient valid reads for testing, in logical AND with `min_mad_both_strand_weak`, and logical OR with corresponding strong condtion pair'
-# )
-# @optgroup.option(
-#     '--min-mad-both-strand-strong',
-#     metavar='INT',
-#     type=click.IntRange(*_PARAMS['min_mad_both_strand_strong'].range),
-#     show_default=str(_PARAMS['min_mad_both_strand_strong'].default),
-#     help='Mean Average Devaition of distances between variant position and read start above which a variant cannot be considered anomalous - used when both strands have sufficient valid reads for testing, in logical AND with `min_sd_both_strand_strong`, and logical OR with corresponding weak condtion pair'
-# )
-# @optgroup.option(
-#     '--min-sd-both-strand-strong',
-#     metavar='FLOAT',
-#     type=click.FloatRange(*_PARAMS['min_sd_both_strand_strong'].range),
-#     show_default=str(_PARAMS['min_sd_both_strand_strong'].default),
-#     help='stdev of distances between variant position and read start above which a variant cannot be considered anomalous - used when both strands have sufficient valid reads for testing, in logical AND with `min_mad_both_strand_weak`, and logical OR with the corresponding weak condtion pair'
-# )
-# @optgroup.option(
-#     '--min-reads',
-#     metavar='INT',
-#     type=click.IntRange(*_PARAMS['min_reads'].range),
-#     show_default=str(_PARAMS['min_reads'].default),
-#     help='number of reads at and below which the hairpin filtering logic considers a strand to have insufficient reads for testing for a given variant'
-# )
+# TODO: allow arbitrary command line "--flag val" to override config
 def hairpin2(
     vcf: str,
     alignments: list[str],
@@ -351,7 +237,7 @@ def hairpin2(
             logging.error(f'failed to open input JSON, reporting: {er}')
             sys.exit(EXIT_FAILURE)
 
-    # verify config
+    # TODO: verify config
     # for key in configd:
     #     if key not in _PARAMS:
     #         logging.error(f'unrecognised parameter {key!r} in config - check spelling and underscores?')
@@ -512,16 +398,16 @@ def hairpin2(
     # init output  TODO: put these in filter modules as funcs
     out_head = vcf_in_handle.header
     out_head.add_line(
-        f'##FILTER=<ID=ALF,Description="Median alignment score of reads reporting variant less than {configd['ALF']['avg_AS_threshold']}">'  # TODO: move to result or flagger classes
+        f'##FILTER=<ID=ALF,Description="Median alignment score of reads reporting variant less than {configd['variant-flaggers']['ALF']['params']['avg_AS_threshold']}">'  # TODO: move to result or flagger classes
     )
     out_head.add_line(
         f'##FILTER=<ID=ADF,Description="Variant shows anomalous distribution in supporting reads">'
     )
     out_head.add_line(
-        f'##FILTER=<ID=DVF,Description="More than {configd['DVF']['read_loss_threshold']} of reads supporting this variant are considered PCR stutter duplicates">'
+        f'##FILTER=<ID=DVF,Description="More than {configd["variant-flaggers"]['DVF']["params"]['read_loss_threshold']} of reads supporting this variant are considered PCR stutter duplicates">'
     )
     out_head.add_line(
-        f'##FILTER=<ID=LQF,Description="More than {configd['LQF']['read_loss_threshold']} of reads supporting this variant are considered low quality">'
+        f'##FILTER=<ID=LQF,Description="More than {configd["variant-flaggers"]['LQF']["params"]['read_loss_threshold']} of reads supporting this variant are considered low quality">'
     )
     out_head.add_line(
         '##INFO=<ID=ADF,Number=1,Type=String,Description="alt|[True,False]|code indicating decision reason for each alt">'
@@ -551,21 +437,11 @@ def hairpin2(
         logging.error(msg='failed to open VCF output, reporting: {}'.format(e))
         sys.exit(EXIT_FAILURE)
 
-
-    # NOTE: all this below should be excised into raf eventually
-    sp = TaggerSupporting(configd[TaggerSupporting.ProcessNamespace], [], [])
-    ov = TaggerOverlap(configd[TaggerOverlap.ProcessNamespace], [TagEnum.SUPPORT], [])
-    lqt = TaggerLowQual(configd[TaggerLowQual.ProcessNamespace], [TagEnum.SUPPORT], [])
-    dp = DVF.TaggerDupmark(configd[DVF.TaggerDupmark.ProcessNamespace], [TagEnum.SUPPORT], [TagEnum.LOW_QUAL])
-
-    lqf = FlaggerLQF(configd[FlaggerLQF.ProcessNamespace], [TagEnum.SUPPORT], [TagEnum.OVERLAP])
-    ad = ADF.FlaggerADF(configd[ADF.FlaggerADF.ProcessNamespace], [TagEnum.SUPPORT], [TagEnum.STUTTER_DUP, TagEnum.OVERLAP, TagEnum.LOW_QUAL])
-    al = ALF.FlaggerALF(configd[ALF.FlaggerALF.ProcessNamespace], [TagEnum.SUPPORT], [TagEnum.OVERLAP, TagEnum.LOW_QUAL, TagEnum.STUTTER_DUP])
-    dv = DVF.FlaggerDVF(configd[DVF.FlaggerDVF.ProcessNamespace], [TagEnum.SUPPORT], [TagEnum.OVERLAP, TagEnum.LOW_QUAL])  # BUG/NOTE: this needs to be strongly and clearly linked to the dupmark tagger
-    # test records
+    # # test records
+    proc_exec = RAExec.from_config(configd, {TaggerSupporting, TaggerOverlap, LQF.TaggerLowQual, DVF.TaggerDupmark}, {LQF.FlaggerLQF, ADF.FlaggerADF, ALF.FlaggerALF, DVF.FlaggerDVF})
     prog_bar_counter = 0
     for record in vcf_in_handle.fetch():
-        record_filters: dict[type[FlagResult[Any]], list[FlagResult[Any]]] = {ALF.ResultALF: [], ADF.ResultADF: [], DVF.ResultDVF: [], ResultLQF: []}
+        record_flagd: dict[str, list[FlagResult[Any]]] = {}
         if record.alts is None:
             if quiet < 1: logging.warning('{0: <7}:{1: >12} ¦ no alts for this record, skipping'.format(
                 record.chrom, record.pos))
@@ -619,49 +495,26 @@ def hairpin2(
                     # would save a lot of performance as fields checked globally could be subtracted from fields checked
                     # on specific flaggers and preprocessors, and less reads to hold.
 
-
                     # instantiate test data obj/s
-                    # NOTE: shared var params KOs flagger independence
                     # NOTE: shared access to the same record in memory is dangerous, trusts developers not to modify for all
                     # in flagger methods
-                    # NOTE: doubly so if multithreading in future
+
                     # reasonably immutable view of test data
                     # if further immutablility is needed will have to wrap alignedsegment internally when priming
                     # TODO/NOTE: dict-by-tag bevhaviour in ReadView will allow for really neat subselection of reads based on
                     # intersection of include/exclude tags
                     test_reads = ReadView(ReadView.convert_pysam_to_extread(reads_by_sample, validate=True))
                     run_data = RunParamsShared(record=record, reads=test_reads, alt=alt, mut_type=mut_type)  # TODO: allow positional args
-                    # dpp(dupmark.RunParamsDupmark(record=record, reads=test_reads, alt=alt, mut_type=mut_type))
 
-                    # run the flaggers
-                    # TODO: run all via centralised runner
+                    for result in proc_exec.run(run_data):
+                        record_flagd.setdefault(result.FlagName, []).append(result)
 
-                    # TODO: run order currently relies on hardcoding
-                    _ = sp(run_data)
-                    _ = ov(run_data)
-                    _ = lqt(run_data)
-                    _ = dp(run_data)
-                    lq_result = lqf(run_data)
-                    dv_result = dv(run_data)
-                    al_result = al(run_data)
-                    ad_result = ad(run_data)  # TODO: secondary structure test of suspicious variants
-                    for res in (al_result, ad_result, dv_result, lq_result):
-                        assert res is not None
-                        record_filters[type(res)].append(res)
-
-                    sp.reset()
-                    ov.reset()
-                    lqt.reset()
-                    dp.reset()
-                    lqf.reset()
-                    dv.reset(); al.reset(); ad.reset()  # clear for next variant
-
-        if any(lst for lst in record_filters.values()):
-            for ftype in record_filters:
-                if any(fres.flag == True for fres in record_filters[ftype]):
-                    record.filter.add(ftype.FlagName)
+        if any(lst for lst in record_flagd.values()):
+            for fname in record_flagd:
+                if any(fres.flag == True for fres in record_flagd[fname]):
+                    record.filter.add(fname)
                 # TODO: LQF prints no info!
-                record.info.update({ftype.FlagName: ','.join([fl.getinfo() for fl in record_filters[ftype]])})  # pyright: ignore[reportArgumentType, reportUnknownMemberType]
+                record.info.update({fname: ','.join([fl.getinfo() for fl in record_flagd[fname]])})  # pyright: ignore[reportArgumentType, reportUnknownMemberType]
 
         try:
             _ = vcf_out_handle.write(record)
