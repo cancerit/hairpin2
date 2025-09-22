@@ -146,49 +146,58 @@ class RAExec:
     def from_config(
         cls,
         configd: dict[str, Any],
-        tagger_pool: Iterable[type[ReadAwareProcess]],
-        flagger_pool: Iterable[type[ReadAwareProcess]]
+        proc_pool: Iterable[type[ReadAwareProcess]],
     ) -> Self:
-        cast_tagger_pool = cast(Iterable[type[ReadAwareProcessProtocol[None]]], tagger_pool)
+        """
+        initialise read-aware executor from config dict.
+
+        currently fragile
+
+        Args:
+            configd (dict[str, Any]): Dictionary describing how processes should execute.
+            proc_pool (Iterable[type[ReadAwareProcess]]): Iterable of process definitions which may be instatiated for a given run.
+        """
+        # TODO: very fragile, improve
         # TODO: use insinstance check on protocol, as it's runtime checkable
-        cast_flagger_pool= cast(Iterable[type[ReadAwareProcessProtocol[FlagResult]]], flagger_pool)
+        cast_proc_pool = cast(Iterable[type[ReadAwareProcessProtocol[Any]]], proc_pool)
 
         
-        if not set(['read-processors', 'variant-flaggers', 'opts']) == configd.keys():
+        if not set(['params', 'exec', 'opts']) == configd.keys():
             raise ValueError('config does not have correct top-level keys')
 
         excludes_opt= cast(bool, configd['opts']['mandate-excludes'])
-        tagger_paramd = cast(dict[str, Any], configd['read-processors'])
-        flagger_paramd = cast(dict[str, Any], configd['variant-flaggers'])
+        paramd = cast(dict[str, Any], configd['params'])
+        execd = cast(dict[str, Any], configd['exec'])
         if not isinstance(excludes_opt, bool):
             raise ValueError
-        if not isinstance(tagger_paramd, dict):
+        if not isinstance(execd, dict):
             raise ValueError
-        if not isinstance(flagger_paramd, dict):
+        if not isinstance(paramd, dict):
             raise ValueError
 
-        if not cls.check_namespacing_clashfree([*cast_tagger_pool, *cast_flagger_pool]):
+        if not cls.check_namespacing_clashfree(cast_proc_pool):
             raise ValueError('Processes with clashing namespaces')
 
-        tagger_nsd = {proc_type.ProcessNamespace: proc_type for proc_type in cast_tagger_pool}
-        flagger_nsd = {proc_type.ProcessNamespace: proc_type for proc_type in cast_flagger_pool}
+        proc_nsd = {proc_type.ProcessNamespace: proc_type for proc_type in cast_proc_pool}
 
-        if not set(tagger_paramd.keys()).issubset(tagger_nsd):
-            raise ValueError('config requesting unknown taggers')
-        if not set(flagger_paramd.keys()).issubset(flagger_nsd):
-            raise ValueError('config requesting unknown flaggers')
+        if not set(paramd.keys()).issubset(proc_nsd):
+            raise ValueError('config requesting unknown processes')
 
         # TODO: if using pydantic doesn't engender end user having to necessarily define paramater dataclasses,
         # then clearly need pydantic validated config dataclass (may suffice in the meantime anyway since this is hp2 not htsflow)
-        # TODO: stop using hypens, given config keys will mostly correspond to python symbols
         # config order defines execution order
-        ordered_req_taggers = tuple(tagger_nsd[proc_name](config_params["params"], config_params['require-marks'], config_params['exclude-marks']) for proc_name, config_params in tagger_paramd.items())
-        ordered_req_flaggers = tuple(flagger_nsd[proc_name](config_params["params"], config_params['require-marks'], config_params['exclude-marks']) for proc_name, config_params in flagger_paramd.items())
+        ordered_proc_inst= tuple(
+            proc_nsd[proc_name](
+                paramd.get(proc_name, {}),
+                execd[proc_name]['require-marks'],
+                execd[proc_name]['exclude-marks']
+            ) for proc_name in execd if execd[proc_name]["enable"]
+        )
 
-        _, tags_added = cls.validate_tagger_order(ordered_req_taggers, excludes_opt, raise_on_fail=True)
-        _ = cls.validate_flagger_exec(ordered_req_flaggers, tags_added, excludes_opt, raise_on_fail=True)
+        _, (taggers, flaggers) = cls.validate_exec(ordered_proc_inst, excludes_opt, raise_on_fail=True)
 
-        ra_ex = cls(ordered_req_taggers, ordered_req_flaggers, excludes_opt)
+        # this duplicates some of the above validation at the moment. Oh well.
+        ra_ex = cls(taggers, flaggers, excludes_opt)
         return ra_ex
 
     def run(

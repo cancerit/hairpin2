@@ -7,7 +7,7 @@ include = ["hairpin2*"]
 
 [project]
 name = "hairpin2"
-version = "3.0.0-alpha4"
+version = "3.0.0-alpha5"
 description = "CLI for running read-aware artefactual variant flagging algorithms over VCFs"
 authors = [
   {name = "Alex Byrne"}
@@ -29,7 +29,7 @@ dev = [
 ]
 
 [project.scripts]
-hairpin2 = "hairpin2.main:hairpin2"
+hairpin2 = "hairpin2.cli:hairpin2_cli"
 
 [tool.pyright]  # basedpyright recommended
 failOnWarnings = false
