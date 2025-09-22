@@ -29,6 +29,7 @@ from pathlib import Path
 import tomllib
 import pysam
 from hairpin2 import  __version__
+from hairpin2.const import DEFAULT_EXEC_CONFIG
 from hairpin2.main import hairpin2
 import logging
 import json
@@ -36,6 +37,15 @@ from typing import Any, cast, override
 import sys
 import click
 from dataclasses import dataclass, fields
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s ¦ %(levelname)-8s ¦ %(message)s',
+    datefmt='%I:%M:%S'
+)
+
+
 
 
 EXIT_SUCCESS = 0
@@ -147,6 +157,7 @@ class ConfigFile(click.ParamType):
             self.fail(f"Failed to parse {path.name}: {ex}", param, ctx)
 
 
+# TODO: use input configd to overwrite/update a preset default configd so exec configuration is optional
 def resolve_config_dicts(ctx: Any, param: Any, values: Iterable[dict[str, Any]]):
     """
     merge config files
@@ -157,9 +168,14 @@ def resolve_config_dicts(ctx: Any, param: Any, values: Iterable[dict[str, Any]])
 
     for configd in values:
         for key, val in configd.items():
-            if key in merged:  # TODO: allow splitting top level keys across files as long as no sub keys overlap
+            if key in merged:  # TODO: allow splitting params key only across files as long as no sub keys overlap
                 raise click.BadParameter(f"top-level key {key} appears in more than one config. Top-level keys may not be split across config files")
             merged[key] = val
+
+    if not merged.get('exec'):
+        merged['exec'] = DEFAULT_EXEC_CONFIG
+        logging.info("execution flow configuration not provided; using defaults")
+
     return merged
 
 
@@ -236,8 +252,6 @@ def resolve_config_dicts(ctx: Any, param: Any, values: Iterable[dict[str, Any]])
     default=False
 )
 # TODO: allow arbitrary command line "--flag val" to override config
-# TODO: TOML support - nicer than JSON, less confusing than YAML
-# then toml to pydantic for validation
 def hairpin2_cli(
     vcf: str,
     alignments: list[str],
@@ -251,13 +265,6 @@ def hairpin2_cli(
     '''
     read-aware artefactual variant flagging algorithms. Flag variants in VCF using statistics calculated from supporting reads found in ALIGNMENTS, and emit the flagged VCF to stdout.
     '''
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s ¦ %(levelname)-8s ¦ %(message)s',
-        datefmt='%I:%M:%S'
-    )
-
-
     # TODO: verify config
     # for key in configd:
     #     if key not in _PARAMS:

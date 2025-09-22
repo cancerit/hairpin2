@@ -102,9 +102,9 @@
         "IS-OVERLAPPING-READ2",
         "IS-STUTTER-DUP"
       ]
+    },
+    "opts": {
+      "mandate-excludes": true
     }
-  },
-  "opts": {
-    "mandate-excludes": true
   }
 }

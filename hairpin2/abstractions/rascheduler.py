@@ -162,10 +162,10 @@ class RAExec:
         cast_proc_pool = cast(Iterable[type[ReadAwareProcessProtocol[Any]]], proc_pool)
 
         
-        if not set(['params', 'exec', 'opts']) == configd.keys():
+        if not set(['params', 'exec']) == configd.keys():
             raise ValueError('config does not have correct top-level keys')
 
-        excludes_opt= cast(bool, configd['opts']['mandate-excludes'])
+        excludes_opt= cast(bool, configd['exec']['opts']['mandate-excludes'])
         paramd = cast(dict[str, Any], configd['params'])
         execd = cast(dict[str, Any], configd['exec'])
         if not isinstance(excludes_opt, bool):
@@ -191,7 +191,7 @@ class RAExec:
                 paramd.get(proc_name, {}),
                 execd[proc_name]['require-marks'],
                 execd[proc_name]['exclude-marks']
-            ) for proc_name in execd if execd[proc_name]["enable"]
+            ) for proc_name in execd.keys() if proc_name != 'opts' and execd[proc_name]["enable"]
         )
 
         _, (taggers, flaggers) = cls.validate_exec(ordered_proc_inst, excludes_opt, raise_on_fail=True)

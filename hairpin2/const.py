@@ -22,6 +22,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 from enum import StrEnum, Flag, auto
+from typing import Any
 
 
 class TagEnum(StrEnum):
@@ -29,6 +30,9 @@ class TagEnum(StrEnum):
     SUPPORT = "SUPPORTS-VAR"
     OVERLAP = "IS-OVERLAPPING-READ2"
     STUTTER_DUP = "IS-STUTTER-DUP"
+
+
+# TODO : flag names
 
 
 class ValidatorFlags(Flag):
@@ -44,4 +48,79 @@ class ValidatorFlags(Flag):
     CLIPQUAL = auto()
     OVERLAP = auto()
 
+
+DEFAULT_EXEC_CONFIG: dict[str, Any] = {
+        "mark-support": {
+            "enable": True,
+            "require-marks": [],
+            "exclude-marks": []
+        },
+        "mark-overlap": {
+            "enable": True,
+            "require-marks": [
+                "SUPPORTS-VAR"
+            ],
+            "exclude-marks": []
+        },
+        "mark-low-qual": {
+            "enable": True,
+            "require-marks": [
+                "SUPPORTS-VAR"
+            ],
+            "exclude-marks": []
+        },
+        "mark-duplicates": {
+            "enable": True,
+            "require-marks": [
+                "SUPPORTS-VAR"
+            ],
+            "exclude-marks": [
+                "LOW-QUAL"
+            ]
+        },
+        "LQF": {
+            "enable": True,
+            "require-marks": [
+                "SUPPORTS-VAR"
+            ],
+            "exclude-marks": [
+                "IS-OVERLAPPING-READ2"
+            ]
+        },
+        "DVF": {
+            "enable": True,
+            "require-marks": [
+                "SUPPORTS-VAR"
+            ],
+            "exclude-marks": [
+                "IS-OVERLAPPING-READ2",
+                "LOW-QUAL"
+            ]
+        },
+        "ALF": {
+            "enable": True,
+            "require-marks": [
+                "SUPPORTS-VAR"
+            ],
+            "exclude-marks": [
+                "LOW-QUAL",
+                "IS-OVERLAPPING-READ2",
+                "IS-STUTTER-DUP"
+            ]
+        },
+        "ADF": {
+            "enable": True,
+            "require-marks": [
+                "SUPPORTS-VAR"
+            ],
+            "exclude-marks": [
+                "LOW-QUAL",
+                "IS-OVERLAPPING-READ2",
+                "IS-STUTTER-DUP"
+            ]
+        },
+    "opts": {
+        "mandate-excludes": True
+    }
+}
 
