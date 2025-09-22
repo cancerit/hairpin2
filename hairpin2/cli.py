@@ -163,7 +163,7 @@ def resolve_config_dicts(ctx: Any, param: Any, values: Iterable[dict[str, Any]])
     merge config files
     """
     # handle substitutions, merge
-    # TODO: substitutions
+    # TODO: substitutions from vars, substitutions from cli flags
     merged: dict[str, Any] = {}
 
     for configd in values:
@@ -455,7 +455,7 @@ def hairpin2_cli(
         f'##hairpin2_version={__version__}'
     )
     out_head.add_line(
-        f'##hairpin2_params=[{json.dumps(configd)}]'  # TODO: only dump params
+        f'##hairpin2_params=[{json.dumps({k: v for k, v in configd["params"].items() if configd["exec"][k]["enable"]})}]'
     )
     out_head.add_line(
         f'##hairpin2_samples={vcf_sample_to_alignment_map.keys()}'

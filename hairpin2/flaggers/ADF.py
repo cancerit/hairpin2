@@ -65,7 +65,7 @@ class FixedParamsADF(FixedParams):
     min_reads: int  # inclusive
 
 
-# NOTE/TODO:
+# NOTE:
 # per paper, can set hairpin for mutations distant from alignment start
 # in the case where both strands have sufficient supporting reads
 # discuss with Peter

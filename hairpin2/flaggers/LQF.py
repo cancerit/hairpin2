@@ -169,9 +169,6 @@ def test_variant_LQF(
             if ntotal > 1:
                 nlq = sum((read_has_mark(read, TagEnum.LOW_QUAL) or read_has_mark(read, TagEnum.STUTTER_DUP)) for read in reads)
                 ntrue = abs(nlq - ntotal)
-                assert ntotal >= nlq > -1  # sanity check - TODO: should probably throw an interpretable error
-                assert ntotal >= ntrue > -1
-                assert ntotal == nlq + ntrue
                 sample_loss_ratio = nlq / ntotal
                 if sample_loss_ratio > fixed_params.read_loss_threshold or ntrue < fixed_params.min_pass_reads:
                     nsamples_with_lowqual += 1

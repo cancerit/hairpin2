@@ -143,7 +143,6 @@ class ReadAwareProcess(ABC):
         # TODO: global on-fail options: record/split offending reads to file, record/split variant to file, ignore, warn, fail
         # TODO: check primed first!
 
-        # TODO: doc - you don't need to use RequireReadProperties, but it injects nice behaviour for you
         filtered: dict[Any, list[ExtendedRead]] = {}
         for sample, reads in run_params.reads.items():
             passed_reads: list[ExtendedRead] = []
@@ -244,8 +243,6 @@ class ReadAwareProcess(ABC):
 
         if self.require_marks or self.exclude_marks:
             self._set_filtered_reads(self.require_properties_check(self.run_params))
-
-        # TODO: add back prefilter functionality
 
         ret = self._engine.run_process(self.run_params)
 
