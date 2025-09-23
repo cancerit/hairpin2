@@ -25,6 +25,11 @@ from enum import StrEnum, Flag, auto
 from typing import Any
 
 
+VALID_NUCELOTIDES = set(
+    ('A', 'C', 'T', 'G', 'N', '*')
+)
+
+
 class TagEnum(StrEnum):
     LOW_QUAL = "LOW-QUAL"
     SUPPORT = "SUPPORTS-VAR"

@@ -1,14 +1,10 @@
-def _set_version() -> str:  # noqa: C901
+import importlib.metadata as importlib_metadata
+
+def _set_version() -> str:
     """Set the package version from the project metadata in pyproject.toml."""
     from warnings import warn
 
     fallback_version = "0.0.0"
-    try:
-        # importlib.metadata is present in Python 3.8 and later
-        import importlib.metadata as importlib_metadata
-    except ImportError:
-        # use the shim package importlib-metadata pre-3.8
-        import importlib_metadata as importlib_metadata
 
     try:
         # __package__ allows for the case where __name__ is "__main__"

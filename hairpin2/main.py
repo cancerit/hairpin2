@@ -28,6 +28,7 @@ from collections.abc import Generator, Iterable, Mapping
 import pysam
 from hairpin2 import  __version__
 from hairpin2.abstractions.rascheduler import RAExec
+from hairpin2.const import VALID_NUCELOTIDES
 from hairpin2.flaggers.shared import RunParamsShared
 from hairpin2.read_preprocessors.mark_overlap import TaggerOverlap
 from hairpin2.read_preprocessors.mark_support import TaggerSupporting
@@ -53,8 +54,10 @@ def hairpin2(
     for record in records:
         record_flagd: dict[str, list[FlagResult[Any]]] = {}
         if record.alts is None:
-            if quiet < 1: logging.warning('{0: <7}:{1: >12} ¦ no alts for this record, skipping'.format(
-                record.chrom, record.pos))
+            if quiet < 1:
+                logging.warning(
+                    f'{record.chrom: <7}:{record.pos: >12} (variant id: {record.id!r}) ¦ no alts for this record, skipping variant'
+                )
         else:
             # TODO: also need to mandate/require field presence on variant records I suppose
             samples_w_mutants = [name
@@ -62,8 +65,10 @@ def hairpin2(
                                  in record.samples
                                  if record.samples[name]["GT"] != (0, 0)]
             if len(samples_w_mutants) == 0:
-                if quiet < 1: logging.warning('{0: <7}:{1: >12} ¦ no samples exhibit alts associated with this record, skipping'.format(
-                    record.chrom, record.pos))
+                if quiet < 1:
+                    logging.warning(
+                        f'{record.chrom: <7}:{record.pos: >12} (variant id: {record.id!r}) ¦ no samples exhibit alts associated with this record, skipping variant'
+                    )
             else:
                 reads_by_sample: dict[str, list[pysam.AlignedSegment]] = {}
 
@@ -76,7 +81,7 @@ def hairpin2(
                         try:
                             _ = next(test_iter)
                         except StopIteration:
-                            continue  # no reads for that sample cover this region
+                            continue  # no reads for that sample cover this region  BUG: should warn!!
                         else:
                             reads_by_sample[k] = list(read_iter)
 
@@ -86,18 +91,28 @@ def hairpin2(
                 # for extending to more varied artifacts
                 # TODO/NOTE: this should itself be an additive process! on variant rather than reads
                 for alt in record.alts:
-                    if (record.rlen == len(alt)
-                            and set(alt).issubset(set(['A', 'C', 'T', 'G', 'N', '*']))):
-                        mut_type = 'S'
-                    elif (len(alt) < record.rlen
-                            and set(alt).issubset(set(['A', 'C', 'T', 'G', 'N', '*']))):  # DEL - DOES NOT SUPPORT <DEL> TYPE IDS OR .
-                        mut_type = 'D'
-                    elif (record.rlen == 1
-                            and set(alt).issubset(set(['A', 'C', 'T', 'G', 'N', '*']))):  # INS - DOES NOT SUPPORT <INS> TYPE IDS
-                        mut_type = 'I'
+                    can_parse_alt = set(alt).issubset(VALID_NUCELOTIDES)
+                    alt_len = len(alt)
+
+                    # NOTE: (intentionally) doesn't support symbolic del/ins
+                    if can_parse_alt:
+                        if record.rlen == alt_len:
+                            mut_type = 'S'
+                        elif alt_len < record.rlen:
+                            mut_type = 'D'
+                        elif record.rlen == 1:
+                            mut_type = 'I'
+                        else:
+                            if quiet < 1:
+                                logging.warning(
+                                    f'{record.chrom: <7}:{record.pos: >12} (variant id: {record.id!r}) ¦ could not infer mutation type from ALT/REF: {alt!r}/{record.ref!r}, skipping variant'
+                                )
+                            continue
                     else:
-                        if quiet < 1: logging.warning('could not infer mutation type, POS={} REF={} ALT={}, skipping variant'.format(
-                            record.pos, record.ref, alt))
+                        if quiet < 1:
+                            logging.warning(
+                                f'{record.chrom: <7}:{record.pos: >12} (variant id: {record.id!r}) ¦ ALT: {alt!r} contains nucleotides hairpin2 does not parse (only {VALID_NUCELOTIDES!r}), skipping variant'
+                            )
                         continue
 
                     # FUTURE: shared qc filtering based on parsing of flagger prefilter configs, post additive preprocessing
