@@ -1,9 +1,6 @@
 Bootstrap: docker
 From: python:3.12-slim
 
-%files
-. hairpin2/
-
 %post
 apt update
 apt upgrade -y
