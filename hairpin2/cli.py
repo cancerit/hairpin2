@@ -495,3 +495,8 @@ def hairpin2_cli(
     if not quiet: logging.info('hairpin complete')
     sys.exit(EXIT_SUCCESS)
 
+
+
+
+if __name__ == "__main__":
+    hairpin2_cli()
