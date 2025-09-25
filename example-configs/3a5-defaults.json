@@ -30,7 +30,8 @@
       "min_sd_both_strand_weak": 2.0,
       "min_MAD_both_strand_strong": 1,
       "min_sd_both_strand_strong": 10.0,
-      "min_reads": 1
+      "min_non_edge_reads ": 0,
+      "low_n_supporting_reads_boundary": 1
     }
   },
   "exec": {

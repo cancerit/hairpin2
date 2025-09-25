@@ -1,8 +1,7 @@
-from typing import Literal
-
 from hairpin2.abstractions.process_params import RunParams
+from hairpin2.const import MutTypes
 
 
 class RunParamsShared(RunParams):
     alt: str
-    mut_type: Literal['S', 'D', 'I']
+    mut_type: MutTypes

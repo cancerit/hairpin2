@@ -1,16 +1,18 @@
 # from abc import ABC
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from enum import Flag
 from pydantic import BaseModel, ConfigDict, field_validator
 from pysam import AlignedSegment, VariantRecord
 from itertools import chain
 from collections.abc import Iterable, Iterator, Sequence, Mapping
-from typing import ClassVar, cast, override, Any, Generic, Literal, TypeVar, final, overload, TYPE_CHECKING 
+from typing import ClassVar, cast, override, Any, Generic, Literal, TypeVar, final, overload, TYPE_CHECKING
+
+from hairpin2.const import TestOutcomes 
 
 
-# Ideally I'd like to pass a typeddict or similar with a fixed set of keys
-# such that get ext data has stronger return guarantees
 wrap_T = TypeVar("wrap_T")
-class _DataExtensionBase(ABC, Generic[wrap_T]):
+class DataExtensionBase(ABC, Generic[wrap_T]):
     """
     Wrapper adding metadata handling to object, and forwarding
     other methods to the wrapped object.
@@ -48,6 +50,12 @@ class _DataExtensionBase(ABC, Generic[wrap_T]):
     ):
         return self.__wrap_obj
 
+    # NOTE: the following instance methods are all private
+    # As the opinion of the package is that one should define
+    # free functions specific to any extended subclass one
+    # creates, encouraging greater flexibility with regard
+    # to the properties of the wrapped object
+
     def _record_ext_op(
         self,
         op: str
@@ -82,7 +90,7 @@ class _DataExtensionBase(ABC, Generic[wrap_T]):
     ):
         return True if mark in self.__tag_store else False
 
-    def store_ext_data(
+    def _store_ext_data(
         self,
         key: str,
         value: Any,
@@ -93,35 +101,35 @@ class _DataExtensionBase(ABC, Generic[wrap_T]):
         self.__data_store[key] = value
 
     @overload
-    def get_ext_data[T](
+    def _get_ext_data[T](
         self,
         key: str,
         expected_type: type[T],
         raise_on_missing: Literal[True]
     ) -> T: ...
     @overload
-    def get_ext_data[T](
+    def _get_ext_data[T](
         self,
         key: str,
         expected_type: type[T],
         raise_on_missing: Literal[False]
     ) -> T | None: ...
     @overload
-    def get_ext_data(
+    def _get_ext_data(
         self,
         key: str,
         expected_type: None,
         raise_on_missing: Literal[True]
     ) -> Any: ...
     @overload
-    def get_ext_data(
+    def _get_ext_data(
         self,
         key: str,
         expected_type: None,
         raise_on_missing: Literal[False]
     ) -> Any | None: ...
 
-    def get_ext_data[T](
+    def _get_ext_data[T](
         self,
         key: str,
         expected_type: type[T] | None = None,
@@ -134,24 +142,30 @@ class _DataExtensionBase(ABC, Generic[wrap_T]):
             raise TypeError
         return obj
 
+    def _has_ext_data[T](
+        self,
+        key: str,
+        # expected_type: type[T] | None = None,
+    ) -> bool:
+        return key in self.__data_store
 
 
 def record_operation(
-    ext_obj: _DataExtensionBase[Any],
+    ext_obj: DataExtensionBase[Any],
     op: str
 ):
     ext_obj._record_ext_op(op)  # pyright: ignore[reportPrivateUsage]
 
 
 def mark_ext_obj(
-    ext_obj: _DataExtensionBase[Any],
+    ext_obj: DataExtensionBase[Any],
     mark: str
 ) -> None:
     ext_obj._ext_mark(mark)  # pyright: ignore[reportPrivateUsage]
 
 
 def ext_obj_has_mark(
-    ext_obj: _DataExtensionBase[Any],
+    ext_obj: DataExtensionBase[Any],
     mark: str
 ):
     return ext_obj._has_ext_mark(mark)  # pyright: ignore[reportPrivateUsage]
@@ -162,7 +176,7 @@ def ext_obj_has_mark(
 _AlSegShim = AlignedSegment if TYPE_CHECKING else object
 @final
 class ExtendedRead(  # pyright: ignore[reportUnsafeMultipleInheritance] - because we're not really inheriting
-    _DataExtensionBase[AlignedSegment],
+    DataExtensionBase[AlignedSegment],
     _AlSegShim,
 ):
 
@@ -230,7 +244,7 @@ def read_has_mark(
 _VarRecShim = VariantRecord if TYPE_CHECKING else object
 @final
 class ExtendedVariant(
-    _DataExtensionBase[VariantRecord],
+    DataExtensionBase[VariantRecord],
     _VarRecShim,
 ): pass
 
@@ -273,7 +287,7 @@ class ReadView(Mapping[Any, tuple[Read_T, ...]]):
         return self._data.values()
 
     @override
-    def items(self):
+    def items(self):  # pyright: ignore[reportIncompatibleMethodOverride]
         return self._data.items()
 
     @property
@@ -306,7 +320,8 @@ class ReadView(Mapping[Any, tuple[Read_T, ...]]):
 # NOTE/TODO: FlagResult is the part of the abstractflaggers model about which I am most skeptical
 # since it uses init_subclass over a decorator, making it different
 # and because it requires the user to override an abstract method
-class FlagResult(BaseModel, ABC):  # pyright: ignore[reportUnsafeMultipleInheritance]
+@dataclass(frozen=True)
+class FlagResult(ABC):
     """
     Parent ABC/pydantic BaseModel defining the implementation that must be followed by result subclasses - subclasses to hold results of running
     the `test()` method of a specific subclass of FilterTester on a variant (e.g. for `FooFilter.test()`, the return value should include an instance of `FooResult`).
@@ -320,56 +335,47 @@ class FlagResult(BaseModel, ABC):  # pyright: ignore[reportUnsafeMultipleInherit
             - a code, an integer code from a set of possibilities, indicating the basis on which the test has returned True/False, or None if untested.
     """
     FlagName: ClassVar[str]
-    AllowedCodes: ClassVar[tuple[int, ...] | tuple[str, ...] | None]
-    CodeType: ClassVar[type]
-    flag: bool | None
-    code: int | str | None = None
+    InfoFlags: ClassVar[type[Flag] | None]
+    InfoFlagsAllSet: ClassVar[Flag | None]
+    variant_flagged: TestOutcomes
+    info_flag: Flag | None
 
-    model_config: ConfigDict = ConfigDict(  # pyright: ignore[reportIncompatibleVariableOverride]
-        strict=True,
-        frozen=True,
-        arbitrary_types_allowed=True
-    )
-
-    @field_validator('code', mode='after')
-    @classmethod
-    def validate_code(
-        cls,
-        value: int | str | None
+    def __post_init__(
+        self,
     ):
-        if cls.AllowedCodes is None and value is not None:
-            raise AttributeError(f"The class definition for FlagResult {cls.FlagName!r} does not specify result codes, so you cannot set a result code")
-        elif cls.AllowedCodes is not None and value is None:
-            raise AttributeError(f"The class definition for FlagResult {cls.FlagName!r} does specifies result codes, so you must set a result code")
-        elif not isinstance(value, cls.CodeType):
-            raise TypeError(f"Attempting to set result code for FlagResult {cls.FlagName!r} with value {value} of type {type(value)}, but this FlagResult specifies codes must be of type {cls.CodeType}")
-        elif value is not None and cls.AllowedCodes is not None and value not in cls.AllowedCodes:
-            raise ValueError(f"Attempting to set code with value {value}, but this FlagResult {cls.FlagName!r} only allows {cls.AllowedCodes}")
-        return value
+        cls = type(self)
+        if cls.InfoFlags is None and self.info_flag is not None:
+            raise AttributeError(f"The class definition for FlagResult {cls.FlagName!r} does not specify info flags, so you cannot set an info flag")
+        elif cls.InfoFlags is not None and self.info_flag is None:
+            raise AttributeError(f"The class definition for FlagResult {cls.FlagName!r} specifies info flags, so you must set an info flag")
+        elif self.info_flag is not None and cls.InfoFlags is not None:
+            assert cls.InfoFlagsAllSet is not None
+            if not self.info_flag & cls.InfoFlagsAllSet:
+                raise ValueError(f"Attempting to set info bits {self.info_flag}, but this FlagResult {cls.FlagName!r} only allows bits {cls.InfoFlagsAllSet}. Note that 0 is not allowed as it is reserved to indicate an unknown condition")
 
     def __init_subclass__(
         cls,
         *,
         flag_name: str,
-        result_codes: Iterable[int] | Sequence[str] | None,
+        info_enum: type[Flag] | None = None,
         **kwargs: Any
     ) -> None:
 
+        if not isinstance(flag_name, str):
+            raise TypeError  # pyright: ignore[reportUnreachable]
         cls.FlagName = flag_name
 
-        match result_codes:
-            case None:
-                cls.AllowedCodes = None
-            case [*items] if all(isinstance(el, int) for el in items):
-                cls.AllowedCodes = cast(tuple[int, ...], tuple(result_codes))
-                cls.CodeType = int
-            case [*items] if all(isinstance(el, str) for el in items):
-                cls.AllowedCodes = cast(tuple[str, ...], tuple(result_codes))
-                cls.CodeType = str
-            case _:
-                raise TypeError(f"allowed_codes for FlagResult {cls.FlagName} provided must be an iterable of all int, or all str; or None")
-        
-        super().__init_subclass__(**kwargs)
+        if info_enum is not None:
+            if not issubclass(info_enum, Flag):
+                raise TypeError  # pyright: ignore[reportUnreachable]
+
+            cls.InfoFlags = info_enum
+            cls.InfoFlagsAllSet = ~info_enum(0)
+        else:
+            cls.InfoFlags = None
+            cls.InfoFlagsAllSet = None
+
+        # super().__init_subclass__(**kwargs)
 
     @abstractmethod
     def getinfo(self) -> str:

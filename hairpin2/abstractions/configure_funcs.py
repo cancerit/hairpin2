@@ -1,4 +1,5 @@
-from typing import Any, Callable, overload
+import inspect
+from typing import Any, Callable, get_type_hints, overload
 from collections.abc import Mapping, Sequence
 from hairpin2.abstractions.process import ReadAwareProcess
 from hairpin2.abstractions.process_engines import EngineResult_T, FixedParams_T, FlagResult_T, ProcessEngineProtocol, ProcessTypeEnum, ReadTaggerEngine, RunParams_contraT, VariantFlaggerEngine

@@ -22,13 +22,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from dataclasses import dataclass
 from typing import override
-from enum import IntEnum, auto
+from enum import Flag, auto
 from statistics import median
 from hairpin2.abstractions.configure_funcs import make_variant_flagger
 from hairpin2.abstractions.process import ReadAwareProcess
 from hairpin2.abstractions.process_params import FixedParams
 from hairpin2.abstractions.structures import FlagResult
+from hairpin2.const import FlaggerNamespaces, TestOutcomes as TO
 from hairpin2.flaggers.shared import RunParamsShared
 
 # If you're here just to examine the scientific implementation of each filter,
@@ -36,26 +38,24 @@ from hairpin2.flaggers.shared import RunParamsShared
 # the rest is largely boilerplate/typing magic to make the filter implementation modular and robust
 
 
-_FLAG_NAME = "ALF"
-
-
-class CodesALF(IntEnum):
-    INSUFFICIENT_READS = 0
+class InfoFlagsALF(Flag):
+    INSUFFICIENT_READS = 1
     INSUFFICIENT_AS_TAGS = auto()
     ON_THRESHOLD = auto()
 
 
+@dataclass(frozen=True)
 class ResultALF(
     FlagResult,
     flag_name="ALF",
-    result_codes=tuple(CodesALF)
+    info_enum=InfoFlagsALF
 ):
     alt: str
     avg_as: float | None
 
     @override
     def getinfo(self) -> str:
-        return f"{self.alt}|{self.flag}|{self.code}|{self.avg_as}"
+        return f"{self.alt}|{self.variant_flagged}|{self.info_flag}|{self.avg_as}"
 
 
 class FixedParamsALF(FixedParams):
@@ -66,10 +66,10 @@ def test_alignment_score(  # test supporting reads
     fixed_params: FixedParamsALF
 ):
     if len(run_params.reads.all) < 1:
-        code = CodesALF.INSUFFICIENT_READS
+        code = InfoFlagsALF.INSUFFICIENT_READS
         fresult = ResultALF(
-            flag=None,
-            code=code,
+            variant_flagged=TO.NA,
+            info_flag=code,
             alt=run_params.alt,
             avg_as=None
         )
@@ -83,22 +83,21 @@ def test_alignment_score(  # test supporting reads
                 pass
         if len(aln_scores) != 0:
             avg_as = median(aln_scores)
-            code = CodesALF.ON_THRESHOLD
-            flag = False
+            code = InfoFlagsALF.ON_THRESHOLD
+            flag = TO.VARIANT_PASS
             if avg_as <= fixed_params.avg_AS_threshold:
-                flag = True
+                flag = TO.VARIANT_FAIL
             fresult = ResultALF(
-                flag=flag,
-                code=code,
+                variant_flagged=flag,
+                info_flag=code,
                 alt=run_params.alt,
                 avg_as=avg_as
             )
         else:
-            code = CodesALF.INSUFFICIENT_AS_TAGS
-            flag = None
+            code = InfoFlagsALF.INSUFFICIENT_AS_TAGS
             fresult = ResultALF(
-                flag=flag,
-                code=code,
+                variant_flagged=TO.NA,
+                info_flag=code,
                 alt=run_params.alt,
                 avg_as=None
             )
@@ -106,9 +105,8 @@ def test_alignment_score(  # test supporting reads
     return fresult
 
 
-# NOTE: consider mapping more informative tags, such as 'SUPPORT', to 2 char htslib tags internally (e.g. 'zS')
 @make_variant_flagger(
-    process_namespace=_FLAG_NAME,  # TODO: optionally allow different process namespace to flag name
+    process_namespace=FlaggerNamespaces.POOR_ALIGNMENT_SCORE,
     flagger_param_class=FixedParamsALF,
     flagger_func=test_alignment_score,result_type=ResultALF
 )

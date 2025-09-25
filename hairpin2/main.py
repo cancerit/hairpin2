@@ -28,7 +28,7 @@ from collections.abc import Generator, Iterable, Mapping
 import pysam
 from hairpin2 import  __version__
 from hairpin2.abstractions.rascheduler import RAExec
-from hairpin2.const import VALID_NUCELOTIDES
+from hairpin2.const import VALID_NUCELOTIDES, MutTypes, TestOutcomes
 from hairpin2.flaggers.shared import RunParamsShared
 from hairpin2.read_preprocessors.mark_overlap import TaggerOverlap
 from hairpin2.read_preprocessors.mark_support import TaggerSupporting
@@ -39,8 +39,10 @@ from itertools import tee
 from typing import Any
 
 
+# NOTE: requires VariantFileHeader associated with variant records to have been initialised correctly for the output
+# TODO: improve on the above by yielding back the flag results not the record?
 def hairpin2(
-    records: Iterable[pysam.VariantRecord],
+    records: Iterable[pysam.VariantRecord],  # TODO: take extended variant?
     sample_to_alignment: Mapping[str, pysam.AlignmentFile],
     configd: dict[str, Any],
     quiet: int = 0
@@ -52,7 +54,7 @@ def hairpin2(
     # # test records
     proc_exec = RAExec.from_config(configd, {TaggerSupporting, TaggerOverlap, LQF.TaggerLowQual, DVF.TaggerDupmark, LQF.FlaggerLQF, ADF.FlaggerADF, ALF.FlaggerALF, DVF.FlaggerDVF})
     for record in records:
-        record_flagd: dict[str, list[FlagResult[Any]]] = {}
+        record_flagd: dict[str, list[FlagResult]] = {}
         if record.alts is None:
             if quiet < 1:
                 logging.warning(
@@ -89,7 +91,7 @@ def hairpin2(
                 # TODO: put mutation type detection under testing
                 # the ability to handle complex mutations would be a potentially interesting future feature
                 # for extending to more varied artifacts
-                # TODO/NOTE: this should itself be an additive process! on variant rather than reads
+                # TODO/NOTE: this should itself be an additive process! on variant rather than reads, using data store on object
                 for alt in record.alts:
                     can_parse_alt = set(alt).issubset(VALID_NUCELOTIDES)
                     alt_len = len(alt)
@@ -97,11 +99,11 @@ def hairpin2(
                     # NOTE: (intentionally) doesn't support symbolic del/ins
                     if can_parse_alt:
                         if record.rlen == alt_len:
-                            mut_type = 'S'
+                            mut_type = MutTypes.SUB
                         elif alt_len < record.rlen:
-                            mut_type = 'D'
+                            mut_type = MutTypes.DEL  # NOTE: track back how a * del would be handled
                         elif record.rlen == 1:
-                            mut_type = 'I'
+                            mut_type = MutTypes.INS
                         else:
                             if quiet < 1:
                                 logging.warning(
@@ -128,6 +130,7 @@ def hairpin2(
                     # if further immutablility is needed will have to wrap alignedsegment internally when priming
                     # TODO/NOTE: dict-by-tag bevhaviour in ReadView will allow for really neat subselection of reads based on
                     # intersection of include/exclude tags
+                    # TODO: that ReadView staticmethod is weird. Should be a class method that returns readview, or not attached to readview
                     test_reads = ReadView(ReadView.convert_pysam_to_extread(reads_by_sample, validate=True))
                     run_data = RunParamsShared(record=record, reads=test_reads, alt=alt, mut_type=mut_type)  # TODO: allow positional args
 
@@ -136,7 +139,7 @@ def hairpin2(
 
         if any(lst for lst in record_flagd.values()):
             for fname in record_flagd:
-                if any(fres.flag == True for fres in record_flagd[fname]):
+                if any(fres.variant_flagged == TestOutcomes.VARIANT_FAIL for fres in record_flagd[fname]):
                     record.filter.add(fname)
                 # TODO: LQF prints no info!
                 record.info.update({fname: ','.join([fl.getinfo() for fl in record_flagd[fname]])})  # pyright: ignore[reportArgumentType, reportUnknownMemberType]

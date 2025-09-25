@@ -22,15 +22,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 from array import array
+from dataclasses import dataclass
 from statistics import mean
 from pysam import AlignedSegment
 from typing import Any, cast, override
-from enum import IntEnum, auto
+from enum import Flag, auto
 from hairpin2.abstractions.configure_funcs import make_read_processor, make_variant_flagger
 from hairpin2.abstractions.process import ReadAwareProcess
 from hairpin2.abstractions.process_params import FixedParams
 from hairpin2.abstractions.structures import ExtendedRead, FlagResult, mark_read, read_has_mark, record_operation
-from hairpin2.const import TagEnum, ValidatorFlags
+from hairpin2.const import FlaggerNamespaces, MutTypes, Tags, TaggerNamespaces, ValidatorFlags, TestOutcomes as TO
 from hairpin2.flaggers.shared import RunParamsShared
 from hairpin2.utils.ref2seq import ref2querypos
 
@@ -41,26 +42,24 @@ class QualParams(FixedParams):
     min_base_quality: int
 
 
-_FLAG_NAME = 'LQF'
-
-
 # TODO: make end user not need to import and inherit from IntEnum, provide some kind of construction method?
-class CodesLQF(IntEnum):
-    INSUFFICIENT_READS = 0
-    LOW_QUAL = auto()
+class InfoFlagsLQF(Flag):
+    INSUFFICIENT_READS = 1
+    LOW_QUAL = auto()  # TODO: stop using auto
 
 
+@dataclass(frozen=True)
 class ResultLQF(
     FlagResult,
-    flag_name=_FLAG_NAME,
-    result_codes=tuple(CodesLQF)
+    flag_name=FlaggerNamespaces.LOW_QUAL,
+    info_enum=InfoFlagsLQF
 ):
     alt: str
     loss_ratio: float  # 0 == no loss
 
     @override
     def getinfo(self) -> str:
-        return f"{self.alt}|{self.flag}|{self.code}|{self.loss_ratio}"  # TODO: report which samples?
+        return f"{self.alt}|{self.variant_flagged}|{self.info_flag}|{self.loss_ratio}"  # TODO: report which samples?
 
 
 class FixedParamsLQF(FixedParams):
@@ -77,7 +76,7 @@ def qc_read(
     read: ExtendedRead | AlignedSegment,
     vcf_start: int,
     alt: str,
-    mut_type: str,
+    mut_type: MutTypes,
     min_basequal: int,
     min_mapqual: int,
     min_clipqual: int,
@@ -104,7 +103,7 @@ def qc_read(
             mean(read.query_alignment_qualities) < min_clipqual):  # pyright: ignore[reportUnknownMemberType, reportArgumentType]
         invalid_flag |= ValidatorFlags.CLIPQUAL
 
-    if mut_type == 'S':
+    if mut_type == MutTypes.SUB:
         try:
             mut_pos = ref2querypos(read, vcf_start)
         except ValueError:
@@ -137,7 +136,7 @@ def tag_lq(
             
         )
         if flag != ValidatorFlags.CLEAR:
-            mark_read(read, TagEnum.LOW_QUAL)
+            mark_read(read, Tags.LOW_QUAL_TAG)
         record_operation(read, 'mark-low-qual')
 
 
@@ -156,18 +155,18 @@ def test_variant_LQF(
 
     if not any([nreads > 1 for nreads in nreads_by_sample.values()]):
         fresult = ResultLQF(
-            flag=None,
-            code=CodesLQF.INSUFFICIENT_READS,
+            variant_flagged=TO.NA,
+            info_flag=InfoFlagsLQF.INSUFFICIENT_READS,
             alt=run_params.alt,
             loss_ratio=0
         )
     else:
-        code = CodesLQF.LOW_QUAL  # testing possible, and this is the only relevant code
+        code = InfoFlagsLQF.LOW_QUAL  # testing possible, and this is the only relevant code
         for sample_key, reads in run_params.reads.items():
             ntotal = nreads_by_sample[sample_key]
             sample_loss_ratio = 0
             if ntotal > 1:
-                nlq = sum((read_has_mark(read, TagEnum.LOW_QUAL) or read_has_mark(read, TagEnum.STUTTER_DUP)) for read in reads)
+                nlq = sum((read_has_mark(read, Tags.LOW_QUAL_TAG) or read_has_mark(read, Tags.STUTTER_DUP_TAG)) for read in reads)
                 ntrue = abs(nlq - ntotal)
                 sample_loss_ratio = nlq / ntotal
                 if sample_loss_ratio > fixed_params.read_loss_threshold or ntrue < fixed_params.min_pass_reads:
@@ -176,12 +175,12 @@ def test_variant_LQF(
             loss_ratio.append(sample_loss_ratio)
 
         if nsamples_with_lowqual > fixed_params.nsamples_threshold:
-            flag = True
+            flag = TO.VARIANT_FAIL
         else:
-            flag = False
+            flag = TO.VARIANT_PASS
         fresult = ResultLQF(
-            flag=flag,
-            code=code,
+            variant_flagged=flag,
+            info_flag=code,
             alt=run_params.alt,
             loss_ratio=sum(loss_ratio) / len(loss_ratio)  # TODO: discuss whether averaging is the best choice
         )
@@ -190,10 +189,10 @@ def test_variant_LQF(
 
 
 @make_read_processor(
-    process_namespace="mark-low-qual",
+    process_namespace=TaggerNamespaces.MARK_LOW_QUAL,
     tagger_param_class=QualParams,
     read_modifier_func=tag_lq,
-    adds_marks=[TagEnum.LOW_QUAL],
+    adds_marks=[Tags.LOW_QUAL_TAG],
 )
 class TaggerLowQual(
     ReadAwareProcess
@@ -202,7 +201,7 @@ class TaggerLowQual(
 
 # exclude overlapping second pair member, require support  NOTE: do you actually want to exclude overlap when assessing this? it's not quite double counting per se if the overlapping read does show support...
 @make_variant_flagger(
-    process_namespace=_FLAG_NAME,
+    process_namespace=FlaggerNamespaces.LOW_QUAL,
     flagger_func=test_variant_LQF,
     flagger_param_class=FixedParamsLQF,
     result_type=ResultLQF,

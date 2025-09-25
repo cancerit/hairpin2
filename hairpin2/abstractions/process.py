@@ -26,7 +26,7 @@
 
 from abc import ABC
 from collections.abc import Mapping
-from typing import Any, Callable, ClassVar, Protocol
+from typing import Any, Callable, ClassVar, Protocol, runtime_checkable
 from collections.abc import Sequence
 
 from hairpin2.abstractions.process_engines import EngineResult_T, ProcessEngineProtocol, ProcessTypeEnum
@@ -34,6 +34,7 @@ from hairpin2.abstractions.process_params import RunParams
 from hairpin2.abstractions.structures import ExtendedRead, FlagResult, ReadView, read_has_mark
 
 
+@runtime_checkable
 class ReadAwareProcessProtocol(Protocol[EngineResult_T]):
     ProcessNamespace: ClassVar[str]
     EngineFactory: ClassVar[Callable[[Mapping[str, Any]], ProcessEngineProtocol[Any]]]

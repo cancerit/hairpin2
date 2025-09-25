@@ -157,13 +157,13 @@ class RAExec:
             configd (dict[str, Any]): Dictionary describing how processes should execute.
             proc_pool (Iterable[type[ReadAwareProcess]]): Iterable of process definitions which may be instatiated for a given run.
         """
-        # TODO: very fragile, improve
-        # TODO: use insinstance check on protocol, as it's runtime checkable
+        if not all(isinstance(proc, ReadAwareProcessProtocol) for proc in proc_pool):
+            raise ValueError('One or more processes provided to proc_pool do not have the appropriate methods')
         cast_proc_pool = cast(Iterable[type[ReadAwareProcessProtocol[Any]]], proc_pool)
 
-        
-        if not set(['params', 'exec']) == configd.keys():
-            raise ValueError('config does not have correct top-level keys')
+        const_config_keys = ['params', 'exec']
+        if not set(const_config_keys) == configd.keys():
+            raise ValueError(f'config does not have correct top-level keys, expected {const_config_keys}, recieved {list(configd.keys())}')
 
         excludes_opt= cast(bool, configd['exec']['opts']['mandate-excludes'])
         paramd = cast(dict[str, Any], configd['params'])

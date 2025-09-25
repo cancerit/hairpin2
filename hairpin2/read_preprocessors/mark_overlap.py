@@ -1,7 +1,7 @@
 from hairpin2.abstractions.configure_funcs import make_read_processor
 from hairpin2.abstractions.process import ReadAwareProcess
 from hairpin2.abstractions.structures import mark_read, record_operation
-from hairpin2.const import TagEnum
+from hairpin2.const import Tags, TaggerNamespaces
 from hairpin2.flaggers.shared import RunParamsShared
 from hairpin2.utils.ref2seq import ref_end_via_cigar
 from pysam import AlignedSegment
@@ -46,17 +46,17 @@ def tag_overlap(
         ):  # if overlapping second pair member
             mark_read(
                 read,
-                TagEnum.OVERLAP,
+                Tags.OVERLAP_TAG,
             )
         record_operation(read, 'mark-overlap')
 
 
 # TODO - need some way to require and assure presence of bam-level tags, e.g. MC
 @make_read_processor(
-    process_namespace='mark-overlap',
+    process_namespace=TaggerNamespaces.MARK_OVERLAP,
     tagger_param_class=None,
     read_modifier_func=tag_overlap,
-    adds_marks=[TagEnum.OVERLAP],
+    adds_marks=[Tags.OVERLAP_TAG],
 )
 class TaggerOverlap(
     ReadAwareProcess,  # TODO/BUG: ReadAwareProcess subclasses MUST define a specific type of run params that they use, or the contravariance with run_params is lost -- later, TODO: I don't know what I meant by this, must investigate

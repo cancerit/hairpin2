@@ -21,18 +21,17 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from dataclasses import dataclass
 from typing import override
-from enum import IntEnum, auto
+from enum import Flag, auto
 from hairpin2.abstractions.configure_funcs import make_read_processor, make_variant_flagger
 from hairpin2.abstractions.process import ReadAwareProcess
 from hairpin2.abstractions.process_params import FixedParams
 from hairpin2.abstractions.structures import ExtendedRead, FlagResult, mark_read, read_has_mark, record_operation
-from hairpin2.const import TagEnum
+from hairpin2.const import FlaggerNamespaces, Tags, TaggerNamespaces, TestOutcomes as TO
 from hairpin2.flaggers.shared import RunParamsShared
 from hairpin2.utils import ref2seq as r2s
 from typing import cast
-
-_FLAG_NAME = "DVF"
 
 
 class FixedParamsDupmark(FixedParams):
@@ -90,7 +89,7 @@ def tag_dups(
             if all([x <= fixed_params.duplication_window_size for x in max_diff_per_comparison]):
                 # then the read pair being examined is a duplicate of the others in the pool
                 dup_endpoint_comparison_pool.append(testing_endpoints)  # add it to the comparison pool
-                mark_read(read, TagEnum.STUTTER_DUP)
+                mark_read(read, Tags.STUTTER_DUP_TAG)
             else:
                 # read at i is not dup of reads in dup_endpoint_test_pool
                 # start again, test read at i against reads subsequent from i in ends_sorted
@@ -99,22 +98,23 @@ def tag_dups(
 
 
 # TODO: make end user not need to import and inherit from IntEnum, provide some kind of construction method?
-class CodesDVF(IntEnum):
-    INSUFFICIENT_READS = 0
+class InfoFlagsDVF(Flag):
+    INSUFFICIENT_READS = 1
     DUPLICATION = auto()
 
 
+@dataclass(frozen=True)
 class ResultDVF(
     FlagResult,
-    flag_name=_FLAG_NAME,
-    result_codes=tuple(CodesDVF)
+    flag_name=FlaggerNamespaces.DUPLICATION,
+    info_enum=InfoFlagsDVF
 ):
     alt: str
     loss_ratio: float  # 0 == no loss
 
     @override
     def getinfo(self) -> str:
-        return f"{self.alt}|{self.flag}|{self.code}|{self.loss_ratio}"  # TODO: report which samples?
+        return f"{self.alt}|{self.variant_flagged}|{self.info_flag}|{self.loss_ratio}"  # TODO: report which samples?
 
 
 class FixedParamsDVF(FixedParams):
@@ -146,18 +146,18 @@ def test_duplicated_support_frac(
 
     if not any([nreads > 1 for nreads in nreads_by_sample.values()]):
         fresult = ResultDVF(
-            flag=None,
-            code=CodesDVF.INSUFFICIENT_READS,
+            variant_flagged=TO.NA,
+            info_flag=InfoFlagsDVF.INSUFFICIENT_READS,
             alt=run_params.alt,
             loss_ratio=0
         )
     else:
-        code = CodesDVF.DUPLICATION  # testing possible, and this is the only relevant code
+        code = InfoFlagsDVF.DUPLICATION  # testing possible, and this is the only relevant code
         for sample_key, reads in run_params.reads.items():
             ntotal = nreads_by_sample[sample_key]
             sample_loss_ratio = 0
             if ntotal > 1:
-                ndup = sum(read_has_mark(read, TagEnum.STUTTER_DUP) for read in reads)
+                ndup = sum(read_has_mark(read, Tags.STUTTER_DUP_TAG) for read in reads)
                 ntrue = abs(ndup - ntotal)
                 assert ntotal >= ndup > -1  # sanity check - TODO: should probably throw an interpretable error
                 assert ntotal >= ntrue > -1
@@ -168,12 +168,12 @@ def test_duplicated_support_frac(
             loss_ratio.append(sample_loss_ratio)
 
         if nsamples_with_duplication > fixed_params.nsamples_threshold:
-            flag = True
+            flag = TO.VARIANT_FAIL
         else:
-            flag = False
+            flag = TO.VARIANT_PASS
         fresult = ResultDVF(
-            flag=flag,
-            code=code,
+            variant_flagged=flag,
+            info_flag=code,
             alt=run_params.alt,
             loss_ratio=sum(loss_ratio) / len(loss_ratio)  # TODO: discuss whether averaging is the best choice
         )
@@ -183,10 +183,10 @@ def test_duplicated_support_frac(
 
 # NOTE/TODO: global 'read must fulfill these constraints to be testable' filter
 @make_read_processor(
-    process_namespace='mark-duplicates',
+    process_namespace=TaggerNamespaces.MARK_STUTTER_DUP,
     tagger_param_class=FixedParamsDupmark,
     read_modifier_func=tag_dups,
-    adds_marks=[TagEnum.STUTTER_DUP],
+    adds_marks=[Tags.STUTTER_DUP_TAG],
 )
 class TaggerDupmark(
     ReadAwareProcess,
@@ -194,7 +194,7 @@ class TaggerDupmark(
 
 
 @make_variant_flagger(
-    process_namespace=_FLAG_NAME,
+    process_namespace=FlaggerNamespaces.DUPLICATION,
     flagger_param_class=FixedParamsDVF,
     flagger_func=test_duplicated_support_frac,
     result_type=ResultDVF,

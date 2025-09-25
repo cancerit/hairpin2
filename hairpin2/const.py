@@ -21,7 +21,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from enum import StrEnum, Flag, auto
+from enum import Enum, StrEnum, Flag, auto
 from typing import Any
 
 
@@ -30,14 +30,36 @@ VALID_NUCELOTIDES = set(
 )
 
 
-class TagEnum(StrEnum):
-    LOW_QUAL = "LOW-QUAL"
-    SUPPORT = "SUPPORTS-VAR"
-    OVERLAP = "IS-OVERLAPPING-READ2"
-    STUTTER_DUP = "IS-STUTTER-DUP"
+class TestOutcomes(Enum):
+    VARIANT_PASS = 0
+    VARIANT_FAIL = 1
+    NA = 2
 
 
-# TODO : flag names
+class MutTypes(StrEnum):
+    SUB = 'SUB'
+    DEL = 'DEL'
+    INS = 'INS'
+
+
+class TaggerNamespaces(StrEnum):
+    MARK_SUPPORT = "mark-support"
+    MARK_OVERLAP = "mark-overlap"
+    MARK_LOW_QUAL = "mark-low-qual"
+    MARK_STUTTER_DUP = "mark-duplicates"
+
+class Tags(StrEnum):
+    SUPPORT_TAG = "SUPPORTS-VAR"
+    OVERLAP_TAG = "IS-OVERLAPPING-READ2"
+    LOW_QUAL_TAG = "LOW-QUAL"
+    STUTTER_DUP_TAG = "IS-STUTTER-DUP"
+
+
+class FlaggerNamespaces(StrEnum):
+    LOW_QUAL = "LQF"
+    DUPLICATION = "DVF"
+    POOR_ALIGNMENT_SCORE = "ALF"
+    ANOMALOUS_DISTRIBUTION = "ADF"
 
 
 class ValidatorFlags(Flag):
