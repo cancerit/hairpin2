@@ -24,92 +24,60 @@
 
 from dataclasses import dataclass
 from typing import override
-from enum import Flag
-from statistics import median
 from htsflow.configure_funcs import make_variant_flagger
 from htsflow.process import ReadAwareProcess
 from htsflow.process_params import FixedParams
-from htsflow.structures import FlagResult, TestOutcomes as TO
+from htsflow.structures import FlagResult
 from hairpin2.const import FlaggerNamespaces
 from hairpin2.flaggers.shared import RunParamsShared
-
-# If you're here just to examine the scientific implementation of each filter,
-# examine the `test` methods for each one
-# the rest is largely boilerplate/typing magic to make the filter implementation modular and robust
-
-
-class InfoFlagsALF(Flag):
-    NODATA = 0
-    INSUFFICIENT_READS = 1
-    INSUFFICIENT_AS_TAGS = 2
-    ON_THRESHOLD = 4
+from hairpin2.sci_funcs import ASConds, test_alignment_score
 
 
 @dataclass(frozen=True)
 class ResultALF(
     FlagResult,
     flag_name="ALF",
-    info_enum=InfoFlagsALF
+    info_enum=ASConds
 ):
     alt: str
+    reads_seen: int
     avg_as: float | None
 
     @override
     def getinfo(self) -> str:
-        return f"{self.alt}|{self.variant_flagged}|{self.info_flag}|{self.avg_as}"
+        info_bits = hex(self.info_flag.value if self.info_flag is not None else 0)
+        avg_as = round(self.avg_as, 3) if self.avg_as else 'NA'
+        return f"{self.alt}|{self.variant_flagged}|{info_bits}|{self.reads_seen}|{avg_as}"
 
 
 class FixedParamsALF(FixedParams):
     avg_AS_threshold: float
 
-def test_alignment_score(  # test supporting reads
+def test_ALF(  # test supporting reads
     run_params: RunParamsShared,
     fixed_params: FixedParamsALF
 ):
-    if len(run_params.reads.all) < 1:
-        code = InfoFlagsALF.INSUFFICIENT_READS
-        fresult = ResultALF(
-            variant_flagged=TO.NA,
-            info_flag=code,
-            alt=run_params.alt,
-            avg_as=None
-        )
-    else:
-        aln_scores: list[float] = []
+    result = test_alignment_score(
+        run_params.reads.all,
+        fixed_params.avg_AS_threshold
+    )
 
-        for read in run_params.reads.all:
-            try:
-                aln_scores.append(int(read.get_tag('AS')) / read.query_length)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]  TODO: look into fixing pysam typing
-            except KeyError:
-                pass
-        if len(aln_scores) != 0:
-            avg_as = median(aln_scores)
-            code = InfoFlagsALF.ON_THRESHOLD
-            flag = TO.VARIANT_PASS
-            if avg_as <= fixed_params.avg_AS_threshold:
-                flag = TO.VARIANT_FAIL
-            fresult = ResultALF(
-                variant_flagged=flag,
-                info_flag=code,
-                alt=run_params.alt,
-                avg_as=avg_as
-            )
-        else:
-            code = InfoFlagsALF.INSUFFICIENT_AS_TAGS
-            fresult = ResultALF(
-                variant_flagged=TO.NA,
-                info_flag=code,
-                alt=run_params.alt,
-                avg_as=None
-            )
+    flag = ResultALF(
+        result.outcome,
+        result.reason,
+        run_params.alt,
+        len(run_params.reads),
+        result.avg_as
+    )
 
-    return fresult
+    return flag
 
 
 @make_variant_flagger(
     process_namespace=FlaggerNamespaces.POOR_ALIGNMENT_SCORE,
     flagger_param_class=FixedParamsALF,
-    flagger_func=test_alignment_score,result_type=ResultALF
+    flagger_func=test_ALF,
+    result_type=ResultALF
 )
 class FlaggerALF(
     ReadAwareProcess,

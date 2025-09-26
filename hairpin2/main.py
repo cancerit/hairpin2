@@ -118,7 +118,6 @@ def hairpin2(
                     # instantiate test data obj/s
                     test_reads = ReadView(ReadView.convert_pysam_to_extread(reads_by_sample, validate=True))
                     run_data = RunParamsShared(record=record, reads=test_reads, alt=alt, mut_type=mut_type)  # TODO: allow positional args
-
                     for result in proc_exec.run(run_data):
                         record_flagd.setdefault(result.FlagName, []).append(result)  # if dict entry exists, append, if not, create and append
 

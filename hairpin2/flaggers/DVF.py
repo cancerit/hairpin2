@@ -23,16 +23,17 @@
 # SOFTWARE.
 from dataclasses import dataclass
 from typing import override
-from enum import Flag
 from htsflow.configure_funcs import make_read_processor, make_variant_flagger
 from htsflow.process import ReadAwareProcess
 from htsflow.process_params import FixedParams
-from htsflow.structures import ExtendedRead, FlagResult, mark_read, read_has_mark, record_operation, TestOutcomes as TO
+from htsflow.structures import FlagResult
 from hairpin2.const import FlaggerNamespaces, Tags, TaggerNamespaces
 from hairpin2.flaggers.shared import RunParamsShared
-from hairpin2.utils import ref2seq as r2s
-from typing import cast
+from hairpin2.sci_funcs import PropConds, tag_reads_as_duplicates, test_proportion_with_tag
 
+
+
+# DUPMARK READ PROCESSOR
 
 class FixedParamsDupmark(FixedParams):
     duplication_window_size: int = 6  # -1 disables
@@ -42,80 +43,42 @@ def tag_dups(
     run_params: RunParamsShared,
     fixed_params: FixedParamsDupmark
 ):
-    if not len(run_params.reads.all) > 1:
-        return
+    tag_reads_as_duplicates(
+        run_params.reads.all,
+        fixed_params.duplication_window_size
+    )
 
-    for reads in run_params.reads.values():
-        if not len(reads) > 1:
-            continue
 
-        # prep data
-        sample_pair_endpoints: list[tuple[ExtendedRead, tuple[int, int, int, int]]] = []
-        for read in run_params.reads.all:
-            next_ref_end = r2s.ref_end_via_cigar(str(read.get_tag('MC')), read.next_reference_start)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
-            pair_endpoints: tuple[int, int, int, int] = cast(
-            tuple[int, int, int, int],
-                tuple(
-                    sorted([
-                        read.reference_start,
-                        cast(int, read.reference_end),
-                        read.next_reference_start,
-                        next_ref_end
-                    ])
-                )
-            )
-            sample_pair_endpoints.append((read, pair_endpoints))
-            record_operation(read, 'mark-duplicates')
-        sample_pair_endpoints = sorted(sample_pair_endpoints, key=lambda x: x[1][0])
-
-        # test data
-        # NOTE: ideally keep highest quality read from dups, not currently done
-        # NOTE: do you want to only look at supporting reads for this dupmarking? Discuss
-        dup_endpoint_comparison_pool: list[tuple[int, int, int, int]] = []
-        dup_endpoint_comparison_pool.append(sample_pair_endpoints[0][1])  # endpoints
-        for i in range(1, len(sample_pair_endpoints)):
-            read = sample_pair_endpoints[i][0]
-            testing_endpoints: tuple[int, int, int, int] = sample_pair_endpoints[i][1]
-            max_diff_per_comparison: list[int] = []
-            for comparison_endpoints in dup_endpoint_comparison_pool:
-                endpoint_diffs: tuple[int, int, int, int] = cast(
-                    tuple[int, int, int, int],
-                    tuple(
-                        [abs(x - y) for x, y in zip(comparison_endpoints, testing_endpoints)]
-                    )
-                )
-                assert len(endpoint_diffs) == 4  # sanity check
-                max_diff_per_comparison.append(max(endpoint_diffs))
-            if all([x <= fixed_params.duplication_window_size for x in max_diff_per_comparison]):
-                # then the read pair being examined is a duplicate of the others in the pool
-                dup_endpoint_comparison_pool.append(testing_endpoints)  # add it to the comparison pool
-                mark_read(read, Tags.STUTTER_DUP_TAG)
-            else:
-                # read at i is not dup of reads in dup_endpoint_test_pool
-                # start again, test read at i against reads subsequent from i in ends_sorted
-                dup_endpoint_comparison_pool = [testing_endpoints]
+@make_read_processor(
+    process_namespace=TaggerNamespaces.MARK_STUTTER_DUP,
+    tagger_param_class=FixedParamsDupmark,
+    read_modifier_func=tag_dups,
+    adds_marks=[Tags.STUTTER_DUP_TAG],
+)
+class TaggerDupmark(
+    ReadAwareProcess,
+): pass
 
 
 
-# TODO: make end user not need to import and inherit from IntEnum, provide some kind of construction method?
-class InfoFlagsDVF(Flag):
-    NODATA = 0
-    INSUFFICIENT_READS = 1
-    DUPLICATION = 2
 
+
+# VARIANT FROM DUPLICATION FLAGGER
 
 @dataclass(frozen=True)
 class ResultDVF(
     FlagResult,
     flag_name=FlaggerNamespaces.DUPLICATION,
-    info_enum=InfoFlagsDVF
+    info_enum=PropConds
 ):
     alt: str
+    reads_seen: int
     loss_ratio: float  # 0 == no loss
 
     @override
     def getinfo(self) -> str:
-        return f"{self.alt}|{self.variant_flagged}|{self.info_flag}|{self.loss_ratio}"  # TODO: report which samples?
+        info_bits = hex(self.info_flag.value if self.info_flag is not None else 0)
+        return f"{self.alt}|{self.variant_flagged.value}|{info_bits}|{self.reads_seen}|{round(self.loss_ratio, 3)}"
 
 
 class FixedParamsDVF(FixedParams):
@@ -133,69 +96,76 @@ class FixedParamsDVF(FixedParams):
 # is appropriate, per Peter's initial implementation.
 # is an all against all comparison between all read lists more appropriate?
 # and between pairs of readlists, why is comparing sorted pairs most appropriate?
-def test_duplicated_support_frac(
+# def test_duplicated_support_frac(
+#     run_params: RunParamsShared,
+#     fixed_params: FixedParamsDVF
+# ) -> ResultDVF:
+#     # NOTE: surely this shouldn't be across samples... I don't know, maybe?
+
+#     if not run_params.reads.all:
+#         fresult = ResultDVF(
+#             variant_flagged=TO.NA,
+#             info_flag=InfoFlagsDVF.INSUFFICIENT_READS,
+#             alt=run_params.alt,
+#             reads_seen=0,
+#             loss_ratio=0
+#         )
+#     else:
+#         info_bits = InfoFlagsDVF.NODATA
+#         outcome = TO.VARIANT_PASS
+#         # code = InfoFlagsLQF.LOW_QUAL  # testing possible, and this is the only relevant code
+#         reads = run_params.reads.all
+#         ntotal = len(reads)
+#         ndup = sum(read_has_mark(read, Tags.STUTTER_DUP_TAG) for read in reads)
+#         ntrue = ntotal - ndup
+#         loss_ratio= ndup / ntotal
+#         if loss_ratio > fixed_params.read_loss_threshold:
+#             info_bits |= InfoFlagsDVF.THRESHOLD
+#             outcome = TO.VARIANT_FAIL
+#         if ntrue < fixed_params.min_pass_reads:
+#             info_bits |= InfoFlagsDVF.MIN_PASS
+#             outcome = TO.VARIANT_FAIL
+
+#         if outcome == TO.VARIANT_PASS:
+#             info_bits = ~InfoFlagsDVF(0)
+
+#         fresult = ResultDVF(
+#             variant_flagged=outcome,
+#             info_flag=info_bits,
+#             alt=run_params.alt,
+#             reads_seen=0,
+#             loss_ratio=loss_ratio 
+#         )
+
+#     return fresult
+
+
+def test_DVF(
     run_params: RunParamsShared,
     fixed_params: FixedParamsDVF
-) -> ResultDVF:
-    """
-    A naive algorithm using start/end co-ordinates of read pairs to identify likely stutter duplicate reads missed by traditional dupmarking.
-    """
-    # NOTE: surely this shouldn't be across samples... I don't know, maybe?
-    nsamples_with_duplication = 0
-    nreads_by_sample: dict[str, int] = { k: len(v) for k, v in run_params.reads.items() }
-    loss_ratio: list[float] = []
+):
+    result = test_proportion_with_tag(
+        run_params.reads.all,
+        [Tags.STUTTER_DUP_TAG],
+        fixed_params.read_loss_threshold,
+        fixed_params.min_pass_reads
+    )
 
-    if not any([nreads > 1 for nreads in nreads_by_sample.values()]):
-        fresult = ResultDVF(
-            variant_flagged=TO.NA,
-            info_flag=InfoFlagsDVF.INSUFFICIENT_READS,
-            alt=run_params.alt,
-            loss_ratio=0
-        )
-    else:
-        code = InfoFlagsDVF.DUPLICATION  # testing possible, and this is the only relevant code
-        for sample_key, reads in run_params.reads.items():
-            ntotal = nreads_by_sample[sample_key]
-            sample_loss_ratio = 0
-            if ntotal > 1:
-                ndup = sum(read_has_mark(read, Tags.STUTTER_DUP_TAG) for read in reads)
-                ntrue = ntotal - ndup
-                sample_loss_ratio = ndup / ntotal
-                if sample_loss_ratio > fixed_params.read_loss_threshold or ntrue < fixed_params.min_pass_reads:
-                    nsamples_with_duplication += 1
+    flag = ResultDVF(
+        result.outcome,
+        result.reason,
+        run_params.alt,
+        len(run_params.reads.all),
+        result.prop_loss
+    )
 
-            loss_ratio.append(sample_loss_ratio)
-
-        if nsamples_with_duplication > fixed_params.nsamples_threshold:
-            flag = TO.VARIANT_FAIL
-        else:
-            flag = TO.VARIANT_PASS
-        fresult = ResultDVF(
-            variant_flagged=flag,
-            info_flag=code,
-            alt=run_params.alt,
-            loss_ratio=sum(loss_ratio) / len(loss_ratio)  # TODO: discuss whether averaging is the best choice
-        )
-
-    return fresult
-
-
-# NOTE/TODO: global 'read must fulfill these constraints to be testable' filter
-@make_read_processor(
-    process_namespace=TaggerNamespaces.MARK_STUTTER_DUP,
-    tagger_param_class=FixedParamsDupmark,
-    read_modifier_func=tag_dups,
-    adds_marks=[Tags.STUTTER_DUP_TAG],
-)
-class TaggerDupmark(
-    ReadAwareProcess,
-): pass
+    return flag
 
 
 @make_variant_flagger(
     process_namespace=FlaggerNamespaces.DUPLICATION,
     flagger_param_class=FixedParamsDVF,
-    flagger_func=test_duplicated_support_frac,
+    flagger_func=test_DVF,
     result_type=ResultDVF,
 )
 class FlaggerDVF(

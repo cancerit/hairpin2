@@ -29,6 +29,11 @@ VALID_NUCELOTIDES = set(
     ('A', 'C', 'T', 'G', 'N', '*')
 )
 
+class Strand(StrEnum):
+    BOTH = 'BOTH'
+    F = 'F'
+    R = 'R'
+
 
 class MutTypes(StrEnum):
     SUB = 'SUB'

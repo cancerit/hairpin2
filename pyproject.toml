@@ -7,7 +7,7 @@ include = ["hairpin2*"]
 
 [project]
 name = "hairpin2"
-version = "3.0.0-alpha6"
+version = "3.0.0-alpha7"
 description = "CLI for running read-aware artefactual variant flagging algorithms over VCFs"
 authors = [
   {name = "Alex Byrne"}
@@ -15,7 +15,7 @@ authors = [
 license = "MIT"
 readme = "README.md"
 dependencies = [
-  "hts-flow @ git+https://github.com/blex-max/hts-flow.git@0.0.0a2-hp2",
+  "hts-flow @ git+https://github.com/blex-max/hts-flow.git@0.0.0a3-hp2",
   "pysam>=0.22, ==0.*",
   "pydantic>=2.11.7, ==2.*",
   "click>=8.2.1, ==8.*",
