@@ -23,12 +23,12 @@
 # SOFTWARE.
 from dataclasses import dataclass
 from typing import override
-from enum import Flag, auto
-from hairpin2.abstractions.configure_funcs import make_read_processor, make_variant_flagger
-from hairpin2.abstractions.process import ReadAwareProcess
-from hairpin2.abstractions.process_params import FixedParams
-from hairpin2.abstractions.structures import ExtendedRead, FlagResult, mark_read, read_has_mark, record_operation
-from hairpin2.const import FlaggerNamespaces, Tags, TaggerNamespaces, TestOutcomes as TO
+from enum import Flag
+from htsflow.configure_funcs import make_read_processor, make_variant_flagger
+from htsflow.process import ReadAwareProcess
+from htsflow.process_params import FixedParams
+from htsflow.structures import ExtendedRead, FlagResult, mark_read, read_has_mark, record_operation, TestOutcomes as TO
+from hairpin2.const import FlaggerNamespaces, Tags, TaggerNamespaces
 from hairpin2.flaggers.shared import RunParamsShared
 from hairpin2.utils import ref2seq as r2s
 from typing import cast
@@ -99,8 +99,9 @@ def tag_dups(
 
 # TODO: make end user not need to import and inherit from IntEnum, provide some kind of construction method?
 class InfoFlagsDVF(Flag):
+    NODATA = 0
     INSUFFICIENT_READS = 1
-    DUPLICATION = auto()
+    DUPLICATION = 2
 
 
 @dataclass(frozen=True)
@@ -158,9 +159,7 @@ def test_duplicated_support_frac(
             sample_loss_ratio = 0
             if ntotal > 1:
                 ndup = sum(read_has_mark(read, Tags.STUTTER_DUP_TAG) for read in reads)
-                ntrue = abs(ndup - ntotal)
-                assert ntotal >= ndup > -1  # sanity check - TODO: should probably throw an interpretable error
-                assert ntotal >= ntrue > -1
+                ntrue = ntotal - ndup
                 sample_loss_ratio = ndup / ntotal
                 if sample_loss_ratio > fixed_params.read_loss_threshold or ntrue < fixed_params.min_pass_reads:
                     nsamples_with_duplication += 1

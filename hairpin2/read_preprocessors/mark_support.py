@@ -1,6 +1,6 @@
-from hairpin2.abstractions.configure_funcs import make_read_processor
-from hairpin2.abstractions.process import ReadAwareProcess
-from hairpin2.abstractions.structures import mark_read, record_operation
+from htsflow.configure_funcs import make_read_processor
+from htsflow.process import ReadAwareProcess
+from htsflow.structures import mark_read, record_operation
 from hairpin2.flaggers.shared import RunParamsShared
 from hairpin2.const import MutTypes, Tags, TaggerNamespaces, ValidatorFlags
 from hairpin2.utils.ref2seq import ref2querypos

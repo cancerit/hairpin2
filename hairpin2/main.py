@@ -23,16 +23,15 @@
 # SOFTWARE.
 
 # pyright: reportImplicitStringConcatenation=false
- 
+
 from collections.abc import Generator, Iterable, Mapping
 import pysam
-from hairpin2 import  __version__
-from hairpin2.abstractions.rascheduler import RAExec
-from hairpin2.const import VALID_NUCELOTIDES, MutTypes, TestOutcomes
+from htsflow.rascheduler import RAExec
+from hairpin2.const import VALID_NUCELOTIDES, MutTypes
 from hairpin2.flaggers.shared import RunParamsShared
 from hairpin2.read_preprocessors.mark_overlap import TaggerOverlap
 from hairpin2.read_preprocessors.mark_support import TaggerSupporting
-from hairpin2.abstractions.structures import FlagResult, ReadView
+from htsflow.structures import FlagResult, ReadView, TestOutcomes
 from hairpin2.flaggers import ADF, ALF, DVF, LQF
 import logging
 from itertools import tee
@@ -91,7 +90,6 @@ def hairpin2(
                 # TODO: put mutation type detection under testing
                 # the ability to handle complex mutations would be a potentially interesting future feature
                 # for extending to more varied artifacts
-                # TODO/NOTE: this should itself be an additive process! on variant rather than reads, using data store on object
                 for alt in record.alts:
                     can_parse_alt = set(alt).issubset(VALID_NUCELOTIDES)
                     alt_len = len(alt)
@@ -117,20 +115,7 @@ def hairpin2(
                             )
                         continue
 
-                    # FUTURE: shared qc filtering based on parsing of flagger prefilter configs, post additive preprocessing
-                    # NOTE: global check for tag availability on reads, and filtering of reads without those properties
-                    # would save a lot of performance as fields checked globally could be subtracted from fields checked
-                    # on specific flaggers and preprocessors, and less reads to hold.
-
                     # instantiate test data obj/s
-                    # NOTE: shared access to the same record in memory is dangerous, trusts developers not to modify for all
-                    # in flagger methods
-
-                    # reasonably immutable view of test data
-                    # if further immutablility is needed will have to wrap alignedsegment internally when priming
-                    # TODO/NOTE: dict-by-tag bevhaviour in ReadView will allow for really neat subselection of reads based on
-                    # intersection of include/exclude tags
-                    # TODO: that ReadView staticmethod is weird. Should be a class method that returns readview, or not attached to readview
                     test_reads = ReadView(ReadView.convert_pysam_to_extread(reads_by_sample, validate=True))
                     run_data = RunParamsShared(record=record, reads=test_reads, alt=alt, mut_type=mut_type)  # TODO: allow positional args
 

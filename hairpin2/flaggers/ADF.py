@@ -22,28 +22,29 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 from dataclasses import dataclass
-from hairpin2.abstractions.configure_funcs import make_variant_flagger
-from hairpin2.abstractions.process import ReadAwareProcess
-from hairpin2.abstractions.process_params import FixedParams
-from hairpin2.abstractions.structures import FlagResult
-from hairpin2.const import FlaggerNamespaces, TestOutcomes as TO
+from htsflow.configure_funcs import make_variant_flagger
+from htsflow.process import ReadAwareProcess
+from htsflow.process_params import FixedParams
+from htsflow.structures import FlagResult, TestOutcomes as TO
+from hairpin2.const import FlaggerNamespaces
 from hairpin2.flaggers.shared import RunParamsShared
 from hairpin2.utils import ref2seq as r2s
-from typing import Literal, cast, override
-from enum import IntFlag, auto
+from typing import Literal, override
+from enum import Flag
 from statistics import median, stdev
 
 
 # BUG: codes changed and isn't documented
-# TODO: flags allow for greater information packing. Use flags, and provide decomp cli tool
-class InfoFlagsADF(IntFlag):
+# flags must be powers of 2
+class InfoFlagsADF(Flag):
+    NODATA = 0
     NO_TESTABLE_READS = 1
-    INSUFFICIENT_READS = auto()
-    EDGE_CLUSTERING = auto()
-    ONE_STRAND_DISTRIB = auto()
-    BOTH_STRAND_DISTRIB_BOTH = auto()
-    BOTH_STRAND_DISTRIB_ONE = auto()
-    MIN_NON_EDGE = auto()
+    INSUFFICIENT_READS = 2
+    EDGE_CLUSTERING = 4
+    ONE_STRAND_DISTRIB = 8
+    BOTH_STRAND_DISTRIB_BOTH = 16
+    BOTH_STRAND_DISTRIB_ONE = 32
+    MIN_NON_EDGE = 64
 
 
 @dataclass(frozen=True)
@@ -57,7 +58,7 @@ class ResultADF(
 
     @override
     def getinfo(self) -> str:
-        return f'{self.alt}|{self.variant_flagged}|{self.info_flag}'
+        return f'{self.alt}|{self.variant_flagged}|{self.strand}|{self.info_flag}'
 
 
 class FixedParamsADF(FixedParams):
@@ -144,7 +145,7 @@ def test_anomalous_distribution(
                 if len(la2ms_r) <= fixed_params.low_n_supporting_reads_boundary:  # if also this, test on this path
                     strand = 'F'
                     flag =  TO.VARIANT_PASS
-                    info_bits = 0
+                    info_bits = InfoFlagsADF.NODATA
                     cond_edge_clustering = (sum(near_start_f) / len(near_start_f)) < fixed_params.edge_clustering_threshold
                     cond_one_strand_mad = mad_f > fixed_params.min_MAD_one_strand
                     cond_one_strand_sd = sd_f > fixed_params.min_sd_one_strand
@@ -167,7 +168,7 @@ def test_anomalous_distribution(
                 if len(la2ms_f) <= fixed_params.low_n_supporting_reads_boundary:
                     strand = 'R'
                     flag = TO.VARIANT_PASS
-                    info_bits = 0
+                    info_bits = InfoFlagsADF.NODATA
                     cond_edge_clustering = (sum(near_start_r) / len(near_start_r)) < fixed_params.edge_clustering_threshold
                     cond_one_strand_mad = mad_r > fixed_params.min_MAD_one_strand
                     cond_one_strand_sd = sd_r > fixed_params.min_sd_one_strand
@@ -184,7 +185,7 @@ def test_anomalous_distribution(
             if len(la2ms_f) > fixed_params.low_n_supporting_reads_boundary and len(la2ms_r) > fixed_params.low_n_supporting_reads_boundary:
                 strand = 'BOTH'
                 flag = TO.VARIANT_PASS
-                info_bits = 0
+                info_bits = InfoFlagsADF.NODATA
                 frac_lt_thresh = (
                     sum(near_start_f + near_start_r)
                     / (len(near_start_f) + len(near_start_r))
@@ -227,7 +228,7 @@ def test_anomalous_distribution(
 
             fresult = ResultADF(
                 variant_flagged=flag,
-                info_flag=cast(InfoFlagsADF, info_bits),
+                info_flag=info_bits,
                 alt=run_params.alt,
                 strand=strand
             )

@@ -21,19 +21,13 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from enum import Enum, StrEnum, Flag, auto
+from enum import StrEnum, Flag, auto
 from typing import Any
 
 
 VALID_NUCELOTIDES = set(
     ('A', 'C', 'T', 'G', 'N', '*')
 )
-
-
-class TestOutcomes(Enum):
-    VARIANT_PASS = 0
-    VARIANT_FAIL = 1
-    NA = 2
 
 
 class MutTypes(StrEnum):

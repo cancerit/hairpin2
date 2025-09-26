@@ -28,7 +28,7 @@ from collections.abc import Iterable
 from pathlib import Path
 import tomllib
 import pysam
-from hairpin2 import  __version__
+from hairpin2.VERSION import VERSION
 from hairpin2.const import DEFAULT_EXEC_CONFIG
 from hairpin2.main import hairpin2
 import logging
@@ -183,7 +183,7 @@ def resolve_config_dicts(ctx: Any, param: Any, values: Iterable[dict[str, Any]])
     epilog='see documentation at https://github.com/cancerit/hairpin2 or at tool install location for further information',
     options_metavar='[-h, --help] [OPTIONS]',
 )
-@click.version_option(__version__, '-v', '--version', message='%(version)s')
+@click.version_option(VERSION, '-v', '--version', message='%(version)s')
 @click.argument(
     'vcf',
     type=existing_file_path,
@@ -452,7 +452,7 @@ def hairpin2_cli(
         '##INFO=<ID=LQF,Number=1,Type=String,Description="alt|[True,False]|code|loss indicating decision reason for each alt and ratio of supporting reads suspected to be low quality">'
     )
     out_head.add_line(
-        f'##hairpin2_version={__version__}'
+        f'##hairpin2_version={VERSION}'
     )
     out_head.add_line(
         f'##hairpin2_params=[{json.dumps({k: v for k, v in configd["params"].items() if configd["exec"][k]["enable"]})}]'

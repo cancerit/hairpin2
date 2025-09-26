@@ -24,13 +24,13 @@
 
 from dataclasses import dataclass
 from typing import override
-from enum import Flag, auto
+from enum import Flag
 from statistics import median
-from hairpin2.abstractions.configure_funcs import make_variant_flagger
-from hairpin2.abstractions.process import ReadAwareProcess
-from hairpin2.abstractions.process_params import FixedParams
-from hairpin2.abstractions.structures import FlagResult
-from hairpin2.const import FlaggerNamespaces, TestOutcomes as TO
+from htsflow.configure_funcs import make_variant_flagger
+from htsflow.process import ReadAwareProcess
+from htsflow.process_params import FixedParams
+from htsflow.structures import FlagResult, TestOutcomes as TO
+from hairpin2.const import FlaggerNamespaces
 from hairpin2.flaggers.shared import RunParamsShared
 
 # If you're here just to examine the scientific implementation of each filter,
@@ -39,9 +39,10 @@ from hairpin2.flaggers.shared import RunParamsShared
 
 
 class InfoFlagsALF(Flag):
+    NODATA = 0
     INSUFFICIENT_READS = 1
-    INSUFFICIENT_AS_TAGS = auto()
-    ON_THRESHOLD = auto()
+    INSUFFICIENT_AS_TAGS = 2
+    ON_THRESHOLD = 4
 
 
 @dataclass(frozen=True)
