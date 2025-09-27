@@ -24,20 +24,20 @@
 
 from dataclasses import dataclass
 from typing import override
-from htsflow.configure_funcs import make_variant_flagger
-from htsflow.process import ReadAwareProcess
-from htsflow.process_params import FixedParams
-from htsflow.structures import FlagResult
+from hairpin2.infrastructure.configure_funcs import make_variant_flagger
+from hairpin2.infrastructure.process import ReadAwareProcess
+from hairpin2.infrastructure.process_params import FixedParams
+from hairpin2.infrastructure.structures import FlagResult
 from hairpin2.const import FlaggerNamespaces
-from hairpin2.flaggers.shared import RunParamsShared
-from hairpin2.sci_funcs import ASConds, test_alignment_score
+from hairpin2.process_wrappers.shared import RunParamsShared
+from hairpin2.sci_funcs import AlignmentScoreTest
 
 
 @dataclass(frozen=True)
 class ResultALF(
     FlagResult,
     flag_name="ALF",
-    info_enum=ASConds
+    info_enum=AlignmentScoreTest.ResultPack.Info,
 ):
     alt: str
     reads_seen: int
@@ -46,28 +46,23 @@ class ResultALF(
     @override
     def getinfo(self) -> str:
         info_bits = hex(self.info_flag.value if self.info_flag is not None else 0)
-        avg_as = round(self.avg_as, 3) if self.avg_as else 'NA'
+        avg_as = round(self.avg_as, 3) if self.avg_as else "NA"
         return f"{self.alt}|{self.variant_flagged}|{info_bits}|{self.reads_seen}|{avg_as}"
 
 
 class FixedParamsALF(FixedParams):
     avg_AS_threshold: float
 
+
 def test_ALF(  # test supporting reads
-    run_params: RunParamsShared,
-    fixed_params: FixedParamsALF
+    run_params: RunParamsShared, fixed_params: FixedParamsALF
 ):
-    result = test_alignment_score(
-        run_params.reads.all,
-        fixed_params.avg_AS_threshold
+    result = AlignmentScoreTest.test_variant_reads(
+        run_params.reads.all, fixed_params.avg_AS_threshold
     )
 
     flag = ResultALF(
-        result.outcome,
-        result.reason,
-        run_params.alt,
-        len(run_params.reads),
-        result.avg_as
+        result.outcome, result.reason, run_params.alt, len(run_params.reads), result.avg_as
     )
 
     return flag
@@ -77,7 +72,7 @@ def test_ALF(  # test supporting reads
     process_namespace=FlaggerNamespaces.POOR_ALIGNMENT_SCORE,
     flagger_param_class=FixedParamsALF,
     flagger_func=test_ALF,
-    result_type=ResultALF
+    result_type=ResultALF,
 )
 class FlaggerALF(
     ReadAwareProcess,

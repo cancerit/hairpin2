@@ -26,13 +26,13 @@
 
 from collections.abc import Generator, Iterable, Mapping
 import pysam
-from htsflow.rascheduler import RAExec
-from hairpin2.const import VALID_NUCELOTIDES, MutTypes
-from hairpin2.flaggers.shared import RunParamsShared
-from hairpin2.read_preprocessors.mark_overlap import TaggerOverlap
-from hairpin2.read_preprocessors.mark_support import TaggerSupporting
-from htsflow.structures import FlagResult, ReadView, TestOutcomes
-from hairpin2.flaggers import ADF, ALF, DVF, LQF
+from hairpin2.infrastructure.rascheduler import RAExec
+from hairpin2.const import ValidNucleotides, MutTypes
+from hairpin2.process_wrappers.shared import RunParamsShared
+from hairpin2.process_wrappers.mark_overlap import TaggerOverlap
+from hairpin2.process_wrappers.mark_support import TaggerSupporting
+from hairpin2.infrastructure.structures import FlagResult, ReadView, TestOutcomes
+from hairpin2.process_wrappers import ADF, ALF, DVF, LQF
 import logging
 from itertools import tee
 from typing import Any
@@ -44,31 +44,42 @@ def hairpin2(
     records: Iterable[pysam.VariantRecord],  # TODO: take extended variant?
     sample_to_alignment: Mapping[str, pysam.AlignmentFile],
     configd: dict[str, Any],
-    quiet: int = 0
+    quiet: int = 0,
 ) -> Generator[pysam.VariantRecord, Any, Any]:
-    '''
+    """
     read-aware artefactual variant flagging algorithms. Flag variants in VCF using statistics calculated from supporting reads found in ALIGNMENTS, and emit the flagged VCF to stdout.
-    '''
+    """
 
     # # test records
-    proc_exec = RAExec.from_config(configd, {TaggerSupporting, TaggerOverlap, LQF.TaggerLowQual, DVF.TaggerDupmark, LQF.FlaggerLQF, ADF.FlaggerADF, ALF.FlaggerALF, DVF.FlaggerDVF})
+    proc_exec = RAExec.from_config(
+        configd,
+        {
+            TaggerSupporting,
+            TaggerOverlap,
+            LQF.TaggerLowQual,
+            DVF.TaggerDupmark,
+            LQF.FlaggerLQF,
+            ADF.FlaggerADF,
+            ALF.FlaggerALF,
+            DVF.FlaggerDVF,
+        },
+    )
     for record in records:
         record_flagd: dict[str, list[FlagResult]] = {}
         if record.alts is None:
             if quiet < 1:
                 logging.warning(
-                    f'{record.chrom: <7}:{record.pos: >12} (variant id: {record.id!r}) ¦ no alts for this record, skipping variant'
+                    f"{record.chrom: <7}:{record.pos: >12} (variant id: {record.id!r}) ¦ no alts for this record, skipping variant"
                 )
         else:
             # TODO: also need to mandate/require field presence on variant records I suppose
-            samples_w_mutants = [name
-                                 for name
-                                 in record.samples
-                                 if record.samples[name]["GT"] != (0, 0)]
+            samples_w_mutants = [
+                name for name in record.samples if record.samples[name]["GT"] != (0, 0)
+            ]
             if len(samples_w_mutants) == 0:
                 if quiet < 1:
                     logging.warning(
-                        f'{record.chrom: <7}:{record.pos: >12} (variant id: {record.id!r}) ¦ no samples exhibit alts associated with this record, skipping variant'
+                        f"{record.chrom: <7}:{record.pos: >12} (variant id: {record.id!r}) ¦ no samples exhibit alts associated with this record, skipping variant"
                     )
             else:
                 reads_by_sample: dict[str, list[pysam.AlignedSegment]] = {}
@@ -76,9 +87,9 @@ def hairpin2(
                 # get pileup
                 for k, v in sample_to_alignment.items():
                     if k in samples_w_mutants:
-                        read_iter, test_iter = tee(v.fetch(record.chrom,
-                                                           record.start,
-                                                           (record.start + 1)))
+                        read_iter, test_iter = tee(
+                            v.fetch(record.chrom, record.start, (record.start + 1))
+                        )
                         try:
                             _ = next(test_iter)
                         except StopIteration:
@@ -91,7 +102,7 @@ def hairpin2(
                 # the ability to handle complex mutations would be a potentially interesting future feature
                 # for extending to more varied artifacts
                 for alt in record.alts:
-                    can_parse_alt = set(alt).issubset(VALID_NUCELOTIDES)
+                    can_parse_alt = set(alt).issubset(ValidNucleotides.ALL.value)
                     alt_len = len(alt)
 
                     # NOTE: (intentionally) doesn't support symbolic del/ins
@@ -105,28 +116,36 @@ def hairpin2(
                         else:
                             if quiet < 1:
                                 logging.warning(
-                                    f'{record.chrom: <7}:{record.pos: >12} (variant id: {record.id!r}) ¦ could not infer mutation type from ALT/REF: {alt!r}/{record.ref!r}, skipping variant'
+                                    f"{record.chrom: <7}:{record.pos: >12} (variant id: {record.id!r}) ¦ could not infer mutation type from ALT/REF: {alt!r}/{record.ref!r}, skipping variant"
                                 )
                             continue
                     else:
                         if quiet < 1:
                             logging.warning(
-                                f'{record.chrom: <7}:{record.pos: >12} (variant id: {record.id!r}) ¦ ALT: {alt!r} contains nucleotides hairpin2 does not parse (only {VALID_NUCELOTIDES!r}), skipping variant'
+                                f"{record.chrom: <7}:{record.pos: >12} (variant id: {record.id!r}) ¦ ALT: {alt!r} contains nucleotides hairpin2 does not parse (only {ValidNucleotides.ALL.value!r}), skipping variant"
                             )
                         continue
 
                     # instantiate test data obj/s
-                    test_reads = ReadView(ReadView.convert_pysam_to_extread(reads_by_sample, validate=True))
-                    run_data = RunParamsShared(record=record, reads=test_reads, alt=alt, mut_type=mut_type)  # TODO: allow positional args
+                    test_reads = ReadView(
+                        ReadView.convert_pysam_to_extread(reads_by_sample, validate=True)
+                    )
+                    run_data = RunParamsShared(
+                        record=record, reads=test_reads, alt=alt, mut_type=mut_type
+                    )  # TODO: allow positional args
                     for result in proc_exec.run(run_data):
-                        record_flagd.setdefault(result.FlagName, []).append(result)  # if dict entry exists, append, if not, create and append
+                        record_flagd.setdefault(result.FlagName, []).append(
+                            result
+                        )  # if dict entry exists, append, if not, create and append
 
         if any(lst for lst in record_flagd.values()):
             for fname in record_flagd:
-                if any(fres.variant_flagged == TestOutcomes.VARIANT_FAIL for fres in record_flagd[fname]):
+                if any(
+                    fres.variant_flagged == TestOutcomes.VARIANT_FAIL
+                    for fres in record_flagd[fname]
+                ):
                     record.filter.add(fname)
                 # TODO: LQF prints no info!
-                record.info.update({fname: ','.join([fl.getinfo() for fl in record_flagd[fname]])})  # pyright: ignore[reportArgumentType, reportUnknownMemberType]
+                record.info.update({fname: ",".join([fl.getinfo() for fl in record_flagd[fname]])})  # pyright: ignore[reportArgumentType, reportUnknownMemberType]
 
         yield record
-

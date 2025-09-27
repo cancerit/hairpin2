@@ -22,13 +22,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 from dataclasses import dataclass
-from htsflow.configure_funcs import make_variant_flagger
-from htsflow.process import ReadAwareProcess
-from htsflow.process_params import FixedParams
-from htsflow.structures import FlagResult
+from hairpin2.infrastructure.configure_funcs import make_variant_flagger
+from hairpin2.infrastructure.process import ReadAwareProcess
+from hairpin2.infrastructure.process_params import FixedParams
+from hairpin2.infrastructure.structures import FlagResult
 from hairpin2.const import FlaggerNamespaces, Strand
-from hairpin2.flaggers.shared import RunParamsShared
-from hairpin2.sci_funcs import ADConds, test_anomalous_distribution
+from hairpin2.process_wrappers.shared import RunParamsShared
+from hairpin2.sci_funcs import AnomalousDistributionTest
 from typing import override
 
 
@@ -36,7 +36,7 @@ from typing import override
 class ResultADF(
     FlagResult,
     flag_name=FlaggerNamespaces.ANOMALOUS_DISTRIBUTION,
-    info_enum=ADConds
+    info_enum=AnomalousDistributionTest.ResultPack.Info,
 ):
     alt: str
     reads_seen: int
@@ -45,11 +45,13 @@ class ResultADF(
     @override
     def getinfo(self) -> str:
         info_bits = hex(self.info_flag.value if self.info_flag is not None else 0)
-        return f'{self.alt}|{self.variant_flagged.value}|{info_bits}|{self.strand.value}|{self.reads_seen}'
+        return f"{self.alt}|{self.variant_flagged.value}|{info_bits}|{self.strand.value}|{self.reads_seen}"
 
 
 class FixedParamsADF(FixedParams):
-    edge_definition: float  # relative proportion, by percentage, of a read to be considered 'the edge'
+    edge_definition: (
+        float  # relative proportion, by percentage, of a read to be considered 'the edge'
+    )
     edge_clustering_threshold: float  # percentage threshold
     min_MAD_one_strand: int  # exclusive (and subsequent params)
     min_sd_one_strand: float
@@ -61,11 +63,8 @@ class FixedParamsADF(FixedParams):
     low_n_supporting_reads_boundary: int  # inclusive
 
 
-def test_adf(
-    run_params: RunParamsShared,
-    fixed_params: FixedParamsADF
-):
-    result = test_anomalous_distribution(
+def test_adf(run_params: RunParamsShared, fixed_params: FixedParamsADF):
+    result = AnomalousDistributionTest.test_variant_reads(
         run_params.reads.all,
         run_params.record.start,
         fixed_params.edge_definition,
@@ -77,15 +76,11 @@ def test_adf(
         fixed_params.min_MAD_both_strand_strong,
         fixed_params.min_sd_both_strand_strong,
         fixed_params.low_n_supporting_reads_boundary,
-        fixed_params.min_non_edge_reads
+        fixed_params.min_non_edge_reads,
     )
 
     flag = ResultADF(
-        result.outcome,
-        result.reason,
-        run_params.alt,
-        len(run_params.reads.all),
-        result.strand
+        result.outcome, result.reason, run_params.alt, len(run_params.reads.all), result.strand
     )
 
     return flag
@@ -96,11 +91,11 @@ def test_adf(
     process_namespace=FlaggerNamespaces.ANOMALOUS_DISTRIBUTION,
     flagger_param_class=FixedParamsADF,
     flagger_func=test_adf,
-    result_type=ResultADF
+    result_type=ResultADF,
 )
 class FlaggerADF(
     ReadAwareProcess,
 ):
     """
-    Anomalous Distribution Filter based on hairpin filtering algorthim described in Ellis et al. 2020 (DOI: 10.1038/s41596-020-00437-6) 
+    Anomalous Distribution Filter based on hairpin filtering algorthim described in Ellis et al. 2020 (DOI: 10.1038/s41596-020-00437-6)
     """

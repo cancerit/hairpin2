@@ -23,29 +23,25 @@
 # SOFTWARE.
 from dataclasses import dataclass
 from typing import override
-from htsflow.configure_funcs import make_read_processor, make_variant_flagger
-from htsflow.process import ReadAwareProcess
-from htsflow.process_params import FixedParams
-from htsflow.structures import FlagResult
+from hairpin2.infrastructure.configure_funcs import make_read_processor, make_variant_flagger
+from hairpin2.infrastructure.process import ReadAwareProcess
+from hairpin2.infrastructure.process_params import FixedParams
+from hairpin2.infrastructure.structures import FlagResult
 from hairpin2.const import FlaggerNamespaces, Tags, TaggerNamespaces
-from hairpin2.flaggers.shared import RunParamsShared
-from hairpin2.sci_funcs import PropConds, tag_reads_as_duplicates, test_proportion_with_tag
-
+from hairpin2.process_wrappers.shared import RunParamsShared
+from hairpin2.sci_funcs import ReadTaggingFuncs, ProportionBasedTest
 
 
 # DUPMARK READ PROCESSOR
+
 
 class FixedParamsDupmark(FixedParams):
     duplication_window_size: int = 6  # -1 disables
 
 
-def tag_dups(
-    run_params: RunParamsShared,
-    fixed_params: FixedParamsDupmark
-):
-    tag_reads_as_duplicates(
-        run_params.reads.all,
-        fixed_params.duplication_window_size
+def tag_dups(run_params: RunParamsShared, fixed_params: FixedParamsDupmark):
+    ReadTaggingFuncs.check_stutter_duplicates(
+        run_params.reads.all, fixed_params.duplication_window_size
     )
 
 
@@ -57,19 +53,18 @@ def tag_dups(
 )
 class TaggerDupmark(
     ReadAwareProcess,
-): pass
-
-
-
+):
+    pass
 
 
 # VARIANT FROM DUPLICATION FLAGGER
+
 
 @dataclass(frozen=True)
 class ResultDVF(
     FlagResult,
     flag_name=FlaggerNamespaces.DUPLICATION,
-    info_enum=PropConds
+    info_enum=ProportionBasedTest.ResultPack.Info
 ):
     alt: str
     reads_seen: int
@@ -83,80 +78,25 @@ class ResultDVF(
 
 class FixedParamsDVF(FixedParams):
     """
-        read_loss_threshold - percent threshold of N lq reads compared to N input reads for a given variant and sample, above which we flag DVF
-        min_pass_reads - the absolute mininum number of reads required for a variant not to be flagged DVF
+    read_loss_threshold - percent threshold of N lq reads compared to N input reads for a given variant and sample, above which we flag DVF
+    min_pass_reads - the absolute mininum number of reads required for a variant not to be flagged DVF
     """
+
     read_loss_threshold: float
     min_pass_reads: int
     nsamples_threshold: int  # TODO: I'm not sure this param makes sense. I guess in a multi sample VCF it would imply less confidence in the call if only 1 sample reported duplication. But you'd still probably want to know about that sample? Discuss with Peter
 
 
-# detect PCR duplicates previously missed due to slippage
-# this implementation assumes that sorting on first element of each sublist
-# is appropriate, per Peter's initial implementation.
-# is an all against all comparison between all read lists more appropriate?
-# and between pairs of readlists, why is comparing sorted pairs most appropriate?
-# def test_duplicated_support_frac(
-#     run_params: RunParamsShared,
-#     fixed_params: FixedParamsDVF
-# ) -> ResultDVF:
-#     # NOTE: surely this shouldn't be across samples... I don't know, maybe?
-
-#     if not run_params.reads.all:
-#         fresult = ResultDVF(
-#             variant_flagged=TO.NA,
-#             info_flag=InfoFlagsDVF.INSUFFICIENT_READS,
-#             alt=run_params.alt,
-#             reads_seen=0,
-#             loss_ratio=0
-#         )
-#     else:
-#         info_bits = InfoFlagsDVF.NODATA
-#         outcome = TO.VARIANT_PASS
-#         # code = InfoFlagsLQF.LOW_QUAL  # testing possible, and this is the only relevant code
-#         reads = run_params.reads.all
-#         ntotal = len(reads)
-#         ndup = sum(read_has_mark(read, Tags.STUTTER_DUP_TAG) for read in reads)
-#         ntrue = ntotal - ndup
-#         loss_ratio= ndup / ntotal
-#         if loss_ratio > fixed_params.read_loss_threshold:
-#             info_bits |= InfoFlagsDVF.THRESHOLD
-#             outcome = TO.VARIANT_FAIL
-#         if ntrue < fixed_params.min_pass_reads:
-#             info_bits |= InfoFlagsDVF.MIN_PASS
-#             outcome = TO.VARIANT_FAIL
-
-#         if outcome == TO.VARIANT_PASS:
-#             info_bits = ~InfoFlagsDVF(0)
-
-#         fresult = ResultDVF(
-#             variant_flagged=outcome,
-#             info_flag=info_bits,
-#             alt=run_params.alt,
-#             reads_seen=0,
-#             loss_ratio=loss_ratio 
-#         )
-
-#     return fresult
-
-
-def test_DVF(
-    run_params: RunParamsShared,
-    fixed_params: FixedParamsDVF
-):
-    result = test_proportion_with_tag(
+def test_DVF(run_params: RunParamsShared, fixed_params: FixedParamsDVF):
+    result = ProportionBasedTest.test_variant_reads(
         run_params.reads.all,
         [Tags.STUTTER_DUP_TAG],
         fixed_params.read_loss_threshold,
-        fixed_params.min_pass_reads
+        fixed_params.min_pass_reads,
     )
 
     flag = ResultDVF(
-        result.outcome,
-        result.reason,
-        run_params.alt,
-        len(run_params.reads.all),
-        result.prop_loss
+        result.outcome, result.reason, run_params.alt, len(run_params.reads.all), result.prop_loss
     )
 
     return flag
@@ -185,5 +125,5 @@ class FlaggerDVF(
     `read_number_difference_threshold` sets the the threshold for absolute difference between the number of reads supporting the variant
     with and without duplicates removed. If this threshold is exceeded, the flag will be set.
     """
-    pass
 
+    pass
