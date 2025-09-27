@@ -23,9 +23,11 @@ All flags are tunable such that their parameters can be configured to a variety 
 
 ### Processes and Parameters
 
-For an input VCF, `hairpin2` will iterate over the records therein and analyse each record via a series of processes. A process in this context is an implementation of scientific/biological logic (see {py:mod}`hairpin2.sci_funcs`) wrapped with infrastructure so `hairpin2` can expose fixed parameters via the configs, validate and filter data for each process, and so on. Each process will take runtime data (reads, a variant record) and fixed parameters (if needed). Runtime data changes each iteration - it is simply the variant being examined, the reads from the alignment files which cover the variant position, and some associated calcuations such as the type of mutation (SUB, INS, DEL) of the current variant. Fixed parameters are fixed for the duration of a hairpin2 run. In addition to the infrastructure concerns described, wrapping each scientific step in these processes makes it easier to reason about the flow of execution, surface the interdependence between steps, and allows for some more [Advanced Behaviour](#advanced).
+For an input VCF, `hairpin2` will iterate over the records therein and analyse each record via a series of interdependent scientific steps.
 
-This section details each process and its relevant parameters (if any), in execution order. The parameters are also shown in their relevant TOML table as written in a hairpin2 TOML config.
+This section details each process and its relevant parameters (if any), in execution order. The connection/interdependence between steps is also described. The parameters are also shown in their relevant TOML table as written in a hairpin2 TOML config.
+
+For a more complete description of the internals (including some advanced options that hairpin2 provides), see [Advanced](#advanced).
 
 -----
 
@@ -91,6 +93,11 @@ low_n_supporting_reads_boundary = 1
 
 ### Advanced
 
+#### Processes
+
+TBD
+
+ A process in this context is an implementation of scientific/biological logic (see {py:mod}`hairpin2.sci_funcs`) wrapped with infrastructure so `hairpin2` can expose fixed parameters via the configs, validate and filter data for each process, and so on. Each process will take data per each iteration (reads, a variant record, associated calcuations) and fixed parameters (if needed). Fixed parameters simply indicates that the value is fixed for the duration of a hairpin2 run. In addition to the infrastructure concerns described, wrapping each scientific step in these processes makes it easier to reason about the flow of execution, surface the interdependence between steps, and allows for some more ....
 TBD
 
 
