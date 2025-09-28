@@ -370,21 +370,17 @@ class FlagResult(ABC):
         Subclasses must override this method to return more specific info.
         """
 
+
 @runtime_checkable
 class ResultPackProtocol[T: Flag](Protocol):
     Info: type[T]
     outcome: TestOutcomes
     reason: T
 
+
 @runtime_checkable
 class VariantTestProtocol[T: ResultPackProtocol[Flag]](Protocol):
     ResultPack: type[T]
 
     @classmethod
-    def test_variant_reads(
-        cls,
-        *args: Any,
-        **kwargs: Any
-    ) -> T:
-        ...
-
+    def test_variant_reads(cls, *args: Any, **kwargs: Any) -> T: ...

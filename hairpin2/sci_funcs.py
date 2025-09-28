@@ -290,6 +290,7 @@ class AlignmentScoreTest:
     """
     Pass/Fail a variant on the average alignment score of supporting reads.
     """
+
     @dataclass
     class ResultPack:
         class Info(Flag):
@@ -378,6 +379,7 @@ class AnomalousDistributionTest:
     The additional condition to be checked is simply whether at least N supporting reads express away from the read
     edge. This condition is experimental at this time and can be disabled by setting min_non_edge_reads to 0
     """
+
     @dataclass
     class ResultPack:
         class Info(Flag):
@@ -580,6 +582,7 @@ class ProportionBasedTest:
     Used by the LQF flag test to test proportion of stutter duplicate and low quality supporting reads.
     Used by the DVF flag test to test proportion of stutter duplicate reads.
     """
+
     @dataclass
     class ResultPack:
         class Info(Flag):
@@ -601,11 +604,7 @@ class ProportionBasedTest:
         min_without: int = 0,
     ) -> ResultPack:
         if not reads:
-            result = cls.ResultPack(
-                TestOutcomes.NA,
-                cls.ResultPack.Info.INSUFFCIENT_READS,
-                0
-            )
+            result = cls.ResultPack(TestOutcomes.NA, cls.ResultPack.Info.INSUFFCIENT_READS, 0)
         else:
             info_bits = cls.ResultPack.Info.NODATA
             outcome = TestOutcomes.VARIANT_PASS
@@ -615,7 +614,9 @@ class ProportionBasedTest:
             for read in reads:
                 nwith += int(bool(sum(read_has_mark(read, tag) for tag in tags_to_check)))
             nwithout = ntotal - nwith
-            loss_ratio = nwith / ntotal  # you could alternately formulate this as nwith / nwithout...
+            loss_ratio = (
+                nwith / ntotal
+            )  # you could alternately formulate this as nwith / nwithout...
             if loss_ratio > read_loss_threshold:
                 info_bits |= cls.ResultPack.Info.THRESHOLD
                 outcome = TestOutcomes.VARIANT_FAIL
@@ -626,10 +627,6 @@ class ProportionBasedTest:
             if outcome == TestOutcomes.VARIANT_PASS:
                 info_bits = ~cls.ResultPack.Info(0)  # satisfied all conditions
 
-            result = cls.ResultPack(
-                outcome,
-                info_bits,
-                loss_ratio
-            )
+            result = cls.ResultPack(outcome, info_bits, loss_ratio)
 
         return result

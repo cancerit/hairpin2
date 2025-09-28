@@ -29,7 +29,7 @@ from pathlib import Path
 import tomllib
 import pysam
 from hairpin2.VERSION import VERSION
-from hairpin2.const import DEFAULT_EXEC_CONFIG
+from hairpin2.process_wrappers.default_exec import DEFAULT_EXEC_CONFIG
 from hairpin2.main import hairpin2
 import logging
 import json
@@ -448,7 +448,6 @@ def hairpin2_cli(
         f"##hairpin2_params=[{json.dumps({k: v for k, v in configd['params'].items() if configd['exec'][k]['enable']})}]"
     )
     out_head.add_line(f"##hairpin2_samples={vcf_sample_to_alignment_map.keys()}")
-
 
     # test records
     prog_counter = 0

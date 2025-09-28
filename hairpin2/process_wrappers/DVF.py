@@ -64,7 +64,7 @@ class TaggerDupmark(
 class ResultDVF(
     FlagResult,
     flag_name=FlaggerNamespaces.DUPLICATION,
-    info_enum=ProportionBasedTest.ResultPack.Info
+    info_enum=ProportionBasedTest.ResultPack.Info,
 ):
     alt: str
     reads_seen: int

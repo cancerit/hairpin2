@@ -7,11 +7,11 @@ from hairpin2.infrastructure.process_params import FixedParams, RunParams
 from hairpin2.infrastructure.structures import FlagResult
 
 
-RunParams_T = TypeVar('RunParams_T', bound=RunParams)
-FixedParams_T = TypeVar('FixedParams_T', bound=FixedParams, covariant=True)
-EngineResult_T = TypeVar('EngineResult_T', bound=FlagResult, covariant=True)
-OptFixedParams_T = TypeVar('OptFixedParams_T', bound=FixedParams | None, covariant=True)
-OptEngineResult_T = TypeVar('OptEngineResult_T', bound=FlagResult | None, covariant=True)
+RunParams_T = TypeVar("RunParams_T", bound=RunParams)
+FixedParams_T = TypeVar("FixedParams_T", bound=FixedParams, covariant=True)
+EngineResult_T = TypeVar("EngineResult_T", bound=FlagResult, covariant=True)
+OptFixedParams_T = TypeVar("OptFixedParams_T", bound=FixedParams | None, covariant=True)
+OptEngineResult_T = TypeVar("OptEngineResult_T", bound=FlagResult | None, covariant=True)
 
 
 @runtime_checkable

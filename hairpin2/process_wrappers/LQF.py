@@ -72,7 +72,9 @@ class TaggerLowQual(ReadAwareProcess):
 
 
 @dataclass(frozen=True)
-class ResultLQF(FlagResult, flag_name=FlaggerNamespaces.LOW_QUAL, info_enum=ProportionBasedTest.ResultPack.Info):
+class ResultLQF(
+    FlagResult, flag_name=FlaggerNamespaces.LOW_QUAL, info_enum=ProportionBasedTest.ResultPack.Info
+):
     alt: str
     reads_seen: int
     loss_ratio: float  # 0 == no loss

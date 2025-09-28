@@ -7,7 +7,7 @@ from hairpin2.sci_funcs import ReadTaggingFuncs
 
 def tag_overlap(
     run_params: RunParamsShared,
-    fixed_params: None  # pyright: ignore[reportUnusedParameter]
+    fixed_params: None,  # pyright: ignore[reportUnusedParameter]
 ):
     for read in run_params.reads.all:
         _ = ReadTaggingFuncs.check_fragment_overlap(read, run_params.record.start, mark=True)

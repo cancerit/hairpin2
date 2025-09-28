@@ -11,7 +11,7 @@ from hairpin2.infrastructure.structures import ExtendedRead, ReadView
 
 class _Params(BaseModel):
     model_config: ConfigDict = ConfigDict(  # pyright: ignore[reportIncompatibleVariableOverride]
-        strict=True, frozen=True, arbitrary_types_allowed=True, extra='forbid'
+        strict=True, frozen=True, arbitrary_types_allowed=True, extra="forbid"
     )
 
     """

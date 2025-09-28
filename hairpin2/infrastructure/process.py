@@ -17,9 +17,13 @@ from hairpin2.infrastructure.structures import ExtendedRead, FlagResult, ReadVie
 
 
 class ReadAwareProcessProtocol(Protocol[RunParams_T, OptFixedParams_T, OptEngineResult_T]):
-    ProcessNamespace: ClassVar[str]
-    EngineFactory: ClassVar[Callable[[Mapping[str, Any]], ProcessEngineProtocol[RunParams, FlagResult | None]]]
-    ProcessType: ClassVar[ProcessKindEnum]
+    ProcessNamespace: ClassVar[str | None]
+    EngineFactory: ClassVar[
+        Callable[[FixedParams], ProcessEngineProtocol[RunParams, FlagResult | None]]
+        | Callable[[None], ProcessEngineProtocol[RunParams, FlagResult | None]]
+        | None
+    ]
+    ProcessType: ClassVar[ProcessKindEnum | None]
     FixedParamClass: ClassVar[type[FixedParams] | None]
     AddsMarks: ClassVar[set[str] | None]
 
@@ -52,14 +56,17 @@ class ReadAwareProcessProtocol(Protocol[RunParams_T, OptFixedParams_T, OptEngine
     ) -> OptEngineResult_T: ...
 
 
+# This abstraction suffers a bit for python not yet having TypeVars in ClassVars. One Day.
 class ReadAwareProcess(ABC):
     ProcessNamespace: ClassVar[str | None] = None
-    EngineFactory: ClassVar[Callable[[Any], ProcessEngineProtocol[Any, Any]] | None] = None
+    EngineFactory: ClassVar[
+        Callable[[FixedParams], ProcessEngineProtocol[RunParams, FlagResult | None]]
+        | Callable[[None], ProcessEngineProtocol[RunParams, FlagResult | None]]
+        | None
+    ] = None
     ProcessType: ClassVar[ProcessKindEnum | None] = None
     FixedParamClass: ClassVar[type[FixedParams] | None]
-    AddsMarks: ClassVar[set[str] | None] = (
-        None
-    )
+    AddsMarks: ClassVar[set[str] | None] = None
     __slots__: tuple[str, ...] = (
         "_param_map",
         "_var_params",
@@ -98,7 +105,7 @@ class ReadAwareProcess(ABC):
 
         # init engine
         assert cls.EngineFactory is not None  # type checker..., and refactor safeguard
-        self._engine: ProcessEngineProtocol[Any, Any] = cls.EngineFactory(self.fixed_params)
+        self._engine: ProcessEngineProtocol[Any, Any] = cls.EngineFactory(self.fixed_params)  # pyright: ignore[reportArgumentType]
 
         if not isinstance(self._engine, ProcessEngineProtocol):
             raise RuntimeError(
@@ -108,7 +115,9 @@ class ReadAwareProcess(ABC):
     def __init_subclass__(
         cls,
         process_namespace: str | None = None,
-        engine_factory: Callable[[FixedParams], ProcessEngineProtocol[RunParams, FlagResult | None]] | None = None,
+        engine_factory: Callable[[FixedParams], ProcessEngineProtocol[RunParams, FlagResult | None]]
+        | Callable[[None], ProcessEngineProtocol[RunParams, FlagResult | None]]
+        | None = None,
         process_type: ProcessKindEnum | None = None,
         fixed_param_class: type[FixedParams] | None = None,
         adds_marks: set[str] | None = None,

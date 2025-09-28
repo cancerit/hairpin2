@@ -16,7 +16,8 @@ from hairpin2.infrastructure.structures import FlagResult
 
 def _create_generic_configure_deco(
     process_namespace: str | None,
-    factory_func: Callable[[FixedParams_T], ProcessEngineProtocol[RunParams_T, FlagResult | None]] | Callable[[None], ProcessEngineProtocol[RunParams_T, FlagResult | None]],
+    factory_func: Callable[[FixedParams_T], ProcessEngineProtocol[RunParams_T, FlagResult | None]]
+    | Callable[[None], ProcessEngineProtocol[RunParams_T, FlagResult | None]],
     process_type: ProcessKindEnum,
     fixed_param_class: type[FixedParams] | None,
     adds_marks: set[str] | None = None,
@@ -54,7 +55,7 @@ def _create_generic_configure_deco(
             cls_proc_ns = cls.ProcessNamespace
 
         cls.ProcessNamespace = process_namespace if cls_proc_ns is None else cls_proc_ns
-        cls.EngineFactory = factory_func
+        cls.EngineFactory = factory_func  # pyright: ignore[reportAttributeAccessIssue]
         cls.ProcessType = process_type
         cls.FixedParamClass = fixed_param_class  # TODO: hacked on as an afterthought
         cls.AddsMarks = adds_marks
@@ -93,10 +94,12 @@ def make_read_processor(
     process_namespace: str | None = None,
 ) -> Callable[[type[ReadAwareProcess]], type[ReadAwareProcess]]: ...
 
+
 def make_read_processor(
     *,
     tagger_param_class: type[FixedParams] | None,
-    read_modifier_func: Callable[[RunParams_T, FixedParams_T], None] | Callable[[RunParams_T, None], None],
+    read_modifier_func: Callable[[RunParams_T, FixedParams_T], None]
+    | Callable[[RunParams_T, None], None],
     adds_marks: Sequence[str],
     process_namespace: str | None = None,
 ) -> Callable[[type[ReadAwareProcess]], type[ReadAwareProcess]]:
@@ -118,7 +121,9 @@ def make_variant_flagger(
     def init_engine(params: FixedParams_T) -> ProcessEngineProtocol[RunParams, FlagResult]:
         return VariantFlaggerEngine(params, flagger_func, result_type)
 
-    return _create_generic_configure_deco(process_namespace, init_engine, ProcessKindEnum.FLAGGER, flagger_param_class)
+    return _create_generic_configure_deco(
+        process_namespace, init_engine, ProcessKindEnum.FLAGGER, flagger_param_class
+    )
 
 
 # NOTE: given this will only ever be created dynamically, it would be insane to use a class (as now) rather than an instance
