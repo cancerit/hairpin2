@@ -21,7 +21,6 @@ from hairpin2.utils.ref2seq import ref2querypos, ref_end_via_cigar
 # pyright: reportUnknownArgumentType = false
 
 
-
 class ReadTaggingFuncs:
     """
     Class collecting functions used by additive read tagging processes to add various tags to reads for subsequent filtering and analysis.

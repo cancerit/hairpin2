@@ -449,32 +449,33 @@ def hairpin2_cli(
     )
     out_head.add_line(f"##hairpin2_samples={vcf_sample_to_alignment_map.keys()}")
 
-    try:
-        vcf_out_handle = pysam.VariantFile(sys.stdout, "w", header=out_head)
-    except Exception as e:
-        logging.error(msg="failed to open VCF output, reporting: {}".format(e))
-        sys.exit(EXIT_FAILURE)
 
     # test records
-    prog_bar_counter = 0
+    prog_counter = 0
     for flagged_record in hairpin2(
         vcf_in_handle.fetch(), vcf_sample_to_alignment_map, configd, quiet
     ):
+        if prog_counter == 0:  # a little awkward, but error before dumping out the vcf header
+            try:
+                vcf_out_handle = pysam.VariantFile(sys.stdout, "w", header=out_head)
+            except Exception as e:
+                logging.error(msg="failed to open VCF output, reporting: {}".format(e))
+                sys.exit(EXIT_FAILURE)
         try:
-            _ = vcf_out_handle.write(flagged_record)
+            _ = vcf_out_handle.write(flagged_record)  # pyright: ignore[reportPossiblyUnboundVariable]
         except Exception as e:
             logging.error(msg="failed to write to vcf, reporting: {}".format(e))
             sys.exit(EXIT_FAILURE)
 
         if progress_bar:
-            if not prog_bar_counter % 100:
+            if not prog_counter % 100:
                 print(
                     f"\rchr: {flagged_record.chrom}, pos: {flagged_record.pos}",
                     end="",
                     flush=True,
                     file=sys.stderr,
                 )
-            prog_bar_counter += 1
+        prog_counter += 1
     else:  # after exhausting records, print a line break
         if progress_bar:
             print(file=sys.stderr)

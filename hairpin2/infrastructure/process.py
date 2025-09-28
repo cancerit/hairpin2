@@ -2,28 +2,30 @@
 
 from abc import ABC
 from collections.abc import Mapping
-from typing import Any, Callable, ClassVar, Protocol, runtime_checkable
+from typing import Any, Callable, ClassVar, Protocol
 from collections.abc import Sequence
 
 from hairpin2.infrastructure.process_engines import (
-    EngineResult_T,
+    OptEngineResult_T,
+    OptFixedParams_T,
     ProcessEngineProtocol,
-    ProcessTypeEnum,
+    ProcessKindEnum,
+    RunParams_T,
 )
-from hairpin2.infrastructure.process_params import RunParams
+from hairpin2.infrastructure.process_params import FixedParams, RunParams
 from hairpin2.infrastructure.structures import ExtendedRead, FlagResult, ReadView, read_has_mark
 
 
-@runtime_checkable
-class ReadAwareProcessProtocol(Protocol[EngineResult_T]):
+class ReadAwareProcessProtocol(Protocol[RunParams_T, OptFixedParams_T, OptEngineResult_T]):
     ProcessNamespace: ClassVar[str]
-    EngineFactory: ClassVar[Callable[[Mapping[str, Any]], ProcessEngineProtocol[Any]]]
-    ProcessType: ClassVar[ProcessTypeEnum]
+    EngineFactory: ClassVar[Callable[[Mapping[str, Any]], ProcessEngineProtocol[RunParams, FlagResult | None]]]
+    ProcessType: ClassVar[ProcessKindEnum]
+    FixedParamClass: ClassVar[type[FixedParams] | None]
     AddsMarks: ClassVar[set[str] | None]
 
     def __init__(
         self,
-        process_namespace_fixed_params: Mapping[str, Any],
+        engine_fixed_params: OptFixedParams_T,
         require_marks: Sequence[str],
         exclude_marks: Sequence[str],
     ): ...
@@ -35,29 +37,29 @@ class ReadAwareProcessProtocol(Protocol[EngineResult_T]):
     def exclude_marks(self) -> set[str]: ...
 
     @property
-    def fixed_params(self) -> Mapping[str, Any]: ...
+    def fixed_params(self) -> OptFixedParams_T: ...
 
     @property
-    def run_params(self) -> RunParams: ...
+    def run_params(self) -> RunParams_T: ...
 
     def reset(self) -> None: ...
 
     def __call__(
         self,
-        call_run_params: RunParams | None = None,
+        call_run_params: RunParams_T | None = None,
         *,
         _internal_switches: Sequence[str] | None = None,  # hidden dev options
-    ) -> EngineResult_T: ...
+    ) -> OptEngineResult_T: ...
 
 
 class ReadAwareProcess(ABC):
     ProcessNamespace: ClassVar[str | None] = None
-    EngineFactory: ClassVar[Callable[[Mapping[str, Any]], ProcessEngineProtocol[Any]] | None] = None
-    ProcessType: ClassVar[ProcessTypeEnum | None] = None
+    EngineFactory: ClassVar[Callable[[Any], ProcessEngineProtocol[Any, Any]] | None] = None
+    ProcessType: ClassVar[ProcessKindEnum | None] = None
+    FixedParamClass: ClassVar[type[FixedParams] | None]
     AddsMarks: ClassVar[set[str] | None] = (
-        None  # ok for now, but really I'd like this to be stored on the engine
+        None
     )
-    # TODO: update docstring
     __slots__: tuple[str, ...] = (
         "_param_map",
         "_var_params",
@@ -69,19 +71,21 @@ class ReadAwareProcess(ABC):
 
     def __init__(
         self,
-        process_namespace_fixed_params: Mapping[str, Any],
+        engine_fixed_params: FixedParams | None,
         require_marks: Sequence[str],
         exclude_marks: Sequence[str],
     ):
         cls = type(self)
         if any(x is None for x in (cls.ProcessNamespace, cls.EngineFactory, cls.ProcessType)):
             raise TypeError(
-                "Process not configured! Missing EngineFactory, ProcessNamespace, or ProcessType"
+                "Process not configured! Missing EngineFactory, ProcessNamespace, FixedParamClass, or ProcessType"
             )
-        if cls.ProcessType == ProcessTypeEnum.TAGGER and cls.AddsMarks is None:
+        if cls.ProcessType == ProcessKindEnum.TAGGER and cls.AddsMarks is None:
             raise TypeError("taggers must declare added marks")
 
-        self._param_map: Mapping[str, Any] = process_namespace_fixed_params
+        if cls.FixedParamClass and not isinstance(engine_fixed_params, cls.FixedParamClass):
+            raise ValueError
+        self._param_map: FixedParams | None = engine_fixed_params
         self._var_params: RunParams | None = None
         self._executed: bool = False
 
@@ -94,7 +98,7 @@ class ReadAwareProcess(ABC):
 
         # init engine
         assert cls.EngineFactory is not None  # type checker..., and refactor safeguard
-        self._engine: ProcessEngineProtocol[Any] = cls.EngineFactory(self.fixed_params)
+        self._engine: ProcessEngineProtocol[Any, Any] = cls.EngineFactory(self.fixed_params)
 
         if not isinstance(self._engine, ProcessEngineProtocol):
             raise RuntimeError(
@@ -104,14 +108,16 @@ class ReadAwareProcess(ABC):
     def __init_subclass__(
         cls,
         process_namespace: str | None = None,
-        engine_factory: Callable[[Mapping[str, Any]], ProcessEngineProtocol[Any]] | None = None,
-        process_type: ProcessTypeEnum | None = None,
+        engine_factory: Callable[[FixedParams], ProcessEngineProtocol[RunParams, FlagResult | None]] | None = None,
+        process_type: ProcessKindEnum | None = None,
+        fixed_param_class: type[FixedParams] | None = None,
         adds_marks: set[str] | None = None,
     ):
         cls.ProcessNamespace = process_namespace
         cls.EngineFactory = engine_factory
         cls.ProcessType = process_type
         cls.AddsMarks = adds_marks
+        cls.FixedParamClass = fixed_param_class
 
     # since marks are based only on presence
     # the lack of an exclude mark is enough to pass a check
@@ -155,7 +161,7 @@ class ReadAwareProcess(ABC):
         return self._exclude_marks
 
     @property
-    def fixed_params(self) -> Mapping[str, Any]:
+    def fixed_params(self) -> FixedParams | None:
         return self._param_map
 
     @property

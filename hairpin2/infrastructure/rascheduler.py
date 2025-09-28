@@ -1,21 +1,27 @@
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from typing import Any, Self, cast
 
-from hairpin2.infrastructure.process import ReadAwareProcess, ReadAwareProcessProtocol
-from hairpin2.infrastructure.process_engines import EngineResult_T, FlagResult_T, ProcessTypeEnum
-from hairpin2.infrastructure.process_params import RunParams
+from pydantic import ValidationError
+
+from hairpin2.infrastructure.process import  ReadAwareProcess, ReadAwareProcessProtocol
+from hairpin2.infrastructure.process_engines import ProcessKindEnum
+from hairpin2.infrastructure.process_params import FixedParams, RunParams
 from hairpin2.infrastructure.structures import FlagResult
+
+
+class ConfigError(Exception):
+    pass
 
 
 class RAExec:
     _mandate_excludes: bool
-    _taggers: tuple[ReadAwareProcessProtocol[None], ...]
-    _flaggers: tuple[ReadAwareProcessProtocol[FlagResult], ...]
+    _taggers: tuple[ReadAwareProcessProtocol[Any, Any, None], ...]
+    _flaggers: tuple[ReadAwareProcessProtocol[Any, Any, FlagResult], ...]
 
     def __init__(
         self,
-        taggers_in_order: Iterable[ReadAwareProcessProtocol[None]],
-        flaggers_in_order: Iterable[ReadAwareProcessProtocol[FlagResult_T]],
+        taggers_in_order: Iterable[ReadAwareProcessProtocol[Any, Any, None]],
+        flaggers_in_order: Iterable[ReadAwareProcessProtocol[Any, Any, FlagResult]],
         mandate_excludes: bool,
     ):
         self._mandate_excludes = mandate_excludes
@@ -42,52 +48,51 @@ class RAExec:
 
     @staticmethod
     def _partition_processes(
-        processes: Iterable[ReadAwareProcessProtocol[EngineResult_T]], raise_on_fail: bool = False
+        processes: Iterable[ReadAwareProcessProtocol[Any, Any, Any]], raise_on_fail: bool = False
     ) -> tuple[
         bool,
         tuple[
-            tuple[ReadAwareProcessProtocol[None], ...],
-            tuple[ReadAwareProcessProtocol[FlagResult], ...],
+            tuple[ReadAwareProcessProtocol[RunParams, FixedParams | None, None], ...],
+            tuple[ReadAwareProcessProtocol[RunParams, FixedParams | None, FlagResult], ...],
         ],
     ]:
-        flaggerl: list[ReadAwareProcessProtocol[FlagResult]] = []
-        taggerl: list[ReadAwareProcessProtocol[None]] = []
+        taggerl: list[ReadAwareProcessProtocol[RunParams, FixedParams | None, None]] = []
+        flaggerl: list[ReadAwareProcessProtocol[RunParams, FixedParams | None, FlagResult]] = []
         taggers_all_registered = False
         valid = True
         for proc in processes:
             match proc.ProcessType:
-                case ProcessTypeEnum.TAGGER:
+                case ProcessKindEnum.TAGGER:
                     if taggers_all_registered:
                         if raise_on_fail:
                             raise RuntimeError("tagger appeared in execution order after flagger")
                         valid = False
-                    taggerl.append(cast(ReadAwareProcessProtocol[None], proc))
-                case ProcessTypeEnum.FLAGGER:
+                    taggerl.append(cast(ReadAwareProcessProtocol[RunParams, FixedParams | None, None], proc))
+                case ProcessKindEnum.FLAGGER:
                     if not taggers_all_registered:
                         taggers_all_registered = True
-                    flaggerl.append(cast(ReadAwareProcessProtocol[FlagResult], proc))
+                    flaggerl.append(cast(ReadAwareProcessProtocol[RunParams, FixedParams, FlagResult], proc))
                 case _:
                     raise TypeError  # pyright: ignore[reportUnreachable]
         return valid, (tuple(taggerl), tuple(flaggerl))
 
     @staticmethod
     def check_namespacing_clashfree(
-        processes: Iterable[ReadAwareProcessProtocol[Any]]
-        | Iterable[type[ReadAwareProcessProtocol[Any]]],
+        processes: Iterable[ReadAwareProcessProtocol[RunParams, FixedParams | None, FlagResult | None]]
     ):
         nsl = [proc.ProcessNamespace for proc in processes]
         return len(nsl) == len(set(nsl))  # clashes if false
 
     @staticmethod
     def validate_exec(
-        processes: Iterable[ReadAwareProcessProtocol[EngineResult_T]],
+        processes: Iterable[ReadAwareProcessProtocol[Any, Any, Any]],
         mandate_excludes: bool,
         raise_on_fail: bool,
     ) -> tuple[
         bool,
         tuple[
-            tuple[ReadAwareProcessProtocol[None], ...],
-            tuple[ReadAwareProcessProtocol[FlagResult], ...],
+            tuple[ReadAwareProcessProtocol[Any, Any, None], ...],
+            tuple[ReadAwareProcessProtocol[Any, Any, FlagResult], ...],
         ],
     ]:
         valid, part_procs = RAExec._partition_processes(processes, raise_on_fail)
@@ -104,7 +109,7 @@ class RAExec:
     # make wrapped read register itself as marked in it's parent readview if there is one
     @staticmethod
     def validate_tagger_order(
-        processes: Iterable[ReadAwareProcessProtocol[None]],
+        processes: Iterable[ReadAwareProcessProtocol[Any, Any, None]],
         mandate_excludes: bool,
         raise_on_fail: bool = False,
     ) -> tuple[bool, set[str]]:
@@ -140,7 +145,7 @@ class RAExec:
 
     @staticmethod
     def validate_flagger_exec(
-        processes: Iterable[ReadAwareProcessProtocol[FlagResult]],
+        processes: Iterable[ReadAwareProcessProtocol[Any, Any, FlagResult]],
         tags_set: set[str],
         mandate_excludes: bool,
         raise_on_fail: bool = False,
@@ -161,65 +166,101 @@ class RAExec:
     def from_config(
         cls,
         configd: dict[str, Any],
-        proc_pool: Iterable[type[ReadAwareProcess]],
+        proc_pool: Iterable[type[ReadAwareProcessProtocol[Any, Any, Any]]],
     ) -> Self:
         """
         initialise read-aware executor from config dict.
-
-        currently fragile
 
         Args:
             configd (dict[str, Any]): Dictionary describing how processes should execute.
             proc_pool (Iterable[type[ReadAwareProcess]]): Iterable of process definitions which may be instatiated for a given run.
         """
-        if not all(isinstance(proc, ReadAwareProcessProtocol) for proc in proc_pool):
-            raise ValueError(
-                "One or more processes provided to proc_pool do not have the appropriate methods"
-            )
-        cast_proc_pool = cast(Iterable[type[ReadAwareProcessProtocol[Any]]], proc_pool)
+        for proc in proc_pool:
+            if not issubclass(proc, ReadAwareProcess):
+                raise TypeError(
+                    f"Process {proc} is not a concrete implementation (subclass) of abstract base class ReadAwareProcess"
+                )
+        cast_proc_pool = cast(Iterable[type[ReadAwareProcessProtocol[RunParams, FixedParams | None, FlagResult | None]]], proc_pool)
 
         const_config_keys = ["params", "exec"]
         if not set(const_config_keys) == configd.keys():
-            raise ValueError(
-                f"config does not have correct top-level keys, expected {const_config_keys}, recieved {list(configd.keys())}"
+            raise ConfigError(
+                f"Config does not have correct top-level keys, expected {const_config_keys}, recieved {list(configd.keys())}"
             )
 
-        excludes_opt = cast(bool, configd["exec"]["opts"]["mandate-excludes"])
+        try:
+            excludes_opt = cast(bool, configd["exec"]["opts"]["mandate-excludes"])
+        except KeyError:
+            raise ConfigError(
+                f"Config missing 'mandate-excludes' key from 'opts' section"
+            )
+        if not isinstance(excludes_opt, bool):
+            raise ConfigError(
+                f"Could not interpret 'mandate-excludes' key from 'opts' section as bool"
+            )
         paramd = cast(dict[str, Any], configd["params"])
         execd = cast(dict[str, Any], configd["exec"])
-        if not isinstance(excludes_opt, bool):
-            raise ValueError
-        if not isinstance(execd, dict):
-            raise ValueError
-        if not isinstance(paramd, dict):
-            raise ValueError
+        if not isinstance(execd, Mapping):
+            raise ConfigError(
+                f"Could not interpret 'exec' section - not a Mapping"
+            )
+        if not isinstance(paramd, Mapping):
+            raise ConfigError(
+                f"Could not interpret 'params' value - not a Mapping"
+            )
 
-        if not cls.check_namespacing_clashfree(cast_proc_pool):
-            raise ValueError("Processes with clashing namespaces")
+        if not cls.check_namespacing_clashfree(cast_proc_pool):  # pyright: ignore[reportArgumentType]
+            raise TypeError("Process pool with clashing namespaces")
 
         proc_nsd = {proc_type.ProcessNamespace: proc_type for proc_type in cast_proc_pool}
 
-        if not set(paramd.keys()).issubset(proc_nsd):
-            raise ValueError("config requesting unknown processes")
+        param_ns_set = set(paramd.keys())
+        exec_ns_set = set(execd.keys())
+        if unknown_proc_names := param_ns_set - set(proc_nsd.keys()):
+            raise ConfigError(f"Params config requesting unknown processes: {unknown_proc_names}")
+        if not param_ns_set.issubset(exec_ns_set):
+            raise ConfigError(f"Param config keys are not a subset of exec config keys. Param only: {param_ns_set - exec_ns_set}")
 
-        # TODO: if using pydantic doesn't engender end user having to necessarily define paramater dataclasses,
-        # then clearly need pydantic validated config dataclass (may suffice in the meantime anyway since this is hp2 not htsflow)
-        # config order defines execution order
-        ordered_proc_inst = tuple(
-            proc_nsd[proc_name](
-                paramd.get(proc_name, {}),
-                execd[proc_name]["require-marks"],
-                execd[proc_name]["exclude-marks"],
-            )
-            for proc_name in execd.keys()
-            if proc_name != "opts" and execd[proc_name]["enable"]
-        )
+        ordered_proc_inst: list[ReadAwareProcessProtocol[Any, Any, FlagResult | None]] = []
+        for proc_name in execd.keys():
+            if proc_name == 'opts':
+                continue
+            if not execd[proc_name]["enable"]:
+                continue
+            try:
+                req_marks =execd[proc_name]["require-marks"]
+            except KeyError:
+                raise ConfigError(f"Config missing key 'require-marks' for process {proc_name}")
+            try:
+                exc_marks = execd[proc_name]["exclude-marks"]
+            except KeyError:
+                raise ConfigError(f"Config missing key 'exclude-marks' for process {proc_name}")
+
+            proc_class = proc_nsd[proc_name]
+            proc_fixed_param_class = proc_class.FixedParamClass
+            proc_config_params = cast(dict[str, Any], paramd.get(proc_name, {}))  # TODO: isinstance
+
+            if proc_fixed_param_class is not None:
+                try:
+                    proc_fixed_params = proc_fixed_param_class(**proc_config_params)
+                except ValidationError as ex:
+                    errl = ex.errors()
+                    msg_nerr = f"{len(errl)} errors in params config for process {proc_name!r}:\n"
+                    msg_locl = ''
+                    for errd in errl:
+                        submsg = f"{errd['loc'][0]!r} - {errd['msg']}\n"
+                        msg_locl += submsg
+                    msg = msg_nerr + msg_locl
+                    raise ConfigError(msg)
+            else:
+                proc_fixed_params = None
+
+            ordered_proc_inst.append(proc_class(proc_fixed_params, req_marks, exc_marks))
 
         _, (taggers, flaggers) = cls.validate_exec(
             ordered_proc_inst, excludes_opt, raise_on_fail=True
         )
 
-        # this duplicates some of the above validation at the moment. Oh well.
         ra_ex = cls(taggers, flaggers, excludes_opt)
         return ra_ex
 

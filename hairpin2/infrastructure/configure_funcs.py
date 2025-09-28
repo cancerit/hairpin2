@@ -1,22 +1,24 @@
-from typing import Any, Callable, overload
-from collections.abc import Mapping, Sequence
+from typing import Callable, overload
+from collections.abc import Sequence
 from hairpin2.infrastructure.process import ReadAwareProcess
 from hairpin2.infrastructure.process_engines import (
     EngineResult_T,
     FixedParams_T,
-    FlagResult_T,
     ProcessEngineProtocol,
-    ProcessTypeEnum,
+    ProcessKindEnum,
     ReadTaggerEngine,
-    RunParams_contraT,
+    RunParams_T,
     VariantFlaggerEngine,
 )
+from hairpin2.infrastructure.process_params import FixedParams, RunParams
+from hairpin2.infrastructure.structures import FlagResult
 
 
 def _create_generic_configure_deco(
     process_namespace: str | None,
-    factory_func: Callable[[Mapping[str, Any]], ProcessEngineProtocol[EngineResult_T]],
-    process_type: ProcessTypeEnum,
+    factory_func: Callable[[FixedParams_T], ProcessEngineProtocol[RunParams_T, FlagResult | None]] | Callable[[None], ProcessEngineProtocol[RunParams_T, FlagResult | None]],
+    process_type: ProcessKindEnum,
+    fixed_param_class: type[FixedParams] | None,
     adds_marks: set[str] | None = None,
 ) -> Callable[[type[ReadAwareProcess]], type[ReadAwareProcess]]:
     def deco(cls: type[ReadAwareProcess]) -> type[ReadAwareProcess]:
@@ -54,6 +56,7 @@ def _create_generic_configure_deco(
         cls.ProcessNamespace = process_namespace if cls_proc_ns is None else cls_proc_ns
         cls.EngineFactory = factory_func
         cls.ProcessType = process_type
+        cls.FixedParamClass = fixed_param_class  # TODO: hacked on as an afterthought
         cls.AddsMarks = adds_marks
 
         # subclass_kwds['process_param_namespace'] = subclass_ns
@@ -77,50 +80,45 @@ def _create_generic_configure_deco(
 def make_read_processor(
     *,
     tagger_param_class: None,
-    read_modifier_func: Callable[[RunParams_contraT], None],
+    read_modifier_func: Callable[[RunParams_T, None], None],
     adds_marks: Sequence[str],
     process_namespace: str | None = None,
 ) -> Callable[[type[ReadAwareProcess]], type[ReadAwareProcess]]: ...
 @overload
 def make_read_processor(
     *,
-    tagger_param_class: type[FixedParams_T],
-    read_modifier_func: Callable[[RunParams_contraT, FixedParams_T], None],
+    tagger_param_class: type[FixedParams],
+    read_modifier_func: Callable[[RunParams_T, FixedParams_T], None],
     adds_marks: Sequence[str],
     process_namespace: str | None = None,
 ) -> Callable[[type[ReadAwareProcess]], type[ReadAwareProcess]]: ...
 
-
 def make_read_processor(
     *,
-    tagger_param_class: type[FixedParams_T] | None,
-    read_modifier_func: Callable[[RunParams_contraT, FixedParams_T], None]
-    | Callable[[RunParams_contraT], None],
+    tagger_param_class: type[FixedParams] | None,
+    read_modifier_func: Callable[[RunParams_T, FixedParams_T], None] | Callable[[RunParams_T, None], None],
     adds_marks: Sequence[str],
     process_namespace: str | None = None,
-    # adds_read_data  # TODO
-    # require_read_data  # TODO
 ) -> Callable[[type[ReadAwareProcess]], type[ReadAwareProcess]]:
-    def init_engine(params: Mapping[str, Any]):
-        return ReadTaggerEngine(params, tagger_param_class, read_modifier_func, adds_marks)
+    def init_engine(params: FixedParams_T | None) -> ProcessEngineProtocol[RunParams_T, None]:
+        return ReadTaggerEngine(params, read_modifier_func, adds_marks)
 
     return _create_generic_configure_deco(
-        process_namespace, init_engine, ProcessTypeEnum.TAGGER, set(adds_marks)
+        process_namespace, init_engine, ProcessKindEnum.TAGGER, tagger_param_class, set(adds_marks)
     )
 
 
 def make_variant_flagger(
     *,
     flagger_param_class: type[FixedParams_T],
-    flagger_func: Callable[[RunParams_contraT, FixedParams_T], FlagResult_T],
-    result_type: type[FlagResult_T],
+    flagger_func: Callable[[RunParams_T, FixedParams_T], EngineResult_T],
+    result_type: type[EngineResult_T],
     process_namespace: str | None = None,
-    # adds_record_data ...
-):
-    def init_engine(params: Mapping[str, Any]):
-        return VariantFlaggerEngine(params, flagger_param_class, flagger_func, result_type)
+) -> Callable[[type[ReadAwareProcess]], type[ReadAwareProcess]]:
+    def init_engine(params: FixedParams_T) -> ProcessEngineProtocol[RunParams, FlagResult]:
+        return VariantFlaggerEngine(params, flagger_func, result_type)
 
-    return _create_generic_configure_deco(process_namespace, init_engine, ProcessTypeEnum.FLAGGER)
+    return _create_generic_configure_deco(process_namespace, init_engine, ProcessKindEnum.FLAGGER, flagger_param_class)
 
 
 # NOTE: given this will only ever be created dynamically, it would be insane to use a class (as now) rather than an instance
