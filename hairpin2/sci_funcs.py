@@ -459,11 +459,11 @@ class AnomalousDistributionTest:
         record_start: int,  # VCF record start
         edge_definition: float,  # relative proportion, by percentage, of a read to be considered 'the edge'
         edge_clustering_threshold: float,  # percentage threshold
-        min_MAD_one_strand: int,  # exclusive (and subsequent params)
+        min_MAD_one_strand: float,  # exclusive (and subsequent params)
         min_sd_one_strand: float,
-        min_MAD_both_strand_weak: int,
+        min_MAD_both_strand_weak: float,
         min_sd_both_strand_weak: float,
-        min_MAD_both_strand_strong: int,
+        min_MAD_both_strand_strong: float,
         min_sd_both_strand_strong: float,
         low_n_supporting_reads_boundary: int,  # inclusive
         min_non_edge_reads: int,

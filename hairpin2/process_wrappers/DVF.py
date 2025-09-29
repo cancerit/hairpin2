@@ -22,10 +22,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 from dataclasses import dataclass
-from typing import override
+from typing import Annotated, override
+
+from pydantic import BeforeValidator
 
 from hairpin2.const import FlaggerNamespaces, TaggerNamespaces, Tags
 from hairpin2.infrastructure.configure_funcs import make_read_processor, make_variant_flagger
+from hairpin2.infrastructure.constraints import bound
 from hairpin2.infrastructure.process import ReadAwareProcess
 from hairpin2.infrastructure.process_params import FixedParams
 from hairpin2.infrastructure.structures import FlagResult
@@ -36,7 +39,9 @@ from hairpin2.sci_funcs import ProportionBasedTest, TagStutterDuplicateReads
 
 
 class FixedParamsDupmark(FixedParams):
-    duplication_window_size: int = 6  # -1 disables
+    duplication_window_size: Annotated[int, BeforeValidator(lambda x: bound(x, -1))] = (
+        6  # -1 disables
+    )
 
 
 def tag_dups(run_params: RunParamsShared, fixed_params: FixedParamsDupmark):
@@ -82,8 +87,8 @@ class FixedParamsDVF(FixedParams):
     min_pass_reads - the absolute mininum number of reads required for a variant not to be flagged DVF
     """
 
-    read_loss_threshold: float
-    min_pass_reads: int
+    read_loss_threshold: Annotated[float, BeforeValidator(lambda x: bound(x, 0.0, 1.0))]
+    min_pass_reads: Annotated[int, BeforeValidator(lambda x: bound(x, 0))]
     nsamples_threshold: int  # TODO: I'm not sure this param makes sense. I guess in a multi sample VCF it would imply less confidence in the call if only 1 sample reported duplication. But you'd still probably want to know about that sample? Discuss with Peter
 
 
