@@ -119,7 +119,7 @@ class RAExec:
         raise_on_fail: bool = False,
     ) -> tuple[bool, set[str]]:
         """
-        validate that the order of tagger processes as provided in the processses iterable can be run without error.
+        Validate that the order of tagger processes as provided in the processses iterable can be run without error.
         In pratice this means checking that at a minimum, all marks/tags listed in a given process as required (i.e.
         in require_marks) have been checked and applied by processes occuring prior in the run order.
 
@@ -176,7 +176,7 @@ class RAExec:
         ],
     ) -> Self:
         """
-        initialise read-aware executor from config dict.
+        Initialise read-aware executor from config dict.
 
         Args:
             configd (dict[str, Any]): Dictionary describing how processes should execute.
@@ -197,17 +197,17 @@ class RAExec:
         try:
             excludes_opt = cast(bool, configd["exec"]["opts"]["mandate-excludes"])
         except KeyError:
-            raise ConfigError(f"Config missing 'mandate-excludes' key from 'opts' section")
+            raise ConfigError("Config missing 'mandate-excludes' key from 'opts' section")
         if not isinstance(excludes_opt, bool):
             raise ConfigError(
-                f"Could not interpret 'mandate-excludes' key from 'opts' section as bool"
+                "Could not interpret 'mandate-excludes' key from 'opts' section as bool"
             )
         paramd = cast(dict[str, Any], configd["params"])
         execd = cast(dict[str, Any], configd["exec"])
         if not isinstance(execd, Mapping):
-            raise ConfigError(f"Could not interpret 'exec' section - not a Mapping")
+            raise ConfigError("Could not interpret 'exec' section - not a Mapping")
         if not isinstance(paramd, Mapping):
-            raise ConfigError(f"Could not interpret 'params' value - not a Mapping")
+            raise ConfigError("Could not interpret 'params' value - not a Mapping")
 
         if not cls.check_namespacing_clashfree(proc_pool):  # pyright: ignore[reportArgumentType]
             raise TypeError("Process pool with clashing namespaces")

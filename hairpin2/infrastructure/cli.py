@@ -24,20 +24,21 @@
 
 # pyright: reportImplicitStringConcatenation=false
 
-from collections.abc import Iterable
-from pathlib import Path
-import tomllib
-import pysam
-from hairpin2.VERSION import VERSION
-from hairpin2.process_wrappers.default_exec import DEFAULT_EXEC_CONFIG
-from hairpin2.main import hairpin2
-import logging
 import json
-from typing import Any, cast, override
+import logging
 import sys
-import click
+import tomllib
+from collections.abc import Iterable
 from dataclasses import dataclass, fields
+from pathlib import Path
+from typing import Any, cast, override
 
+import click
+import pysam
+
+from hairpin2.main import hairpin2
+from hairpin2.process_wrappers.default_exec import DEFAULT_EXEC_CONFIG
+from hairpin2.VERSION import VERSION
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s ¦ %(levelname)-8s ¦ %(message)s", datefmt="%I:%M:%S"
@@ -142,7 +143,7 @@ class ConfigFile(click.ParamType):
 # TODO: use input configd to overwrite/update a preset default configd so exec configuration is optional
 def resolve_config_dicts(ctx: Any, param: Any, values: Iterable[dict[str, Any]]):
     """
-    merge config files
+    Merge config files
     """
     # handle substitutions, merge
     # TODO: substitutions from vars, substitutions from cli flags
@@ -423,7 +424,7 @@ def hairpin2_cli(
         f'##FILTER=<ID=ALF,Description="Median alignment score of reads reporting variant less than {configd["params"]["ALF"]["avg_AS_threshold"]}">'  # TODO: move to result or flagger classes
     )
     out_head.add_line(
-        f'##FILTER=<ID=ADF,Description="Variant shows anomalous distribution in supporting reads">'
+        '##FILTER=<ID=ADF,Description="Variant shows anomalous distribution in supporting reads">'
     )
     out_head.add_line(
         f'##FILTER=<ID=DVF,Description="More than {configd["params"]["DVF"]["read_loss_threshold"]} of reads supporting this variant are considered PCR stutter duplicates">'

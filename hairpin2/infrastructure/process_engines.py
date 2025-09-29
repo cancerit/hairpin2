@@ -1,11 +1,10 @@
+import enum
 from abc import abstractmethod
 from collections.abc import Sequence
-import enum
 from typing import Callable, Protocol, TypeVar, runtime_checkable
 
 from hairpin2.infrastructure.process_params import FixedParams, RunParams
 from hairpin2.infrastructure.structures import FlagResult
-
 
 RunParams_T = TypeVar("RunParams_T", bound=RunParams)
 FixedParams_T = TypeVar("FixedParams_T", bound=FixedParams, covariant=True)

@@ -1,5 +1,6 @@
-from typing import Callable, overload
 from collections.abc import Sequence
+from typing import Callable, overload
+
 from hairpin2.infrastructure.process import ReadAwareProcess
 from hairpin2.infrastructure.process_engines import (
     EngineResult_T,

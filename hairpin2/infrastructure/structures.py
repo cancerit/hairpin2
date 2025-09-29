@@ -1,23 +1,23 @@
 from abc import ABC, abstractmethod
+from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from enum import Flag, StrEnum
-from pysam import AlignedSegment, VariantRecord
 from itertools import chain
-from collections.abc import Iterator, Sequence, Mapping
 from typing import (
-    ClassVar,
-    Protocol,
-    override,
+    TYPE_CHECKING,
     Any,
+    ClassVar,
     Generic,
     Literal,
+    Protocol,
     TypeVar,
     final,
     overload,
-    TYPE_CHECKING,
+    override,
     runtime_checkable,
 )
 
+from pysam import AlignedSegment, VariantRecord
 
 wrap_T = TypeVar("wrap_T")
 
@@ -84,7 +84,7 @@ class DataExtensionBase(ABC, Generic[wrap_T]):
         mark: str,
     ):
         """
-        record a truth tag on this object
+        Record a truth tag on this object
         """
         self.__tag_store.add(mark)
 
@@ -177,7 +177,7 @@ class ExtendedRead(  # pyright: ignore[reportUnsafeMultipleInheritance] - becaus
 
 def make_extended_read(read: AlignedSegment | ExtendedRead) -> ExtendedRead:
     """
-    free func and functional style so as to minimise pain points:
+    Free func and functional style so as to minimise pain points:
         - ease of converting from AlignedSegment to ExtendedRead, no-op if already extended
         -
     """
@@ -199,7 +199,7 @@ def mark_read(
     # write_to_segment: bool - TODO
 ) -> None:
     """
-    free func and functional style so as to minimise pain points:
+    Free func and functional style so as to minimise pain points:
         - since ExtendedRead uses method forwarding, type checker is unhelpful when using .method() style
         - can add behaviour on recieving unwrapped AlignedSegment rather than extended read
     """

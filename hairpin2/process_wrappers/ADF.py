@@ -22,14 +22,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 from dataclasses import dataclass
+from typing import override
+
+from hairpin2.const import FlaggerNamespaces, Strand
 from hairpin2.infrastructure.configure_funcs import make_variant_flagger
 from hairpin2.infrastructure.process import ReadAwareProcess
 from hairpin2.infrastructure.process_params import FixedParams
 from hairpin2.infrastructure.structures import FlagResult
-from hairpin2.const import FlaggerNamespaces, Strand
 from hairpin2.process_wrappers.shared import RunParamsShared
 from hairpin2.sci_funcs import AnomalousDistributionTest
-from typing import override
 
 
 @dataclass(frozen=True)

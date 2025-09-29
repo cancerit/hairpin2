@@ -38,13 +38,17 @@ def ref2querypos(
     return query_pos
 
 
+class CigarError(ValueError):
+    pass
+
+
 def ref_end_via_cigar(cig_str: str, ref_start: int) -> int:
     if (
         not cig_str[0].isdigit()
         or not all([(c.isalnum() or c == "=") for c in cig_str])
         or len(cig_str) < 2
     ):
-        raise ValueError("could not interpret cigar string {}".format(cig_str))
+        raise CigarError("could not interpret cigar string {}".format(cig_str))
     cig_l = []
     digit_accumulator: str = ""
     for char in cig_str:

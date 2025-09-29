@@ -18,4 +18,6 @@ Read the guide to get started!
 
    quickstart
    guide
+   tests
    hairpin2
+   changes

@@ -23,14 +23,14 @@
 # SOFTWARE.
 from dataclasses import dataclass
 from typing import override
+
+from hairpin2.const import FlaggerNamespaces, TaggerNamespaces, Tags
 from hairpin2.infrastructure.configure_funcs import make_read_processor, make_variant_flagger
 from hairpin2.infrastructure.process import ReadAwareProcess
 from hairpin2.infrastructure.process_params import FixedParams
 from hairpin2.infrastructure.structures import FlagResult
-from hairpin2.const import FlaggerNamespaces, Tags, TaggerNamespaces
 from hairpin2.process_wrappers.shared import RunParamsShared
-from hairpin2.sci_funcs import ReadTaggingFuncs, ProportionBasedTest
-
+from hairpin2.sci_funcs import ProportionBasedTest, TagStutterDuplicateReads
 
 # DUPMARK READ PROCESSOR
 
@@ -40,7 +40,7 @@ class FixedParamsDupmark(FixedParams):
 
 
 def tag_dups(run_params: RunParamsShared, fixed_params: FixedParamsDupmark):
-    ReadTaggingFuncs.check_stutter_duplicates(
+    TagStutterDuplicateReads.check_stutter_duplicates(
         run_params.reads.all, fixed_params.duplication_window_size
     )
 

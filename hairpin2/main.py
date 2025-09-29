@@ -24,18 +24,20 @@
 
 # pyright: reportImplicitStringConcatenation=false
 
-from collections.abc import Generator, Iterable, Mapping
-import pysam
-from hairpin2.infrastructure.rascheduler import RAExec
-from hairpin2.const import ValidNucleotides, MutTypes
-from hairpin2.process_wrappers.shared import RunParamsShared
-from hairpin2.process_wrappers.mark_overlap import TaggerOverlap
-from hairpin2.process_wrappers.mark_support import TaggerSupporting
-from hairpin2.infrastructure.structures import FlagResult, ReadView, TestOutcomes
-from hairpin2.process_wrappers import ADF, ALF, DVF, LQF
 import logging
+from collections.abc import Generator, Iterable, Mapping
 from itertools import tee
 from typing import Any
+
+import pysam
+
+from hairpin2.const import MutTypes, ValidNucleotides
+from hairpin2.infrastructure.rascheduler import RAExec
+from hairpin2.infrastructure.structures import FlagResult, ReadView, TestOutcomes
+from hairpin2.process_wrappers import ADF, ALF, DVF, LQF
+from hairpin2.process_wrappers.mark_overlap import TaggerOverlap
+from hairpin2.process_wrappers.mark_support import TaggerSupporting
+from hairpin2.process_wrappers.shared import RunParamsShared
 
 
 # NOTE: requires VariantFileHeader associated with variant records to have been initialised correctly for the output
@@ -49,7 +51,6 @@ def hairpin2(
     """
     read-aware artefactual variant flagging algorithms. Flag variants in VCF using statistics calculated from supporting reads found in ALIGNMENTS, and emit the flagged VCF to stdout.
     """
-
     # # test records
     proc_exec = RAExec.from_config(
         configd,

@@ -6,6 +6,7 @@
 
 from pydantic import BaseModel, ConfigDict
 from pysam import VariantRecord
+
 from hairpin2.infrastructure.structures import ExtendedRead, ReadView
 
 

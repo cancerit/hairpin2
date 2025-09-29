@@ -27,7 +27,7 @@ For an input VCF, `hairpin2` will iterate over the records therein and analyse e
 
 This section details each process and its relevant parameters (if any), in execution order. The connection/interdependence between steps is also described. The parameters are also shown in their relevant TOML table as written in a hairpin2 TOML config.
 
-For a more complete description of the internals (including some advanced options that hairpin2 provides), see [Advanced](#advanced).
+For a more complete description of the internals (including some advanced options that hairpin2 provides), see [Advanced Usage](#advanced usage).
 
 -----
 
@@ -91,13 +91,15 @@ low_n_supporting_reads_boundary = 1
 ```
 
 
-### Advanced
+### Advanced Usage
 
 #### Processes
 
 TBD
 
  A process in this context is an implementation of scientific/biological logic (see {py:mod}`hairpin2.sci_funcs`) wrapped with infrastructure so `hairpin2` can expose fixed parameters via the configs, validate and filter data for each process, and so on. Each process will take data per each iteration (reads, a variant record, associated calcuations) and fixed parameters (if needed). Fixed parameters simply indicates that the value is fixed for the duration of a hairpin2 run. In addition to the infrastructure concerns described, wrapping each scientific step in these processes makes it easier to reason about the flow of execution, surface the interdependence between steps, and allows for some more ....
-TBD
 
+#### Exec Config \[EXPERIMENTAL\]
+
+The exec config serves two purposes - to allow experimentation with process interdependence, and to highlight and surface implicit process independence
 

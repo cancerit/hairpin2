@@ -1,9 +1,8 @@
 # pyright: reportImplicitStringConcatenation=false
 
 from abc import ABC
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any, Callable, ClassVar, Protocol
-from collections.abc import Sequence
 
 from hairpin2.infrastructure.process_engines import (
     OptEngineResult_T,
@@ -137,7 +136,7 @@ class ReadAwareProcess(ABC):
     # conversely if you want to be strict make a require mark like HIGH-QUAL
     def require_properties_check(self, run_params: RunParams):
         """
-        filter reads prior to test
+        Filter reads prior to test
         """
         # TODO: global on-fail options: record/split offending reads to file, record/split variant to file, ignore, warn, fail
         # TODO: check primed first!
@@ -223,9 +222,8 @@ class ReadAwareProcess(ABC):
         _internal_switches: Sequence[str] | None = None,  # hidden dev options
     ) -> FlagResult | None:
         """
-        run prefilter, process reads
+        Run prefilter, process reads
         """
-
         switches = _internal_switches or []
         force = True if "force" in switches else False
         overwrite = True if "overwrite" in switches else False

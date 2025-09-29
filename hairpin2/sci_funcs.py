@@ -1,10 +1,11 @@
 from array import array
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from enum import Flag
 from statistics import mean, median, stdev
 from typing import Any, cast, final
-from collections.abc import Iterable, Sequence
 
+from hairpin2.const import MutTypes, Strand, Tags, ValidatorFlags
 from hairpin2.infrastructure.structures import (
     ExtendedRead,
     TestOutcomes,
@@ -12,23 +13,33 @@ from hairpin2.infrastructure.structures import (
     read_has_mark,
     record_operation,
 )
-from hairpin2.const import MutTypes, Strand, Tags, ValidatorFlags
-from hairpin2.utils.ref2seq import ref2querypos, ref_end_via_cigar
+from hairpin2.utils.ref2seq import CigarError, ref2querypos, ref_end_via_cigar
 
 # DEV: pysam has issues with its type hints, so:
 # pyright: reportUnknownVariableType = false
 # pyright: reportUnknownMemberType = false
 # pyright: reportUnknownArgumentType = false
+# TODO (DEV):
+# define a protocol for taggers
 
 
-class ReadTaggingFuncs:
+# TODO:
+# Make a global filter for those properties which all other processes need validated to function, excluding reads without those properties
+
+
+# SECTION --- functions/classes used by additive read tagging processes to add various tags to reads for subsequent filtering and analysis.
+
+
+# Used to tag reads as supporting a variant
+# This tag can then be used by other processes
+# to include/exclude reads with that tag from their analysis
+class TagSupportingReads:
     """
-    Class collecting functions used by additive read tagging processes to add various tags to reads for subsequent filtering and analysis.
+    pc8's Support Assessor
+
+    Confirm whether a read supports a variant, and optionally mark supporting reads.
     """
 
-    # Used to tag reads as supporting a variant
-    # This tag can then be used by other processes
-    # to include/exclude reads with that tag from their analysis
     @staticmethod
     def check_read_supporting(
         read: ExtendedRead,
@@ -38,11 +49,6 @@ class ReadTaggingFuncs:
         vcf_stop: int,
         mark: bool = True,
     ) -> bool:
-        """
-        pc8's Support Assessor
-
-        Confirm whether a read supports a variant, and optionally mark supporting reads.
-        """
         if mut_type not in MutTypes:
             raise ValueError(
                 f"Unsupported mutation type {mut_type} provided to mut_type argument - supports {MutTypes} only"
@@ -121,12 +127,20 @@ class ReadTaggingFuncs:
         record_operation(read, "mark-support")
         return support
 
-    # The result of this process is used to mark reads as low quality.
-    # This tag can then be used by other processes
-    # to include/exclude reads with that tag from their analysis.
-    # The fraction of reads tagged as low quality, or as duplicates
-    # by the duplicate marking function below, is used to call the
-    # LQF flag on variants
+
+# The result of this process is used to mark reads as low quality.
+# This tag can then be used by other processes
+# to include/exclude reads with that tag from their analysis.
+# The fraction of reads tagged as low quality, or as duplicates
+# by the duplicate marking function below, is used to call the
+# LQF flag on variants
+class TagLowQualReads:
+    """
+    pc8's Quality Assessor
+
+    Determine if a read is of low quality, and optionally mark low quality reads.
+    """
+
     @staticmethod
     def check_low_qual_read(
         read: ExtendedRead,
@@ -138,11 +152,6 @@ class ReadTaggingFuncs:
         min_clipqual: int,
         mark: bool = True,
     ) -> bool:
-        """
-        pc8's Quality Assessor
-
-        Determine if a read is of low quality, and optionally mark low quality reads.
-        """
         qual_flag = ValidatorFlags.CLEAR  # 0 - evaluates false
 
         if not (read.flag & 0x2) or read.flag & 0xE00:
@@ -185,21 +194,25 @@ class ReadTaggingFuncs:
         record_operation(read, "mark-low-qual")
         return low_qual
 
-    # Used to tag reads as an overlapping mate.
-    # This tag can then be used by other processes
-    # to include/exclude reads with that tag from their analysis
+
+# Used to tag reads as an overlapping mate.
+# This tag can then be used by other processes
+# to include/exclude reads with that tag from their analysis
+class TagFragmentOverlapReads:
+    """
+    pc8's Overlap Assessor
+
+    Determine if a read is an overlapping mate for this position, and optionally mark overlapping mates.
+    """
+
     @staticmethod
     def check_fragment_overlap(read: ExtendedRead, vcf_start: int, mark: bool = True):
-        """
-        pc8's Overlap Assessor
-
-        Determine if a read is an overlapping mate for this position, and optionally mark overlapping mates.
-        """
         overlap = False
 
         mate_cig = str(read.get_tag("MC"))  # will error if no tag
 
         # NOTE: introduces strand bias!!
+        # NOTE: does not check if overlapping member supports variant!
         if read.flag & 0x80:  # if second in pair
             read_range = range(
                 read.reference_start,
@@ -219,70 +232,110 @@ class ReadTaggingFuncs:
 
         return overlap
 
-    # The result of this process is used to mark reads as duplicates.
-    # This tag can then be used by other processes
-    # to include/exclude reads with that tag from their analysis.
-    # The fraction of reads tagged as duplicates by this process is
-    # used to assess a variant for the DVF flag
-    # and, partly (with the low quality tag), the LQF flag
-    @staticmethod
-    def check_stutter_duplicates(reads: Iterable[ExtendedRead], duplication_window_size: int = 6):
-        """
-        pc8's Stutter Duplicates Assessor
 
-        Tag hidden duplicate reads which have shifted endpoints due to PCR stutter (hence evading normal dupmarking).
-        """
+# The result of this process is used to mark reads as duplicates.
+# This tag can then be used by other processes
+# to include/exclude reads with that tag from their analysis.
+# The fraction of reads tagged as duplicates by this process is
+# used to assess a variant for the DVF flag
+# and, partly (with the low quality tag), the LQF flag
+class TagStutterDuplicateReads:
+    """
+    pc8's Stutter Duplicates Assessor
+
+    Tag hidden duplicate reads which have shifted endpoints due to PCR stutter (hence evading normal dupmarking).
+    """
+
+    @dataclass
+    class FragmentEndpoints:
+        read: ExtendedRead
+        endpoints: tuple[int, int, int, int]
+
+    @classmethod
+    def check_stutter_duplicates(
+        cls, reads: Iterable[ExtendedRead], duplication_window_size: int = 6
+    ):
         if not reads:
             return
 
         # prep data
-        sample_pair_endpoints: list[tuple[ExtendedRead, tuple[int, int, int, int]]] = []
+        endpointsl = []
         for read in reads:
-            record_operation(read, "mark-duplicates")
-            next_ref_end = ref_end_via_cigar(str(read.get_tag("MC")), read.next_reference_start)
+            try:
+                mate_cig = read.get_tag("MC")
+                next_ref_end = ref_end_via_cigar(str(mate_cig), read.next_reference_start)
+            except (KeyError, CigarError):
+                continue
+            if read.reference_end is None:
+                continue
+
             pair_endpoints: tuple[int, int, int, int] = cast(
                 tuple[int, int, int, int],
                 tuple(
                     sorted(
                         [
                             read.reference_start,
-                            cast(int, read.reference_end),
+                            read.reference_end,
                             read.next_reference_start,
                             next_ref_end,
                         ]
                     )
                 ),
             )
-            sample_pair_endpoints.append((read, pair_endpoints))
-            # record_operation(read, 'mark-duplicates')
-        sample_pair_endpoints = sorted(sample_pair_endpoints, key=lambda x: x[1][0])
+            endpointsl.append(cls.FragmentEndpoints(read, pair_endpoints))
+        endpointsl = sorted(endpointsl, key=lambda x: x.endpoints[0])
 
         # test data
-        # NOTE: ideally keep highest quality read from dups, not currently done
         # NOTE: do you want to only look at supporting reads for this dupmarking? Discuss
+        # setup test
+        init_case = endpointsl.pop(0)
         dup_endpoint_comparison_pool: list[tuple[int, int, int, int]] = []
-        dup_endpoint_comparison_pool.append(sample_pair_endpoints[0][1])  # endpoints
-        for i in range(1, len(sample_pair_endpoints)):
-            read = sample_pair_endpoints[i][0]
-            testing_endpoints: tuple[int, int, int, int] = sample_pair_endpoints[i][1]
+        dup_endpoint_comparison_pool.append(init_case.endpoints)
+        dup_read_pool: list[ExtendedRead] = [init_case.read]
+        record_operation(init_case.read, "mark-duplicates")
+
+        for i in range(len(endpointsl)):
+            read = endpointsl[i].read
+            testing_endpoints = endpointsl[i].endpoints
+
             max_diff_per_comparison: list[int] = []
             for comparison_endpoints in dup_endpoint_comparison_pool:
-                endpoint_diffs: tuple[int, int, int, int] = cast(
-                    tuple[int, int, int, int],
-                    tuple([abs(x - y) for x, y in zip(comparison_endpoints, testing_endpoints)]),
-                )
-                assert len(endpoint_diffs) == 4  # sanity check
+                endpoint_diffs: list[int] = [
+                    abs(x - y) for x, y in zip(comparison_endpoints, testing_endpoints)
+                ]
+                # assert len(endpoint_diffs) == 4  # sanity check - commented out but left in as a hint
                 max_diff_per_comparison.append(max(endpoint_diffs))
+
             if all([x <= duplication_window_size for x in max_diff_per_comparison]):
                 # then the read pair being examined is a duplicate of the others in the pool
                 dup_endpoint_comparison_pool.append(
                     testing_endpoints
-                )  # add it to the comparison pool
-                mark_read(read, Tags.STUTTER_DUP_TAG)
+                )  # add the endpoints to the comparison pool
+                dup_read_pool.append(read)  # add the read to the dup list
             else:
+                assert len(dup_endpoint_comparison_pool) == len(dup_read_pool)
+
                 # read at i is not dup of reads in dup_endpoint_test_pool
                 # start again, test read at i against reads subsequent from i in ends_sorted
+                # NOTE: this means reads found after are not tested against previous duplicate groups...
+                if len(dup_read_pool) > 1:
+                    dup_read_pool.sort(
+                        key=lambda x: mean(x.query_qualities)
+                    )  # type checker believes there is an error here. I have not silenced it because in principle it is correct, however it is pysam's responsibility as it is a failing in their library typing.
+                    _ = dup_read_pool.pop()  # pop the highest quality
+                    for read in dup_read_pool:
+                        mark_read(read, Tags.STUTTER_DUP_TAG)  # mark the others
+
+                # reset the pools
+                dup_read_pool = [read]
                 dup_endpoint_comparison_pool = [testing_endpoints]
+            record_operation(read, "mark-duplicates")
+
+
+# END SECTION --- read tagging functions/classes
+
+
+# SECTION --- read-aware variant flagging tests
 
 
 @final
@@ -630,3 +683,6 @@ class ProportionBasedTest:
             result = cls.ResultPack(outcome, info_bits, loss_ratio)
 
         return result
+
+
+# END SECTION --- Variant Testing

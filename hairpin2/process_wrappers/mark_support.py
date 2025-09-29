@@ -1,8 +1,8 @@
+from hairpin2.const import TaggerNamespaces, Tags
 from hairpin2.infrastructure.configure_funcs import make_read_processor
 from hairpin2.infrastructure.process import ReadAwareProcess
 from hairpin2.process_wrappers.shared import RunParamsShared
-from hairpin2.const import Tags, TaggerNamespaces
-from hairpin2.sci_funcs import ReadTaggingFuncs
+from hairpin2.sci_funcs import TagSupportingReads
 
 
 def tag_supporting(
@@ -10,7 +10,7 @@ def tag_supporting(
     fixed_params: None,  # pyright: ignore[reportUnusedParameter]
 ):
     for read in run_params.reads.all:
-        _ = ReadTaggingFuncs.check_read_supporting(
+        _ = TagSupportingReads.check_read_supporting(
             read,
             run_params.mut_type,
             run_params.alt,

@@ -82,4 +82,5 @@ reportAny = false
 reportExplicitAny = false
 reportUnnecessaryIsInstance = false
 reportUnnecessaryComparison = false
+reportUnknownLambdaType = false
 
