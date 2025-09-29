@@ -21,62 +21,56 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from hairpin2.filters import ALF
-import pysam
 import copy
 
+import pysam
+
+from hairpin2.infrastructure.structures import ExtendedRead, TestOutcomes
+from hairpin2.sci_funcs import AlignmentScoreTest
 
 # perfect read pair:
 r = pysam.AlignedSegment()
-r.query_name = 'read1'
-r.query_sequence = 'CTGDAAAACC' * 10
-r.query_qualities = pysam.qualitystring_to_array('AAAAAAAAAA' * 10)
+r.query_name = "read1"
+r.query_sequence = "CTGDAAAACC" * 10
+r.query_qualities = pysam.qualitystring_to_array("AAAAAAAAAA" * 10)
 r.flag = 0x43
 r.reference_id = 0
 r.reference_start = 100
 r.next_reference_start = 100
 r.mapping_quality = 20
-r.cigarstring = '100M'
-r.set_tag('MC', '100M')
+r.cigarstring = "100M"
+r.set_tag("MC", "100M")
+extr = ExtendedRead(r)
 
 
 def test_low_AS():
-    al = ALF.Flagger(fixed_params=ALF.FixedParams())
-    s1r1 = copy.deepcopy(r)  # no AS, cover except KeyError
-    s1r2 = copy.deepcopy(r)
-    s1r2.set_tag('AS', 50)  # low AS
-    readsin = [s1r1, s1r2]
-    readsout, result = al.test('_', readsin)
-    assert result.flag == True
-    assert result.code == ALF.ALCodes.ON_THRESHOLD
-    assert readsin == readsout
+    testr = copy.deepcopy(extr)
+    testr.set_tag("AS", 50)  # low AS
+    readsin = [testr, testr]
+    result = AlignmentScoreTest.test_variant_reads(readsin, 0.93)
+    assert result.outcome == TestOutcomes.VARIANT_FAIL
+    assert result.reason & AlignmentScoreTest.ResultPack.Info.ON_THRESHOLD
 
 
 def test_high_AS():
-    al = ALF.Flagger(fixed_params=ALF.FixedParams())
-    s1r1 = copy.deepcopy(r)
-    s1r1.set_tag('AS', 99)  # high AS
-    readsin = [s1r1]
-    readsout, result = al.test('_', readsin)
-    assert result.flag == False
-    assert result.code == ALF.ALCodes.ON_THRESHOLD
-    assert readsin == readsout
+    testr = copy.deepcopy(extr)
+    testr.set_tag("AS", 99)  # low AS
+    readsin = [testr, testr]
+    result = AlignmentScoreTest.test_variant_reads(readsin, 0.93)
+    assert result.outcome == TestOutcomes.VARIANT_PASS
+    assert result.reason & AlignmentScoreTest.ResultPack.Info.ON_THRESHOLD
 
 
 def test_insufficient_AS():
-    al = ALF.Flagger(fixed_params=ALF.FixedParams())
-    s1r1 = copy.deepcopy(r)
-    readsin = [s1r1]
-    readsout, result = al.test('_', readsin)
-    assert result.flag == None
-    assert result.code == ALF.ALCodes.INSUFFICIENT_AS_TAGS
-    assert readsin == readsout
+    testr = copy.deepcopy(extr)
+    readsin = [testr, testr]
+    result = AlignmentScoreTest.test_variant_reads(readsin, 0.93)
+    assert result.outcome == TestOutcomes.NA
+    assert result.reason & AlignmentScoreTest.ResultPack.Info.INSUFFICIENT_AS_TAGS
 
 
 def test_insufficient_reads():
-    al = ALF.Flagger(fixed_params=ALF.FixedParams())
     readsin = []
-    readsout, result = al.test('_', [])
-    assert result.flag == None
-    assert result.code == ALF.ALCodes.INSUFFICIENT_READS
-    assert readsin == readsout
+    result = AlignmentScoreTest.test_variant_reads(readsin, 0.93)
+    assert result.outcome == TestOutcomes.NA
+    assert result.reason & AlignmentScoreTest.ResultPack.Info.INSUFFICIENT_READS

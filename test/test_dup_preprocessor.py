@@ -22,46 +22,47 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 from copy import deepcopy
-from typing import cast
-from pysam import AlignedSegment, qualitystring_to_array
-# TODO: user should only need to import one thing!
-from hairpin2.read_preprocessors.dupmark import DupmarkPreprocessor, PrefilterParamsDupmark, FixedParamsDupmark, RunParamsDupmark
-from hairpin2.structures import ReadView
-from test.helpers import unsafe_construct_params
 
+# TODO: user should only need to import one thing!
+from hairpin2.read_preprocessors.dupmark import (
+    DupmarkPreprocessor,
+    FixedParamsDupmark,
+    PrefilterParamsDupmark,
+    RunParamsDupmark,
+)
+from hairpin2.structures import ReadView
+from pysam import AlignedSegment, qualitystring_to_array
+
+from test.helpers import unsafe_construct_params
 
 # perfect read pair:
 r = AlignedSegment()
-r.query_name = 'read1'
-r.query_sequence = 'CTGDAAAACC' * 10
-r.query_qualities = qualitystring_to_array('AAAAAAAAAA' * 10)
+r.query_name = "read1"
+r.query_sequence = "CTGDAAAACC" * 10
+r.query_qualities = qualitystring_to_array("AAAAAAAAAA" * 10)
 r.flag = 0x43
 r.reference_id = 0
 r.reference_start = 100
 r.next_reference_start = 100
 r.mapping_quality = 20
-r.cigarstring = '100M'
-r.set_tag('MC', '100M')
+r.cigarstring = "100M"
+r.set_tag("MC", "100M")
 
 
 def test_path_insufficient_reads():
-    reads = ReadView({'_': []})
-    assert sum(rd.has_tag('zD') for rd in reads.all) == 0
+    reads = ReadView({"_": []})
+    assert sum(rd.has_tag("zD") for rd in reads.all) == 0
 
     # TODO: make default window size more available
     dp = DupmarkPreprocessor(
-        prefilter_params=PrefilterParamsDupmark(
-            min_mapq=0,
-            min_avg_clipq=0,
-            min_baseq=0
-        ),
-        fixed_params=FixedParamsDupmark(duplication_window_size=6)
+        prefilter_params=PrefilterParamsDupmark(min_mapq=0, min_avg_clipq=0, min_baseq=0),
+        fixed_params=FixedParamsDupmark(duplication_window_size=6),
     )
     dp._var_params = unsafe_construct_params(RunParamsDupmark, reads=reads)
 
     dp.process()
 
-    assert sum(rd.has_tag('zD') for rd in reads.all) == 0
+    assert sum(rd.has_tag("zD") for rd in reads.all) == 0
 
 
 def test_path_duplication():
@@ -72,23 +73,19 @@ def test_path_duplication():
     rnondup.next_reference_start -= boundary_wobble
     # reads = [r, rdup, rnondup]
 
-    reads = ReadView({'_': [r, rdup, rnondup]})
-    assert sum(rd.has_tag('zD') for rd in reads.all) == 0
+    reads = ReadView({"_": [r, rdup, rnondup]})
+    assert sum(rd.has_tag("zD") for rd in reads.all) == 0
 
     dp = DupmarkPreprocessor(
-        prefilter_params=PrefilterParamsDupmark(
-            min_mapq=0,
-            min_avg_clipq=0,
-            min_baseq=0
-        ),
-        fixed_params=FixedParamsDupmark(duplication_window_size=boundary_wobble-1)
+        prefilter_params=PrefilterParamsDupmark(min_mapq=0, min_avg_clipq=0, min_baseq=0),
+        fixed_params=FixedParamsDupmark(duplication_window_size=boundary_wobble - 1),
     )
     dp._var_params = unsafe_construct_params(RunParamsDupmark, reads=reads)
 
     dp.process()
 
     # _mark_stutter_dups(reads, boundary_wobble-1)  # TODO: check id in here!
-    assert sum(rd.has_tag('zD') for rd in reads.all) == 1
+    assert sum(rd.has_tag("zD") for rd in reads.all) == 1
 
 
 # test parameters behave as intended
@@ -101,35 +98,26 @@ def test_check_window():
     r1.reference_start -= boundary_wobble
     r1.next_reference_start -= boundary_wobble
 
-    reads = ReadView({'_': [deepcopy(r), deepcopy(r1)]})
-    assert sum(rd.has_tag('zD') for rd in reads.all) == 0
+    reads = ReadView({"_": [deepcopy(r), deepcopy(r1)]})
+    assert sum(rd.has_tag("zD") for rd in reads.all) == 0
 
     dp = DupmarkPreprocessor(
-        prefilter_params=PrefilterParamsDupmark(
-            min_mapq=0,
-            min_avg_clipq=0,
-            min_baseq=0
-        ),
-        fixed_params=FixedParamsDupmark(duplication_window_size=boundary_wobble-1)
+        prefilter_params=PrefilterParamsDupmark(min_mapq=0, min_avg_clipq=0, min_baseq=0),
+        fixed_params=FixedParamsDupmark(duplication_window_size=boundary_wobble - 1),
     )
     dp._var_params = unsafe_construct_params(RunParamsDupmark, reads=reads)
 
     dp.process()
-    assert sum(rd.has_tag('zD') for rd in reads.all) == 0
+    assert sum(rd.has_tag("zD") for rd in reads.all) == 0
 
-    reads = ReadView({'_': [deepcopy(r), deepcopy(r1)]})
-    assert sum(rd.has_tag('zD') for rd in reads.all) == 0
+    reads = ReadView({"_": [deepcopy(r), deepcopy(r1)]})
+    assert sum(rd.has_tag("zD") for rd in reads.all) == 0
 
     dp = DupmarkPreprocessor(
-        prefilter_params=PrefilterParamsDupmark(
-            min_mapq=0,
-            min_avg_clipq=0,
-            min_baseq=0
-        ),
-        fixed_params=FixedParamsDupmark(duplication_window_size=boundary_wobble)
+        prefilter_params=PrefilterParamsDupmark(min_mapq=0, min_avg_clipq=0, min_baseq=0),
+        fixed_params=FixedParamsDupmark(duplication_window_size=boundary_wobble),
     )
     dp._var_params = unsafe_construct_params(RunParamsDupmark, reads=reads)
 
     dp.process()
-    assert sum(rd.has_tag('zD') for rd in reads.all) == 1
-
+    assert sum(rd.has_tag("zD") for rd in reads.all) == 1

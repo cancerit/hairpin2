@@ -230,8 +230,19 @@ A test suite has been provided with the algorithm implementation. To run these t
 - further boundary condition testing
 - improve documentation - describe flags in individual sections, beyond replicating helptext
 - switch entirely to fstrings from .format()
-- disscussions to be had on multisample VCF support
+- disscussions to be had on multisample VCF support, and multiallelic variant support
 
+
+
+### AUTHORS
+
+`hairpin2` is chiefly the work of:
+
+    Alex Byrne - [blex.bio](blex.bio) - Lead Developer/Contact  
+    Anh Phuong Le - [GitHub](https://github.com/Phuong-Le)  
+    Peter Campbell - [Quotient Therapeutics](https://quotient-tx.com/team/peter-campbell)
+
+Thanks go to all other contributors, and members of the CASM faculty at the Wellcome Sanger Institute for their scientific input.
 
 ### LICENCE
 ```

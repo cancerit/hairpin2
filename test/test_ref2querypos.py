@@ -21,23 +21,23 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from hairpin2.ref2seq import ref2querypos
-from pytest import raises
 import pysam
+from pytest import raises
 
+from hairpin2.utils.ref2seq import ref2querypos
 
 # perfect read pair:
 r = pysam.AlignedSegment()
-r.query_name = 'read1'
-r.query_sequence = 'CTGDAAAACC'
-r.query_qualities = pysam.qualitystring_to_array('AAAAAAAAAA')
+r.query_name = "read1"
+r.query_sequence = "CTGDAAAACC"
+r.query_qualities = pysam.qualitystring_to_array("AAAAAAAAAA")
 r.flag = 0x43
 r.reference_id = 0
 r.reference_start = 95
 r.next_reference_start = 95
 r.mapping_quality = 20
-r.cigarstring = '10M'
-r.set_tag('MC', '10M')
+r.cigarstring = "10M"
+r.set_tag("MC", "10M")
 
 
 def test_path_error():
