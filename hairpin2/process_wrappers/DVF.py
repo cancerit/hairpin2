@@ -35,13 +35,12 @@ from hairpin2.infrastructure.structures import FlagResult
 from hairpin2.process_wrappers.shared import RunParamsShared
 from hairpin2.sci_funcs import ProportionBasedTest, TagStutterDuplicateReads
 
+
 # DUPMARK READ PROCESSOR
 
-
 class FixedParamsDupmark(FixedParams):
-    duplication_window_size: Annotated[int, BeforeValidator(lambda x: bound(x, -1))] = (
-        6  # -1 disables
-    )
+    # -1 disables
+    duplication_window_size: Annotated[int, BeforeValidator(lambda x: bound(x, -1))] = 6
 
 
 def tag_dups(run_params: RunParamsShared, fixed_params: FixedParamsDupmark):
@@ -86,7 +85,6 @@ class FixedParamsDVF(FixedParams):
     read_loss_threshold - percent threshold of N lq reads compared to N input reads for a given variant and sample, above which we flag DVF
     min_pass_reads - the absolute mininum number of reads required for a variant not to be flagged DVF
     """
-
     read_loss_threshold: Annotated[float, BeforeValidator(lambda x: bound(x, 0.0, 1.0))]
     min_pass_reads: Annotated[int, BeforeValidator(lambda x: bound(x, 0))]
     nsamples_threshold: int  # TODO: I'm not sure this param makes sense. I guess in a multi sample VCF it would imply less confidence in the call if only 1 sample reported duplication. But you'd still probably want to know about that sample? Discuss with Peter

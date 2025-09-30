@@ -13,9 +13,9 @@ Given a VCF, and alignment files for the relevant samples of that VCF, `hairpin2
 <br>
 - `ALF`; The `ALF` flag indicates variants which are supported by reads with poor signal-to-noise, per the alignment score. It is complementary to the `ADF` flag – artefacts with anomalous distributions often cause a marked decrease in alignment score. See {py:class}`~hairpin2.sci_funcs.AlignmentScoreTest`  
 <br>
-- `DVF`; The `DVF` flag uses a relatively naive but effective algorithm for detecting variants which are the result of PCR error. The reasoning is as follows: In regions of low complexity, homopolymer tracts and secondary structure can cause PCR stuttering. PCR stuttering can lead to, for example, an erroneous additional A on the read when amplifying a tract of As. If duplicated reads contain stutter, this can lead to variation of read length and alignment to reference between reads that are in fact duplicates. Because of this, these duplicates both evade dupmarking and give rise to spurious variants when calling. The `DVF` flag attempts to catch these variants by examining the regularity of the start and end coordinates of collections of supporting reads and their mates. See {py:meth}`~hairpin2.sci_funcs.ReadTaggingFuncs.check_stutter_duplicates` and {py:class}`~hairpin2.sci_funcs.ProportionBasedTest` for more info and implementation details.  
+- `DVF`; The `DVF` flag uses a relatively naive but effective algorithm for detecting variants which are the result of PCR error. The reasoning is as follows: In regions of low complexity, homopolymer tracts and secondary structure can cause PCR stuttering. PCR stuttering can lead to, for example, an erroneous additional A on the read when amplifying a tract of As. If duplicated reads contain stutter, this can lead to variation of read length and alignment to reference between reads that are in fact duplicates. Because of this, these duplicates both evade dupmarking and give rise to spurious variants when calling. The `DVF` flag attempts to catch these variants by examining the regularity of the start and end coordinates of collections of supporting reads and their mates. See {py:class}`~hairpin2.sci_funcs.TagStutterDuplicateReads` and {py:class}`~hairpin2.sci_funcs.ProportionBasedTest` for more info and implementation details.  
 <br>
-- `LQF`; The `LQF` flag is a superset of the `DVF` flag - it tests whether a read is largely supported by both low quality reads as determined by {py:meth}`~hairpin2.sci_funcs.ReadTaggingFuncs.check_low_qual_read` and {py:meth}`~hairpin2.sci_funcs.ReadTaggingFuncs.check_stutter_duplicates`, i.e. stutter duplicate reads are also considered low quality. Note that because the parameters for each `LQF` and `DVF` are independent, you can indepedently set the sensitivity of each - so the result of LQF is not necessarily a complete overlap with DVF (and usually is not).  
+- `LQF`; The `LQF` flag is a superset of the `DVF` flag - it tests whether a read is largely supported by both low quality reads as determined by {py:class}`~hairpin2.TagLowQualReads` and {py:class}`~hairpin2.sci_funcs.TagStutterDuplicateReads`, i.e. stutter duplicate reads are also considered low quality. Note that because the parameters for each `LQF` and `DVF` are independent, you can indepedently set the sensitivity of each - so the result of LQF is not necessarily a complete overlap with DVF (and usually is not).  
 
 
 All flags are tunable such that their parameters can be configured to a variety of use cases and sequencing methods.
@@ -31,13 +31,23 @@ For a more complete description of the internals (including some advanced option
 
 -----
 
+For each variant examined, `haripin2` determines the mutation type (SUB, INS, DEL), fetches all reads covering the mutant position from the alignments, and then walks through the following steps. Note that tags applied to reads are internal, and are not written back to the alignment file.
+
 #### mark-support
 
-mark-support takes no parameters. This process uses {py:meth}`~hairpin2.sci_funcs.ReadTaggingFuncs.check_read_supporting` to tag reads as supporting the variant in question.
+mark-support takes no parameters. This process uses {py:class}`~hairpin2.sci_funcs.TagSupportingReads` to tag supporting reads for the variant in question.
+
+Reads found to support the variant are marked with the tag "SUPPORTS-VAR"
+
+mark-support has no dependence on other steps
 
 #### mark-overlap
 
-mark-overlap takes no parameters. This process uses {py:meth}`~hairpin2.sci_funcs.ReadTaggingFuncs.check_fragment_overlap` to tag overlapping second members of fragments (read pairs)
+mark-overlap takes no parameters. This process uses {py:class}`~hairpin2.sci_funcs.TagFragmentOverlapReads` to tag overlapping members of fragments (read pairs).
+
+The second read found for a given qname is marked with the tag "IS-OVERLAPPING-READ2"
+
+mark-overlap only operates on reads marked with "SUPPORTS-VAR" - i.e. those that supporting the variant. As such, "IS-OVERLAPPING-READ2" is only applied to read2 of an overlapping pair which supports the variant
 
 #### mark-low-qual
 ```
@@ -47,11 +57,31 @@ min_mapping_quality = 11
 min_base_quality = 25
 ```
 
+mark-low-qual uses {py:class}`~hairpin2.sci_funcs.TagLowQualReads` to mark reads that fail quality assessment.
+`min_avg_clip_quality` is the minimum mean quality of aligned bases for a read which contains soft clipping.
+`min_mapping_quality` is the minimum mapping quality (aka mapq) for a read.
+`min_base_quality` is the minimum base quality for any position covering the variant in a read.
+The test also marks reads based on their SAM flags.
+
+Reads found to be of insufficient quality are marked with the tag "LOW-QUAL"
+
+mark-low-qual only operates on reads marked with "SUPPORTS-VAR", i.e. those that support the variant
+
 #### mark-duplicates
 ```
 [params.mark-duplicates]
-duplication_window_size = 6
+duplication_window_size = 6  # 
 ```
+
+mark-duplicates uses {py:class}`~hairpin2.sci_funcs.TagStutterDuplicateReads` to mark reads which appear to be hidden PCR duplicates.
+The algorithm is simply based on assessing the variation of endpoints amongst the tested reads. If a read start/end and it's mate start/end
+are within `duplication_window_size` of the closest neighbouring read's start/end and mate start/end then those reads are considered to
+be duplicates of each other.
+
+Reads found to be duplicates are marked with the tag "IS-STUTTER-DUP", excepting the highest quality read of the suspected duplicates.
+
+mark-duplicates only operates on reads marked with "SUPPORTS-VAR", i.e. those that support the variant.
+
 
 #### LQF
 ```
@@ -60,6 +90,11 @@ read_loss_threshold = 0.99
 min_pass_reads = 2
 nsamples_threshold = 0
 ```
+
+LQF uses {py:class}`~hairpin2.sci_funs.ProportionBasedTest` to flag variants which are largely supported by low quality reads.
+It does so by examining the proportion of reads supporting a variant which have the "IS-STUTTER-DUP" tag and the "LOW-QUAL" tag compared to the total number of supporting reads (i.e. those tagged with "SUPPORTS-VAR")
+`read_loss_threshold` is the threshold of low quality reads against total reads. If this threshold is exceeded, there are too many low quality reads, and the variant is flagged.
+`min_pass_reads` is the minimum number of supporting reads without "IS-STUTTER-DUP" and "LOW-QUAL" necessary for a variant to pass the test. If fewer, a variant is flagged.
 
 #### DVF
 ```

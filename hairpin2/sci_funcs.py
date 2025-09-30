@@ -1,11 +1,13 @@
 from array import array
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from enum import Flag
+from enum import Flag, auto
 from statistics import mean, median, stdev
 from typing import Any, cast, final
 
-from hairpin2.const import MutTypes, Strand, Tags, ValidatorFlags
+from pysam import AlignedSegment
+
+from hairpin2.const import MutTypes, Strand, TaggerNamespaces, Tags
 from hairpin2.infrastructure.structures import (
     ExtendedRead,
     TestOutcomes,
@@ -29,6 +31,14 @@ from hairpin2.utils.ref2seq import CigarError, ref2querypos, ref_end_via_cigar
 
 # SECTION --- functions/classes used by additive read tagging processes to add various tags to reads for subsequent filtering and analysis.
 
+def _sort_reads_by_qual[T: ExtendedRead | AlignedSegment](
+    reads: Iterable[T]
+) -> list[T]:
+    """
+    Internal function for use when needing to select the best read of a pool (2 or more reads), so as to ensure this is always done in the same way.
+    """
+    return sorted(reads, key=lambda x: mean(x.query_qualities))  # pyright: ignore[reportArgumentType]
+
 
 # Used to tag reads as supporting a variant
 # This tag can then be used by other processes
@@ -39,9 +49,17 @@ class TagSupportingReads:
 
     Confirm whether a read supports a variant, and optionally mark supporting reads.
     """
+    class SupportFlags(Flag):
+        CLEAR = 0
+        FIELDS_MISSING = auto()
+        NOT_ALIGNED = auto()
+        NOT_ALT = auto()
+        SHORT = auto()
+        BAD_OP = auto()
 
-    @staticmethod
+    @classmethod
     def check_read_supporting(
+        cls,
         read: ExtendedRead,
         mut_type: MutTypes,
         alt: str,
@@ -54,7 +72,7 @@ class TagSupportingReads:
                 f"Unsupported mutation type {mut_type} provided to mut_type argument - supports {MutTypes} only"
             )
 
-        support_flag = ValidatorFlags.CLEAR
+        support_flag = cls.SupportFlags.CLEAR
         try:
             mate_cig = str(read.get_tag("MC"))
         except KeyError:
@@ -78,21 +96,21 @@ class TagSupportingReads:
                 mate_cig,
             ]
         ):
-            support_flag |= ValidatorFlags.READ_FIELDS_MISSING
+            support_flag |= cls.SupportFlags.FIELDS_MISSING
         elif mut_type in [MutTypes.SUB, MutTypes.INS]:
             try:
                 mut_pos = ref2querypos(read, vcf_start)
             except ValueError:
-                support_flag |= ValidatorFlags.NOT_ALIGNED
+                support_flag |= cls.SupportFlags.NOT_ALIGNED
             else:
                 if mut_type == MutTypes.SUB:
                     if cast(str, read.query_sequence)[mut_pos : mut_pos + len(alt)] != alt:
-                        support_flag |= ValidatorFlags.NOT_ALT
+                        support_flag |= cls.SupportFlags.NOT_ALT
                 if (
                     mut_type == MutTypes.INS
                 ):  # INS - mut_pos is position immediately before insertion
                     if mut_pos + len(alt) > read.query_length:
-                        support_flag |= ValidatorFlags.SHORT
+                        support_flag |= cls.SupportFlags.SHORT
                     else:
                         mut_alns = [
                             (q, r)
@@ -100,31 +118,31 @@ class TagSupportingReads:
                             if q in range(mut_pos + 1, mut_pos + len(alt) + 1)
                         ]
                         if any([r is not None for _, r in mut_alns]):
-                            support_flag |= ValidatorFlags.BAD_OP
+                            support_flag |= cls.SupportFlags.BAD_OP
                         if (
                             cast(str, read.query_sequence)[mut_pos + 1 : mut_pos + len(alt) + 1]
                             != alt
                         ):
-                            support_flag |= ValidatorFlags.NOT_ALT
+                            support_flag |= cls.SupportFlags.NOT_ALT
         elif mut_type == MutTypes.DEL:
             rng = list(range(vcf_start, vcf_stop + 1))
             mut_alns = [q for q, r in read.get_aligned_pairs() if r in rng]
             if len(mut_alns) != len(rng):
-                support_flag |= ValidatorFlags.SHORT
+                support_flag |= cls.SupportFlags.SHORT
             if any([x is not None for x in mut_alns[1:-1]]) or any(
                 [x is None for x in [mut_alns[0], mut_alns[-1]]]
             ):
-                support_flag |= ValidatorFlags.BAD_OP
+                support_flag |= cls.SupportFlags.BAD_OP
 
         # ValidatorFlag not returned, but kept in case useful in future
-        if support_flag == ValidatorFlags.CLEAR:
+        if support_flag == cls.SupportFlags.CLEAR:
             support = True
             if mark:
                 mark_read(read, Tags.SUPPORT_TAG)
         else:
             support = False
 
-        record_operation(read, "mark-support")
+        record_operation(read, TaggerNamespaces.MARK_SUPPORT)
         return support
 
 
@@ -140,9 +158,16 @@ class TagLowQualReads:
 
     Determine if a read is of low quality, and optionally mark low quality reads.
     """
+    class QualFlags(Flag):
+        CLEAR = 0
+        SAMFLAG = auto()
+        MAPQUAL = auto()
+        CLIPQUAL = auto()
+        BASEQUAL = auto()
 
-    @staticmethod
+    @classmethod
     def check_low_qual_read(
+        cls,
         read: ExtendedRead,
         vcf_start: int,
         alt: str,
@@ -152,19 +177,19 @@ class TagLowQualReads:
         min_clipqual: int,
         mark: bool = True,
     ) -> bool:
-        qual_flag = ValidatorFlags.CLEAR  # 0 - evaluates false
+        qual_flag = cls.QualFlags.CLEAR  # 0 - evaluates false
 
         if not (read.flag & 0x2) or read.flag & 0xE00:
-            qual_flag |= ValidatorFlags.FLAG
+            qual_flag |= cls.QualFlags.SAMFLAG
 
         if read.mapping_quality < min_mapqual:
-            qual_flag |= ValidatorFlags.MAPQUAL
+            qual_flag |= cls.QualFlags.MAPQUAL
 
         if (
             "S" in read.cigarstring  # pyright: ignore[reportOperatorIssue]
             and mean(read.query_alignment_qualities) < min_clipqual  # pyright: ignore[reportArgumentType]
         ):
-            qual_flag |= ValidatorFlags.CLIPQUAL
+            qual_flag |= cls.QualFlags.CLIPQUAL
 
         if mut_type == MutTypes.SUB:
             try:
@@ -182,55 +207,78 @@ class TagLowQualReads:
                         ]
                     ]
                 ):
-                    qual_flag |= ValidatorFlags.BASEQUAL
+                    qual_flag |= cls.QualFlags.BASEQUAL
 
-        if qual_flag == ValidatorFlags.CLEAR:
+        if qual_flag == cls.QualFlags.CLEAR:
             low_qual = False
         else:
             low_qual = True
             if mark:
                 mark_read(read, Tags.LOW_QUAL_TAG)
 
-        record_operation(read, "mark-low-qual")
+        record_operation(read, TaggerNamespaces.MARK_LOW_QUAL)
         return low_qual
 
 
 # Used to tag reads as an overlapping mate.
 # This tag can then be used by other processes
 # to include/exclude reads with that tag from their analysis
-class TagFragmentOverlapReads:
+class TagFragmentReads:
     """
-    pc8's Overlap Assessor
+    ab63 Overlap Assessor
 
-    Determine if a read is an overlapping mate for this position, and optionally mark overlapping mates.
+    Mark one read from a fragment pair if both members of the fragment pair are present in the input reads.
     """
+
+    # @staticmethod
+    # def check_fragment_overlap(read: ExtendedRead, vcf_start: int, mark: bool = True):
+    # """
+    # Alternate pc8 approach
+    # """
+    #     overlap = False
+
+    #     mate_cig = str(read.get_tag("MC"))  # will error if no tag
+
+    #     # NOTE: introduces strand bias!!
+    #     # NOTE: does not check if overlapping member supports variant!
+    #     # Will discard overlapping read2 even if read1 doesn't support var
+    #     if read.flag & 0x80:  # if second in pair
+    #         read_range = range(
+    #             read.reference_start,
+    #             read.reference_end,  # pyright: ignore[reportArgumentType]
+    #         )
+    #         mate_range = range(
+    #             read.next_reference_start, ref_end_via_cigar(mate_cig, read.next_reference_start)
+    #         )
+    #         overlapping_positions = set(read_range).intersection(mate_range)
+    #         if vcf_start in overlapping_positions:
+    #             overlap = True
+
+    #     if overlap and mark:
+    #         mark_read(read, Tags.OVERLAP_TAG)
+
+    #     record_operation(read, TaggerNamespaces.MARK_OVERLAP)
+
+    #     return overlap
 
     @staticmethod
-    def check_fragment_overlap(read: ExtendedRead, vcf_start: int, mark: bool = True):
-        overlap = False
+    def check_for_mates(reads: Iterable[ExtendedRead]):
+        """
+        Mark lower mean qual member of pair as overlapping
+        """
+        seen_qnames: dict[str, ExtendedRead] = {}
+        for read in reads:
+            qn = read.query_name
+            rq = read.query_qualities
+            if qn is None or rq is None:
+                continue
+            if qn in seen_qnames:
+                sorted_reads =_sort_reads_by_qual([read, seen_qnames[qn]])
+                mark_read(sorted_reads[0], Tags.OVERLAP_TAG)  # mark lower qual
+            else:
+                seen_qnames[qn] = read
 
-        mate_cig = str(read.get_tag("MC"))  # will error if no tag
-
-        # NOTE: introduces strand bias!!
-        # NOTE: does not check if overlapping member supports variant!
-        if read.flag & 0x80:  # if second in pair
-            read_range = range(
-                read.reference_start,
-                read.reference_end,  # pyright: ignore[reportArgumentType]
-            )
-            mate_range = range(
-                read.next_reference_start, ref_end_via_cigar(mate_cig, read.next_reference_start)
-            )
-            overlapping_positions = set(read_range).intersection(mate_range)
-            if vcf_start in overlapping_positions:
-                overlap = True
-
-        if overlap and mark:
-            mark_read(read, Tags.OVERLAP_TAG)
-
-        record_operation(read, "mark-overlap")
-
-        return overlap
+            record_operation(read, TaggerNamespaces.MARK_OVERLAP)
 
 
 # The result of this process is used to mark reads as duplicates.
@@ -268,6 +316,8 @@ class TagStutterDuplicateReads:
                 continue
             if read.reference_end is None:
                 continue
+            if read.query_qualities is None:
+                continue
 
             pair_endpoints: tuple[int, int, int, int] = cast(
                 tuple[int, int, int, int],
@@ -283,6 +333,7 @@ class TagStutterDuplicateReads:
                 ),
             )
             endpointsl.append(cls.FragmentEndpoints(read, pair_endpoints))
+        # sort by starting endpoint
         endpointsl = sorted(endpointsl, key=lambda x: x.endpoints[0])
 
         # test data
@@ -292,7 +343,7 @@ class TagStutterDuplicateReads:
         dup_endpoint_comparison_pool: list[tuple[int, int, int, int]] = []
         dup_endpoint_comparison_pool.append(init_case.endpoints)
         dup_read_pool: list[ExtendedRead] = [init_case.read]
-        record_operation(init_case.read, "mark-duplicates")
+        record_operation(init_case.read, TaggerNamespaces.MARK_STUTTER_DUP)
 
         for i in range(len(endpointsl)):
             read = endpointsl[i].read
@@ -316,20 +367,19 @@ class TagStutterDuplicateReads:
                 assert len(dup_endpoint_comparison_pool) == len(dup_read_pool)
 
                 # read at i is not dup of reads in dup_endpoint_test_pool
-                # start again, test read at i against reads subsequent from i in ends_sorted
-                # NOTE: this means reads found after are not tested against previous duplicate groups...
+                # since reads are sorted by endpoints, no more dups incoming
+                # so finalise current dup pool
                 if len(dup_read_pool) > 1:
-                    dup_read_pool.sort(
-                        key=lambda x: mean(x.query_qualities)
-                    )  # type checker believes there is an error here. I have not silenced it because in principle it is correct, however it is pysam's responsibility as it is a failing in their library typing.
-                    _ = dup_read_pool.pop()  # pop the highest quality
-                    for read in dup_read_pool:
+                    sorted_dups = _sort_reads_by_qual(dup_read_pool)
+                    _ = sorted_dups.pop()  # pop the highest quality
+                    for read in sorted_dups:
                         mark_read(read, Tags.STUTTER_DUP_TAG)  # mark the others
 
+                # start again, test read at i against reads subsequent from i in ends_sorted
                 # reset the pools
                 dup_read_pool = [read]
                 dup_endpoint_comparison_pool = [testing_endpoints]
-            record_operation(read, "mark-duplicates")
+            record_operation(read, TaggerNamespaces.MARK_STUTTER_DUP)
 
 
 # END SECTION --- read tagging functions/classes

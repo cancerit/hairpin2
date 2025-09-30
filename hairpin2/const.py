@@ -52,24 +52,6 @@ class MutTypes(StrEnum):
     INS = "INS"
 
 
-class ValidatorFlags(Flag):
-    """
-    Flags used to assess reads for support of a given variant and read quality.
-    """
-
-    CLEAR = 0
-    FLAG = auto()
-    MAPQUAL = auto()
-    READ_FIELDS_MISSING = auto()
-    NOT_ALIGNED = auto()
-    BAD_OP = auto()
-    NOT_ALT = auto()
-    BASEQUAL = auto()
-    SHORT = auto()
-    CLIPQUAL = auto()
-    OVERLAP = auto()
-
-
 class Tags(StrEnum):
     """
     Tags applied by additive read processors.
