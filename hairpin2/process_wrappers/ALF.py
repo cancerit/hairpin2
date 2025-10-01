@@ -62,7 +62,7 @@ def test_ALF(  # test supporting reads
     )
 
     flag = ResultALF(
-        result.outcome, result.reason, run_params.alt, len(run_params.reads), result.avg_as
+        result.outcome, result.reason, run_params.alt, len(run_params.reads.all), result.avg_as
     )
 
     return flag

@@ -134,6 +134,8 @@ class ReadAwareProcess(ABC):
     # e.g. if you want to be able to easily turn something on/off
     # make it an exclude mark like LOW-QUAL
     # conversely if you want to be strict make a require mark like HIGH-QUAL
+    # TODO: this really really should move onto READVIEW
+    # a simple first pass would be to do a dict of reads by tag, and update it after each process
     def require_properties_check(self, run_params: RunParams):
         """
         Filter reads prior to test
