@@ -107,5 +107,5 @@ class FlaggerADF(
     ReadAwareProcess,
 ):
     """
-    Anomalous Distribution Filter based on hairpin filtering algorthim described in Ellis et al. 2020 (DOI: 10.1038/s41596-020-00437-6)
+    Anomalous Distribution Filter based on the hairpin filtering algorithm described in Ellis et al. 2020 (DOI: 10.1038/s41596-020-00437-6)
     """

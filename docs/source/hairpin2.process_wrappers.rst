@@ -1,4 +1,4 @@
-hairpin2.process\_wrappers package
+process\_wrappers package
 ==================================
 
 .. automodule:: hairpin2.process_wrappers

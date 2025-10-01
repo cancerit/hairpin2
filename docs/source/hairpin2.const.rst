@@ -1,4 +1,4 @@
-hairpin2.const module
+const module
 =====================
 
 .. automodule:: hairpin2.const

@@ -1,3 +1,5 @@
+
+
 from array import array
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
@@ -28,26 +30,27 @@ from hairpin2.utils.ref2seq import CigarError, ref2querypos, ref_end_via_cigar
 # TODO:
 # Make a global filter for those properties which all other processes need validated to function, excluding reads without those properties
 
-
-# SECTION --- functions/classes used by additive read tagging processes to add various tags to reads for subsequent filtering and analysis.
+"""
+Classes and functions for additive read tagging processes that apply various tags to reads for subsequent filtering and analysis.
+"""
 
 def _sort_reads_by_qual[T: ExtendedRead | AlignedSegment](
     reads: Iterable[T]
 ) -> list[T]:
     """
-    Internal function for use when needing to select the best read of a pool (2 or more reads), so as to ensure this is always done in the same way.
+    Internal function for use when needing to select the best read of a pool (2 or more reads), to ensure this is always done in the same way.
     """
     return sorted(reads, key=lambda x: mean(x.query_qualities))  # pyright: ignore[reportArgumentType]
 
 
-# Used to tag reads as supporting a variant
-# This tag can then be used by other processes
-# to include/exclude reads with that tag from their analysis
 class TagSupportingReads:
     """
     pc8's Support Assessor
 
-    Confirm whether a read supports a variant, and optionally mark supporting reads.
+    Confirm whether a read supports a variant and optionally mark supporting reads.
+    
+    Used to tag reads as supporting a variant. This tag can then be used by other processes
+    to include/exclude reads with that tag from their analysis.
     """
     class SupportFlags(Flag):
         CLEAR = 0
@@ -134,7 +137,7 @@ class TagSupportingReads:
             ):
                 support_flag |= cls.SupportFlags.BAD_OP
 
-        # ValidatorFlag not returned, but kept in case useful in future
+        # ValidatorFlag not returned but kept in case useful in the future
         if support_flag == cls.SupportFlags.CLEAR:
             support = True
             if mark:
@@ -146,17 +149,15 @@ class TagSupportingReads:
         return support
 
 
-# The result of this process is used to mark reads as low quality.
-# This tag can then be used by other processes
-# to include/exclude reads with that tag from their analysis.
-# The fraction of reads tagged as low quality, or as duplicates
-# by the duplicate marking function below, is used to call the
-# LQF flag on variants
 class TagLowQualReads:
     """
     pc8's Quality Assessor
 
-    Determine if a read is of low quality, and optionally mark low quality reads.
+    Determine if a read is of low quality and optionally mark low-quality reads.
+
+    The result of this process is used to mark reads as low quality. This tag can then be used by other processes
+    to include/exclude reads with that tag from their analysis. The fraction of reads tagged as low quality,
+    or as duplicates by the duplicate marking function below, is used to call the LQF flag on variants
     """
     class QualFlags(Flag):
         CLEAR = 0
@@ -220,14 +221,14 @@ class TagLowQualReads:
         return low_qual
 
 
-# Used to tag reads as an overlapping mate.
-# This tag can then be used by other processes
-# to include/exclude reads with that tag from their analysis
 class TagFragmentReads:
     """
     ab63 Overlap Assessor
 
     Mark one read from a fragment pair if both members of the fragment pair are present in the input reads.
+
+    Used to tag reads as an overlapping mate. This tag can then be used by other processes to
+    include/exclude reads with that tag from their analysis
     """
 
     # @staticmethod
@@ -240,7 +241,7 @@ class TagFragmentReads:
     #     mate_cig = str(read.get_tag("MC"))  # will error if no tag
 
     #     # NOTE: introduces strand bias!!
-    #     # NOTE: does not check if overlapping member supports variant!
+    #     # NOTE: does not check if the overlapping member supports variant!
     #     # Will discard overlapping read2 even if read1 doesn't support var
     #     if read.flag & 0x80:  # if second in pair
     #         read_range = range(
@@ -264,7 +265,7 @@ class TagFragmentReads:
     @staticmethod
     def check_for_mates(reads: Iterable[ExtendedRead]):
         """
-        Mark lower mean qual member of pair as overlapping
+        Mark lower mean qual member of a read pair as overlapping
         """
         seen_qnames: dict[str, ExtendedRead] = {}
         for read in reads:
@@ -281,17 +282,15 @@ class TagFragmentReads:
             record_operation(read, TaggerNamespaces.MARK_OVERLAP)
 
 
-# The result of this process is used to mark reads as duplicates.
-# This tag can then be used by other processes
-# to include/exclude reads with that tag from their analysis.
-# The fraction of reads tagged as duplicates by this process is
-# used to assess a variant for the DVF flag
-# and, partly (with the low quality tag), the LQF flag
 class TagStutterDuplicateReads:
     """
     pc8's Stutter Duplicates Assessor
 
     Tag hidden duplicate reads which have shifted endpoints due to PCR stutter (hence evading normal dupmarking).
+
+    The result of this process is used to mark reads as duplicates. This tag can then be used by other processes
+    to include/exclude reads with that tag from their analysis. The fraction of reads tagged as duplicates
+    by this process is used to assess a variant for the DVF flag and, partly (with the low-quality tag), the LQF flag
     """
 
     @dataclass
@@ -368,25 +367,22 @@ class TagStutterDuplicateReads:
 
                 # read at i is not dup of reads in dup_endpoint_test_pool
                 # since reads are sorted by endpoints, no more dups incoming
-                # so finalise current dup pool
+                # so finalise the current dup pool
                 if len(dup_read_pool) > 1:
                     sorted_dups = _sort_reads_by_qual(dup_read_pool)
                     _ = sorted_dups.pop()  # pop the highest quality
                     for read in sorted_dups:
                         mark_read(read, Tags.STUTTER_DUP_TAG)  # mark the others
 
-                # start again, test read at i against reads subsequent from i in ends_sorted
+                # start again, test the read at i against reads subsequent from i in ends_sorted
                 # reset the pools
                 dup_read_pool = [read]
                 dup_endpoint_comparison_pool = [testing_endpoints]
             record_operation(read, TaggerNamespaces.MARK_STUTTER_DUP)
 
-
-# END SECTION --- read tagging functions/classes
-
-
-# SECTION --- read-aware variant flagging tests
-
+"""
+Classes and functions for read-aware variant flagging tests.
+"""
 
 @final
 class AlignmentScoreTest:
@@ -448,16 +444,17 @@ class AnomalousDistributionTest:
     """
     Pass/Fail a variant on the distribution of the mutant base position on the supporting reads
 
-    Uses the conditions given by Ellis et al. in doi.org/10.1038/s41596-020-00437-6, and one additional condition devised by al35
+    Uses the conditions given by Ellis et al. in `doi.org/10.1038/s41596-020-00437-6 <https://doi.org/10.1038/s41596-020-00437-6>`_,
+    and one additional condition devised by al35
 
     The full text of the conditional is reproduced below, with editorials in []. There is a point of ambiguity in the original conditional.
-    The interpretation that this tool has opted for is indicated by [], and is expanded upon subsequently.
+    The interpretation that this tool has opted for is indicated by [] and is expanded upon subsequently.
 
     ---------------------------------------------------------
 
-    For each variant, if the number of variant-supporting reads determined [IN PRIOR STEPS] is low (i.e., 0–1
-    reads) for one strand, follow Option A. For each variant, if both strands have sufficient variant-
-    supported reads (i.e., ≥2 reads), follow Option B.
+    For each variant, if the number of variant-supporting reads determined [IN PRIOR STEPS] is low (i.e. 0–1
+    reads) for one strand, follow Option A. For each variant, if both strands have sufficient variant-supported reads
+    (i.e. ≥2 reads), follow Option B.
 
     A) Low number of variant-supporting reads on one strand
         (i) For each variant, if one strand had too few variant-supporting reads, the other strand must
@@ -540,7 +537,7 @@ class AnomalousDistributionTest:
                     raise ValueError(f"read {read.query_name} does not cover variant")
 
                 if read.flag & 0x10:
-                    # +1 to include last base in length
+                    # +1 to include the last base in length
                     la2m = read.query_alignment_end - mut_qpos + 1
                     near_start_r.append((la2m / read.query_alignment_length) <= edge_definition)
                     la2ms_r.append(la2m)
@@ -671,7 +668,7 @@ class AnomalousDistributionTest:
                     outcome = TestOutcomes.VARIANT_FAIL
                     info_bits |= cls.ResultPack.Info.MIN_NON_EDGE
 
-                assert strand is not None  # appease type checker
+                assert strand is not None  # appease a type checker
 
                 result = cls.ResultPack(outcome, strand, info_bits)
 
@@ -680,17 +677,17 @@ class AnomalousDistributionTest:
 
 class ProportionBasedTest:
     """
-    Pass/Fail a variant on proportion of supporting reads with/without a given property.
+    Pass/Fail a variant on a proportion of supporting reads with/without a given property.
 
-    Used by the LQF flag test to test proportion of stutter duplicate and low quality supporting reads.
-    Used by the DVF flag test to test proportion of stutter duplicate reads.
+    Used by the LQF flag test to test a proportion of stutter duplicate and low-quality supporting reads.
+    Used by the DVF flag test to test a proportion of stutter duplicate reads.
     """
 
     @dataclass
     class ResultPack:
         class Info(Flag):
             NODATA = 0
-            INSUFFCIENT_READS = 1
+            INSUFFICIENT_READS = 1
             THRESHOLD = 2
             MIN_PASS = 4
 
@@ -707,7 +704,7 @@ class ProportionBasedTest:
         min_without: int = 0,
     ) -> ResultPack:
         if not reads:
-            result = cls.ResultPack(TestOutcomes.NA, cls.ResultPack.Info.INSUFFCIENT_READS, 0)
+            result = cls.ResultPack(TestOutcomes.NA, cls.ResultPack.Info.INSUFFICIENT_READS, 0)
         else:
             info_bits = cls.ResultPack.Info.NODATA
             outcome = TestOutcomes.VARIANT_PASS
@@ -733,6 +730,3 @@ class ProportionBasedTest:
             result = cls.ResultPack(outcome, info_bits, loss_ratio)
 
         return result
-
-
-# END SECTION --- Variant Testing

@@ -1,4 +1,4 @@
-hairpin2.infrastructure.process\_params module
+process\_params module
 ==============================================
 
 .. automodule:: hairpin2.infrastructure.process_params

@@ -104,7 +104,7 @@ writeable_file_path = click.Path(
 class JSONOrFile(click.ParamType):
     @override
     def convert(self, value: Any, param: Any, ctx: Any):
-        # try to interpret as path
+        # try to interpret as a path
         try:
             path = cast(Path, existing_file_path.convert(value, param, ctx))
             with open(path, "r", encoding="utf-8") as f:
@@ -240,7 +240,7 @@ def hairpin2_cli(
     progress_bar: bool,
 ) -> None:
     """
-    read-aware artefactual variant flagging algorithms. Flag variants in VCF using statistics calculated from supporting reads found in ALIGNMENTS, and emit the flagged VCF to stdout.
+    read-aware artefactual variant flagging algorithms. Flag variants in VCF using statistics calculated from supporting reads found in ALIGNMENTS and emit the flagged VCF to stdout.
     """
     # TODO: verify config
     # for key in configd:
@@ -324,7 +324,7 @@ def hairpin2_cli(
         except Exception as er:
             logging.error(f"failed to read alignment file {path!r}, reporting {er}")
             sys.exit(EXIT_FAILURE)
-        # grab the sample name from first SM field
+        # grab the sample name from the first SM field
         # in header field RG
         aln_sm = alignment.header.to_dict()["RG"][0]["SM"]  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
         sm_to_aln_map[aln_sm] = alignment
@@ -391,7 +391,7 @@ def hairpin2_cli(
 
             if match_sm and match_fn:
                 logging.warning(
-                    f"intention ambigous - values provided to name mapping {alignment_map_values!r} are equal to both the SM tags and the filenames of alignments. Mapping against SM tags, not filenames"
+                    f"intention ambiguous - values provided to name mapping {alignment_map_values!r} are equal to both the SM tags and the filenames of alignments. Mapping against SM tags, not filenames"
                 )
         case None:
             if not sm_to_aln_map.keys() <= set(vcf_names):
@@ -404,7 +404,7 @@ def hairpin2_cli(
             vcf_sample_to_alignment_map = sm_to_aln_map
         case _:
             logging.error(
-                f"name mapping misformatted. Expected deserialised JSON, recieved {type(name_mapping)}, containing {name_mapping}"
+                f"name mapping misformatted. Expected deserialised JSON, received {type(name_mapping)}, containing {name_mapping}"
             )  # pyright: ignore[reportUnreachable]
             sys.exit(EXIT_FAILURE)
 

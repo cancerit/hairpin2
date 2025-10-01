@@ -1,4 +1,4 @@
-hairpin2.process\_wrappers.ALF module
+ALF module
 =====================================
 
 .. automodule:: hairpin2.process_wrappers.ALF

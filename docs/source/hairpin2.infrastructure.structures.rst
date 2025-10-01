@@ -1,4 +1,4 @@
-hairpin2.infrastructure.structures module
+structures module
 =========================================
 
 .. automodule:: hairpin2.infrastructure.structures

@@ -1,4 +1,4 @@
-hairpin2.infrastructure.process\_engines module
+process\_engines module
 ===============================================
 
 .. automodule:: hairpin2.infrastructure.process_engines

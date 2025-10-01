@@ -108,7 +108,7 @@ class ReadAwareProcess(ABC):
 
         if not isinstance(self._engine, ProcessEngineProtocol):
             raise RuntimeError(
-                "Engine does not appear to satisfy necessay protocol, Process misconfigured"
+                "Engine does not appear to satisfy necessary protocol, Process misconfigured"
             )
 
     def __init_subclass__(
@@ -127,16 +127,15 @@ class ReadAwareProcess(ABC):
         cls.AddsMarks = adds_marks
         cls.FixedParamClass = fixed_param_class
 
-    # since marks are based only on presence
-    # the lack of an exclude mark is enough to pass a check
-    # this makes it easy to enable and disable tagger processes
-    # while leaving it up to the user which way round they want to use a tag
-    # e.g. if you want to be able to easily turn something on/off
-    # make it an exclude mark like LOW-QUAL
-    # conversely if you want to be strict make a require mark like HIGH-QUAL
     def require_properties_check(self, run_params: RunParams):
         """
         Filter reads prior to test
+
+        Since marks are based only on presence, the lack of an exclude mark is enough to pass a check.
+        This makes it easy to enable and disable tagger processes while leaving it
+        up to the user which way round they want to use a tag.
+        E.g. if you want to be able to easily turn something on/off, make it an exclude mark like LOW-QUAL
+        conversely if you want to be strict, make a required mark like HIGH-QUAL
         """
         # TODO: global on-fail options: record/split offending reads to file, record/split variant to file, ignore, warn, fail
         # TODO: check primed first!
@@ -184,7 +183,7 @@ class ReadAwareProcess(ABC):
                 "Process executed and has not been reset. Cannot prime with new test data."
             )
         if not isinstance(var_params, RunParams):
-            # The following message is not stricly true, but should be
+            # The following message is not strictly true, but should be
             # TODO: init subclass should tie a type[RunParams] to the class
             raise TypeError(
                 "Process can only be primed with an instance of the RunParams subclass tied to this flagger."
@@ -193,12 +192,12 @@ class ReadAwareProcess(ABC):
             raise RuntimeError("Flagger already primed, and overwrite is False")
         self._var_params = var_params
 
-    # to support frozen run params
-    # provide a sneaky way to rebuild post read filtering
-    # without burdening the user
     def _set_filtered_reads(
         self, new_reads: Mapping[Any, Sequence[ExtendedRead]] | ReadView[ExtendedRead] | None
     ):
+        """
+        Function to support frozen run params, it provides a sneaky way to rebuild post-read filtering without burdening the user
+        """
         if self._var_params is None:
             raise RuntimeError(
                 "Attempt to set filtered reads from runtime params, but runtime params is not set, so what were you filtering?!?"

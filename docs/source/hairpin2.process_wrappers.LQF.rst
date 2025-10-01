@@ -1,4 +1,4 @@
-hairpin2.process\_wrappers.LQF module
+LQF module
 =====================================
 
 .. automodule:: hairpin2.process_wrappers.LQF

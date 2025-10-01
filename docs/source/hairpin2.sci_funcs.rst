@@ -1,4 +1,4 @@
-hairpin2.sci\_funcs module
+sci\_funcs module
 ==========================
 
 .. automodule:: hairpin2.sci_funcs

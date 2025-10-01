@@ -91,7 +91,7 @@ class ResultLQF(
 class FixedParamsLQF(FixedParams):
     """
     read_loss_threshold - percent threshold of N lq reads compared to N input reads for a given variant and sample, above which we flag LQF
-    min_pass_reads - the absolute mininum number of reads required for a variant not to be flagged LQF
+    min_pass_reads - the absolute minimum number of reads required for a variant not to be flagged LQF
     """
 
     read_loss_threshold: Annotated[float, BeforeValidator(lambda x: bound(x, 0.0, 1.0))]
@@ -114,7 +114,7 @@ def test_variant_LQF(run_params: RunParamsShared, fixed_params: FixedParamsLQF):
     return flag
 
 
-# exclude overlapping second pair member, require support  NOTE: do you actually want to exclude overlap when assessing this? it's not quite double counting per se if the overlapping read does show support...
+# exclude overlapping second pair member, require support NOTE: do you actually want to exclude overlap when assessing this? it's not quite double counting per se if the overlapping read does show support...
 @make_variant_flagger(
     process_namespace=FlaggerNamespaces.LOW_QUAL,
     flagger_func=test_variant_LQF,

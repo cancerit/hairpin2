@@ -1,4 +1,4 @@
-hairpin2.process\_wrappers.ADF module
+ADF module
 =====================================
 
 .. automodule:: hairpin2.process_wrappers.ADF
