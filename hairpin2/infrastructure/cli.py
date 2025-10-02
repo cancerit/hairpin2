@@ -168,8 +168,9 @@ def resolve_config_dicts(ctx: Any, param: Any, values: Iterable[dict[str, Any]])
 
 @click.command(
     epilog="see documentation at https://github.com/cancerit/hairpin2 or at tool install location for further information",
-    options_metavar="[-h, --help] [OPTIONS]",
+    options_metavar="[--help] [OPTIONS]",
 )
+# TODO: add short help opt -h!
 @click.version_option(VERSION, "-v", "--version", message="%(version)s")
 @click.argument("vcf", type=existing_file_path, required=True)
 @click.argument("alignments", nargs=-1, type=existing_file_path, required=True)
