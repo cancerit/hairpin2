@@ -42,14 +42,13 @@ class ResultADF(
     flag_name=FlaggerNamespaces.ANOMALOUS_DISTRIBUTION,
     info_enum=AnomalousDistributionTest.ResultPack.Info,
 ):
-    alt: str
     reads_seen: int
     strand: Strand
 
     @override
-    def getinfo(self) -> str:
+    def getinfo(self, alt: str) -> str:
         info_bits = hex(self.info_flag.value if self.info_flag is not None else 0)
-        return f"{self.alt}|{self.variant_flagged.value}|{info_bits}|{self.strand.value}|{self.reads_seen}"
+        return f"{alt}|{self.variant_flagged.value}|{info_bits}|{self.reads_seen}|{self.strand.value}"
 
 
 def validate_positive(val: int | float):
@@ -90,7 +89,7 @@ def test_adf(run_params: RunParamsShared, fixed_params: FixedParamsADF):
     )
 
     flag = ResultADF(
-        result.outcome, result.reason, run_params.alt, len(run_params.reads.all), result.strand
+        result.outcome, result.reason, len(run_params.reads.all), result.strand
     )
 
     return flag

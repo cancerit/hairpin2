@@ -78,14 +78,12 @@ class TaggerLowQual(ReadAwareProcess):
 class ResultLQF(
     FlagResult, flag_name=FlaggerNamespaces.LOW_QUAL, info_enum=ProportionBasedTest.ResultPack.Info
 ):
-    alt: str
-    reads_seen: int
     loss_ratio: float  # 0 == no loss
 
     @override
-    def getinfo(self) -> str:
+    def getinfo(self, alt: str) -> str:
         info_bits = hex(self.info_flag.value if self.info_flag is not None else 0)
-        return f"{self.alt}|{self.variant_flagged.value}|{info_bits}|{self.reads_seen}|{round(self.loss_ratio, 3)}"
+        return f"{alt}|{self.variant_flagged.value}|{info_bits}|{self.reads_seen}|{round(self.loss_ratio, 3)}"
 
 
 class FixedParamsLQF(FixedParams):
@@ -108,7 +106,7 @@ def test_variant_LQF(run_params: RunParamsShared, fixed_params: FixedParamsLQF):
     )
 
     flag = ResultLQF(
-        result.outcome, result.reason, run_params.alt, len(run_params.reads.all), result.prop_loss
+        result.outcome, result.reason, len(run_params.reads.all), result.prop_loss
     )
 
     return flag
