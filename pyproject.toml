@@ -7,7 +7,7 @@ include = ["hairpin2*"]
 
 [project]
 name = "hairpin2"
-version = "3.0.0-alpha7"
+version = "3.0.0-beta0"
 description = "CLI for running read-aware artefactual variant flagging algorithms over VCFs"
 authors = [
   {name = "Alex Byrne"}

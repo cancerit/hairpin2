@@ -105,9 +105,7 @@ def test_variant_LQF(run_params: RunParamsShared, fixed_params: FixedParamsLQF):
         fixed_params.min_pass_reads,
     )
 
-    flag = ResultLQF(
-        result.outcome, result.reason, len(run_params.reads.all), result.prop_loss
-    )
+    flag = ResultLQF(result.outcome, result.reason, len(run_params.reads.all), result.prop_loss)
 
     return flag
 

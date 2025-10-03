@@ -144,9 +144,7 @@ def hairpin2(
                         record=record, reads=test_reads, alt=alt, mut_type=mut_type
                     )  # TODO: allow positional args
                     for result in proc_exec.run(run_data):
-                        alt_resultd[alt].append(
-                            result
-                        )
+                        alt_resultd[alt].append(result)
 
         for alt, flagl in alt_resultd.items():
             for flag in flagl:

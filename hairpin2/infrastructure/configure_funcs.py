@@ -40,9 +40,7 @@ def _create_generic_configure_deco(
                 "Class already appears to be manually configured as AddsMarks is present - do not combine manual configuration with decorator"
             )
 
-        cls_proc_ns = (
-            None  # hack to stop the type checker getting bizarrely upset on rebinding of process_namespace
-        )
+        cls_proc_ns = None  # hack to stop the type checker getting bizarrely upset on rebinding of process_namespace
         if cls.ProcessNamespace is None:
             if process_namespace is None:
                 raise ValueError(

@@ -13,6 +13,14 @@ class ConfigError(Exception):
     pass
 
 
+class ExecutorError(RuntimeError):
+    pass
+
+
+class ProcessError(TypeError):
+    pass
+
+
 class RAExec:
     _mandate_excludes: bool
     _taggers: tuple[ReadAwareProcessProtocol[RunParams, FixedParams | None, None], ...]
@@ -68,7 +76,7 @@ class RAExec:
                 case ProcessKindEnum.TAGGER:
                     if taggers_all_registered:
                         if raise_on_fail:
-                            raise RuntimeError("tagger appeared in execution order after flagger")
+                            raise ExecutorError("tagger appeared in execution order after flagger")
                         valid = False
                     taggerl.append(
                         cast(ReadAwareProcessProtocol[RunParams, FixedParams | None, None], proc)
@@ -80,7 +88,9 @@ class RAExec:
                         cast(ReadAwareProcessProtocol[RunParams, FixedParams, FlagResult], proc)
                     )
                 case _:
-                    raise TypeError
+                    raise ProcessError(
+                        f"Unrecognised process type found on process {proc.ProcessNamespace}"
+                    )
         return valid, (tuple(taggerl), tuple(flaggerl))
 
     @staticmethod
@@ -137,12 +147,12 @@ class RAExec:
                 reqs_fulfilled = reqs_fulfilled and proc.exclude_marks.issubset(tags_set)
             if not reqs_fulfilled:
                 if raise_on_fail:
-                    raise RuntimeError("Invalid tagger execution order")
+                    raise ExecutorError("Invalid tagger execution order")
                 valid = False
                 break
             if tags_set & proc.AddsMarks:  # if overlap
                 if raise_on_fail:
-                    raise RuntimeError("taggers appear to add same tag. This is not supported")
+                    raise ExecutorError("taggers appear to add same tag. This is not supported")
                 valid = False
                 break
             tags_set = tags_set | proc.AddsMarks
@@ -162,7 +172,7 @@ class RAExec:
                 reqs_fulfilled = reqs_fulfilled and proc.exclude_marks.issubset(tags_set)
             if not reqs_fulfilled:
                 if raise_on_fail:
-                    raise RuntimeError("Invalid tagger execution order")
+                    raise ExecutorError("Invalid tagger execution order")
                 valid = False
                 break
         return valid
@@ -184,7 +194,7 @@ class RAExec:
         """
         for proc in proc_pool:
             if not issubclass(proc, ReadAwareProcess):
-                raise TypeError(
+                raise ProcessError(
                     f"Process {proc} is not a concrete implementation (subclass) of abstract base class ReadAwareProcess"
                 )
 
@@ -210,7 +220,7 @@ class RAExec:
             raise ConfigError("Could not interpret 'params' value - not a Mapping")
 
         if not cls.check_namespacing_clashfree(proc_pool):  # pyright: ignore[reportArgumentType]
-            raise TypeError("Process pool with clashing namespaces")
+            raise ProcessError("Process pool with clashing namespaces")
 
         proc_nsd = {proc_type.ProcessNamespace: proc_type for proc_type in proc_pool}
 

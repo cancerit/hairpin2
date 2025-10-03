@@ -1,5 +1,3 @@
-
-
 from array import array
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
@@ -34,9 +32,8 @@ from hairpin2.utils.ref2seq import CigarError, ref2querypos, ref_end_via_cigar
 Classes and functions for additive read tagging processes that apply various tags to reads for subsequent filtering and analysis.
 """
 
-def _sort_reads_by_qual[T: ExtendedRead | AlignedSegment](
-    reads: Iterable[T]
-) -> list[T]:
+
+def _sort_reads_by_qual[T: ExtendedRead | AlignedSegment](reads: Iterable[T]) -> list[T]:
     """
     Internal function for use when needing to select the best read of a pool (2 or more reads), to ensure this is always done in the same way.
     """
@@ -48,10 +45,11 @@ class TagSupportingReads:
     pc8's Support Assessor
 
     Confirm whether a read supports a variant and optionally mark supporting reads.
-    
+
     Used to tag reads as supporting a variant. This tag can then be used by other processes
     to include/exclude reads with that tag from their analysis.
     """
+
     class SupportFlags(Flag):
         CLEAR = 0
         FIELDS_MISSING = auto()
@@ -159,6 +157,7 @@ class TagLowQualReads:
     to include/exclude reads with that tag from their analysis. The fraction of reads tagged as low quality,
     or as duplicates by the duplicate marking function below, is used to call the LQF flag on variants
     """
+
     class QualFlags(Flag):
         CLEAR = 0
         SAMFLAG = auto()
@@ -274,7 +273,7 @@ class TagFragmentReads:
             if qn is None or rq is None:
                 continue
             if qn in seen_qnames:
-                sorted_reads =_sort_reads_by_qual([read, seen_qnames[qn]])
+                sorted_reads = _sort_reads_by_qual([read, seen_qnames[qn]])
                 mark_read(sorted_reads[0], Tags.OVERLAP_TAG)  # mark lower qual
             else:
                 seen_qnames[qn] = read
@@ -380,9 +379,11 @@ class TagStutterDuplicateReads:
                 dup_endpoint_comparison_pool = [testing_endpoints]
             record_operation(read, TaggerNamespaces.MARK_STUTTER_DUP)
 
+
 """
 Classes and functions for read-aware variant flagging tests.
 """
+
 
 @final
 class AlignmentScoreTest:
@@ -587,7 +588,6 @@ class AnomalousDistributionTest:
                             info_bits = (
                                 cls.ResultPack.Info.ONE_STRAND_DISTRIB
                                 | cls.ResultPack.Info.EDGE_CLUSTERING
-                                | cls.ResultPack.Info.MIN_NON_EDGE
                             )
                 # the nested if statement here makes the combined condition mutually exclusive with the above
                 if len(la2ms_r) > low_n_supporting_reads_boundary:
@@ -615,7 +615,6 @@ class AnomalousDistributionTest:
                             info_bits = (
                                 cls.ResultPack.Info.ONE_STRAND_DISTRIB
                                 | cls.ResultPack.Info.EDGE_CLUSTERING
-                                | cls.ResultPack.Info.MIN_NON_EDGE
                             )
                 if (
                     len(la2ms_f) > low_n_supporting_reads_boundary
@@ -640,21 +639,16 @@ class AnomalousDistributionTest:
                         or (mad_r > min_MAD_both_strand_strong and sd_r > min_sd_both_strand_strong)  # pyright: ignore[reportPossiblyUnboundVariable]
                     )
 
-                    if not cond_edge_clustering:
+                    if cond_edge_clustering:  # if satisfied, add cond
                         info_bits |= cls.ResultPack.Info.EDGE_CLUSTERING
-                    if not cond_both_strand_distrib_both:
+                    if cond_both_strand_distrib_both:
                         info_bits |= cls.ResultPack.Info.BOTH_STRAND_DISTRIB_BOTH
-                    if not cond_both_strand_distrib_one:
+                    if cond_both_strand_distrib_one:
                         info_bits |= cls.ResultPack.Info.BOTH_STRAND_DISTRIB_ONE
 
                     # if no pass conditions are satisfied
-                    if info_bits == (
-                        cls.ResultPack.Info.EDGE_CLUSTERING
-                        | cls.ResultPack.Info.BOTH_STRAND_DISTRIB_BOTH
-                        | cls.ResultPack.Info.BOTH_STRAND_DISTRIB_ONE
-                    ):
+                    if info_bits == cls.ResultPack.Info.NODATA:
                         outcome = TestOutcomes.VARIANT_FAIL
-                    if info_bits == cls.ResultPack.Info.NODATA:  # satisfied all conditions
                         info_bits |= (
                             cls.ResultPack.Info.EDGE_CLUSTERING
                             | cls.ResultPack.Info.BOTH_STRAND_DISTRIB_BOTH
@@ -665,8 +659,19 @@ class AnomalousDistributionTest:
                     len(near_start_r) - sum(near_start_r)
                 )
                 if not reads_not_near_edge > min_non_edge_reads:
-                    outcome = TestOutcomes.VARIANT_FAIL
-                    info_bits |= cls.ResultPack.Info.MIN_NON_EDGE
+                    if outcome == TestOutcomes.VARIANT_PASS:
+                        outcome = TestOutcomes.VARIANT_FAIL
+                        info_bits = cls.ResultPack.Info.MIN_NON_EDGE  # we failed here
+                    else:
+                        info_bits |= cls.ResultPack.Info.MIN_NON_EDGE  # add to other failures
+
+                # add implied passes if total success
+                if outcome == TestOutcomes.VARIANT_PASS:
+                    info_bits |= (
+                        cls.ResultPack.Info.MIN_NON_EDGE
+                        | cls.ResultPack.Info.INSUFFICIENT_READS
+                        | cls.ResultPack.Info.NO_TESTABLE_READS
+                    )
 
                 assert strand is not None  # appease a type checker
 

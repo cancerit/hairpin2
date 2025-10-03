@@ -24,18 +24,20 @@
 
 # pyright: reportImplicitStringConcatenation=false
 
+import base64
 import json
 import logging
 import sys
 import tomllib
+import zlib
 from collections.abc import Iterable
-from dataclasses import dataclass, fields
 from pathlib import Path
 from typing import Any, cast, override
 
 import click
 import pysam
 
+from hairpin2.infrastructure.rascheduler import ConfigError
 from hairpin2.main import hairpin2
 from hairpin2.process_wrappers.default_exec import DEFAULT_EXEC_CONFIG
 from hairpin2.VERSION import VERSION
@@ -47,47 +49,6 @@ logging.basicConfig(
 
 EXIT_SUCCESS = 0
 EXIT_FAILURE = 1
-
-
-@dataclass(frozen=True)
-class DataclassTupleMixin:
-    def __iter__(self):
-        for f in fields(self):
-            yield getattr(self, f.name)
-
-    def __getitem__(self, index: int):
-        return tuple(getattr(self, f.name) for f in fields(self))[index]
-
-
-@dataclass(slots=True, frozen=True)
-class MinMax(DataclassTupleMixin):
-    min: int | float
-    max: int | float | None = None
-
-
-@dataclass(slots=True, frozen=True)
-class ParamConstraint:
-    default: int | float
-    range: MinMax
-
-
-_PARAMS = {
-    "al_filter_threshold": ParamConstraint(0.93, MinMax(0, 93)),
-    "min_clip_quality": ParamConstraint(35, MinMax(0, 60)),
-    "min_mapping_quality": ParamConstraint(11, MinMax(0, 93)),
-    "min_base_quality": ParamConstraint(25, MinMax(-1)),
-    "duplication_window_size": ParamConstraint(6, MinMax(0)),
-    "loss_ratio": ParamConstraint(0.49, MinMax(0.0, 0.99)),
-    "edge_definition": ParamConstraint(0.15, MinMax(0.0, 0.99)),
-    "edge_fraction": ParamConstraint(0.9, MinMax(0.0, 0.99)),
-    "min_mad_one_strand": ParamConstraint(0, MinMax(0)),
-    "min_sd_one_strand": ParamConstraint(4.0, MinMax(0.0)),
-    "min_mad_both_strand_weak": ParamConstraint(2, MinMax(0)),
-    "min_sd_both_strand_weak": ParamConstraint(2.0, MinMax(0.0)),
-    "min_mad_both_strand_strong": ParamConstraint(1, MinMax(0)),
-    "min_sd_both_strand_strong": ParamConstraint(10.0, MinMax(0.0)),
-    "min_reads": ParamConstraint(1, MinMax(1)),
-}
 
 
 existing_file_path = click.Path(
@@ -141,7 +102,7 @@ class ConfigFile(click.ParamType):
 
 
 # TODO: use input configd to overwrite/update a preset default configd so exec configuration is optional
-def resolve_config_dicts(ctx: Any, param: Any, values: Iterable[dict[str, Any]]):
+def resolve_config_dicts(ctx: Any, param: Any, values: Iterable[dict[str, Any]]):  # pyright: ignore[reportUnusedParameter]
     """
     Merge config files
     """
@@ -406,41 +367,60 @@ def hairpin2_cli(
     out_head.add_line(
         '##INFO=<ID=LQF,Number=A,Type=String,Description="alt|outcome|flag|nreads|loss indicating decision reason for each alt and ratio of supporting reads suspected to be low quality">'
     )
+    # store complete description of hp2 run in header
     out_head.add_line(f"##hairpin2_version={VERSION}")
-    out_head.add_line(
-        f"##hairpin2_params=[{json.dumps({k: v for k, v in configd['params'].items() if configd['exec'][k]['enable']})}]"
+    # squeeze params into a tiny representation so we don't clog the output VCF
+    confpack = zlib.compress(
+        json.dumps(
+            {
+                "params": {
+                    k: v for k, v in configd["params"].items() if configd["exec"][k]["enable"]
+                },
+                "exec": configd["exec"],
+            },
+            separators=(",", ":"),  # minify json
+        ).encode("ascii"),
+        level=9,
     )
+    enc_confpack = base64.b85encode(  # encode bytes to ascii so we can store as valid string in VCF
+        confpack  # NOTE: base91 even shorter, but not in stdlib
+    ).decode("ascii")
+    # NOTE: could add an explanatory line about the param encoding into the header
+    out_head.add_line(f"##hairpin2_params={enc_confpack}")
     out_head.add_line(f"##hairpin2_samples={set(vcf_sample_to_alignment_map.keys())}")
 
     # test records
     prog_counter = 0
-    for flagged_record in hairpin2(
-        vcf_in_handle.fetch(), vcf_sample_to_alignment_map, configd, quiet
-    ):
-        if prog_counter == 0:  # a little awkward, but error before dumping out the vcf header
+    try:
+        for flagged_record in hairpin2(
+            vcf_in_handle.fetch(), vcf_sample_to_alignment_map, configd, quiet
+        ):
+            if prog_counter == 0:  # a little awkward, but error before dumping out the vcf header
+                try:
+                    vcf_out_handle = pysam.VariantFile(sys.stdout, "w", header=out_head)
+                except Exception as e:
+                    logging.error(msg="failed to open VCF output, reporting: {}".format(e))
+                    sys.exit(EXIT_FAILURE)
             try:
-                vcf_out_handle = pysam.VariantFile(sys.stdout, "w", header=out_head)
+                _ = vcf_out_handle.write(flagged_record)  # pyright: ignore[reportPossiblyUnboundVariable]
             except Exception as e:
-                logging.error(msg="failed to open VCF output, reporting: {}".format(e))
+                logging.error(msg="failed to write to vcf, reporting: {}".format(e))
                 sys.exit(EXIT_FAILURE)
-        try:
-            _ = vcf_out_handle.write(flagged_record)  # pyright: ignore[reportPossiblyUnboundVariable]
-        except Exception as e:
-            logging.error(msg="failed to write to vcf, reporting: {}".format(e))
-            sys.exit(EXIT_FAILURE)
 
-        if progress_bar:
-            if not prog_counter % 100:
-                print(
-                    f"\rchr: {flagged_record.chrom}, pos: {flagged_record.pos}",
-                    end="",
-                    flush=True,
-                    file=sys.stderr,
-                )
-        prog_counter += 1
-    else:  # after exhausting records, print a line break
-        if progress_bar:
-            print(file=sys.stderr)
+            if progress_bar:
+                if not prog_counter % 100:
+                    print(
+                        f"\rchr: {flagged_record.chrom}, pos: {flagged_record.pos}",
+                        end="",
+                        flush=True,
+                        file=sys.stderr,
+                    )
+            prog_counter += 1
+        else:  # after exhausting records, print a line break
+            if progress_bar:
+                print(file=sys.stderr)
+    except ConfigError as er:
+        logging.error(f"failed to start hairpin2 executor from config/s, reporting: {er}")
 
     if output_config_path:
         try:

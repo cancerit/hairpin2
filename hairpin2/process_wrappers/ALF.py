@@ -43,14 +43,16 @@ class ResultALF(
     avg_as: float | None
 
     @override
-    def getinfo(self, alt:str) -> str:
+    def getinfo(self, alt: str) -> str:
         info_bits = hex(self.info_flag.value if self.info_flag is not None else 0)
         avg_as = round(self.avg_as, 3) if self.avg_as else "NA"
         return f"{alt}|{self.variant_flagged}|{info_bits}|{self.reads_seen}|{avg_as}"
 
 
 class FixedParamsALF(FixedParams):
-    avg_AS_threshold: float  # I don't know what an appropriate constraint is numeric, so just a type constraint
+    avg_AS_threshold: (
+        float  # I don't know what an appropriate constraint is numeric, so just a type constraint
+    )
 
 
 def test_ALF(  # test supporting reads
@@ -60,9 +62,7 @@ def test_ALF(  # test supporting reads
         run_params.reads.all, fixed_params.avg_AS_threshold
     )
 
-    flag = ResultALF(
-        result.outcome, result.reason, len(run_params.reads.all), result.avg_as
-    )
+    flag = ResultALF(result.outcome, result.reason, len(run_params.reads.all), result.avg_as)
 
     return flag
 

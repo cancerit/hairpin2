@@ -48,7 +48,9 @@ class ResultADF(
     @override
     def getinfo(self, alt: str) -> str:
         info_bits = hex(self.info_flag.value if self.info_flag is not None else 0)
-        return f"{alt}|{self.variant_flagged.value}|{info_bits}|{self.reads_seen}|{self.strand.value}"
+        return (
+            f"{alt}|{self.variant_flagged.value}|{info_bits}|{self.reads_seen}|{self.strand.value}"
+        )
 
 
 def validate_positive(val: int | float):
@@ -88,9 +90,7 @@ def test_adf(run_params: RunParamsShared, fixed_params: FixedParamsADF):
         fixed_params.min_non_edge_reads,
     )
 
-    flag = ResultADF(
-        result.outcome, result.reason, len(run_params.reads.all), result.strand
-    )
+    flag = ResultADF(result.outcome, result.reason, len(run_params.reads.all), result.strand)
 
     return flag
 
