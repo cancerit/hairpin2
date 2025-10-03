@@ -24,17 +24,17 @@ wrap_T = TypeVar("wrap_T")
 
 class DataExtensionBase(ABC, Generic[wrap_T]):
     """
-    Wrapper adding metadata handling to object, and forwarding
-    other methods to the wrapped object.
+    Wrapper adding metadata handling to the object and forwarding other methods to the wrapped object.
 
-    pysam objects which we expect to operate on are C extensions.
-    This means no monkey patching. One could store associated metadata
-    in a seperate object but the ergonomics of doing so clash with the
-    intention of this library. Hence this approach - a wrapper that
-    uses method forwarding to the wrapped object, and adds non-clashing
-    methods of it's own to store per-object level data. Note that the
-    wrapper is intentionally non-transparent, i.e. it will not pass
-    an isinstance check against the type of the wrapped object.
+    pysam objects which we expect to operate on are C extensions. This means no monkey patching.
+    One could store associated metadata in a separate object, but the ergonomics of doing so clash with the
+    intention of this library. Hence, this approach - a wrapper that uses method forwarding to the wrapped object
+    and adds non-clashing methods of its own to store per-object level data. Note that the wrapper is intentionally
+    non-transparent, i.e. it will not pass an isinstance check against the type of the wrapped object.
+
+    Note: the instance methods are all private as the opinion of the package is that one should define free
+    functions specific to any extended subclass one creates, encouraging greater flexibility with regard
+    to the properties of the wrapped object
     """
 
     __wrap_obj: wrap_T
@@ -59,19 +59,12 @@ class DataExtensionBase(ABC, Generic[wrap_T]):
     def unwrapped(self):
         return self.__wrap_obj
 
-    # NOTE: the following instance methods are all private
-    # As the opinion of the package is that one should define
-    # free functions specific to any extended subclass one
-    # creates, encouraging greater flexibility with regard
-    # to the properties of the wrapped object
-
     def _record_ext_op(self, op: str):
         """
-        Record having performed a process on this object,
-        regardless of outcome. Useful when using _ext_mark,
-        as objects may be checked, but on the outcome, not
-        marked. Without this record it would not be clear
-        that they had been checked at all.
+        Record having performed a process on this object, regardless of outcome.
+
+        Useful when using _ext_mark, as objects may be checked, but on the outcome, not marked.
+        Without this record it would not be clear that they had been checked at all.
         """
         self.__operation_record.add(op)
 
@@ -177,9 +170,8 @@ class ExtendedRead(  # pyright: ignore[reportUnsafeMultipleInheritance] - becaus
 
 def make_extended_read(read: AlignedSegment | ExtendedRead) -> ExtendedRead:
     """
-    Free func and functional style so as to minimise pain points:
+    Free func and functional style to minimise pain points:
         - ease of converting from AlignedSegment to ExtendedRead, no-op if already extended
-        -
     """
     if isinstance(read, ExtendedRead):
         return read
@@ -200,8 +192,8 @@ def mark_read(
 ) -> None:
     """
     Free func and functional style so as to minimise pain points:
-        - since ExtendedRead uses method forwarding, type checker is unhelpful when using .method() style
-        - can add behaviour on recieving unwrapped AlignedSegment rather than extended read
+        - since ExtendedRead uses method forwarding, a type checker is unhelpful when using .method() style
+        - can add behaviour on receiving unwrapped AlignedSegment rather than extended read
     """
     mark_ext_obj(read, mark)
 
@@ -234,10 +226,10 @@ class ReadView(Mapping[Any, tuple[Read_T, ...]]):
         self,
         data: Mapping[Any, Sequence[Read_T]],
         # *,
-        # _internal_switches: list[str] | None = None  # hidden dev options
+        # _internal_switches: list[str] | None = None # hidden dev options
     ) -> None:
         # switches = _internal_switches or []
-        # create shallow private copy with frozen (tuple) sequences
+        # create a shallow private copy with frozen (tuple) sequences
         self._data: dict[Any, tuple[Read_T, ...]] = {
             ky: tuple(vl) for ky, vl in (data or {}).items()
         }
@@ -299,14 +291,12 @@ class TestOutcomes(StrEnum):
     NA = "NA"
 
 
-# NOTE/TODO: FlagResult is the part of the abstractflaggers model about which I am most skeptical
-# since it uses init_subclass over a decorator, making it different
-# and because it requires the user to override an abstract method
 @dataclass(frozen=True)
 class FlagResult(ABC):
     """
     Parent ABC/pydantic BaseModel defining the implementation that must be followed by result subclasses - subclasses to hold results of running
     the `test()` method of a specific subclass of FilterTester on a variant (e.g. for `FooFilter.test()`, the return value should include an instance of `FooResult`).
+
     All filters should use subclasses that inherit from this class to hold their results, as enforced by the FilterTester ABC.
     Defines and guarantees basic properties that must be shared by all filter results:
         - a 'getinfo' method for returning a string to report to the INFO field of the VCF record - a basic default is provided, but
@@ -315,6 +305,10 @@ class FlagResult(ABC):
             - name, a string id for the filter to be used in the VCF FILTER field.
             - a flag, a boolean indicating if the filter is True/False, or None if untested.
             - a code, an integer code from a set of possibilities, indicating the basis on which the test has returned True/False, or None if untested.
+
+    Note: FlagResult is the part of the abstractflaggers model about which I am most sceptical
+    since it uses init_subclass over a decorator, making it different
+    and because it requires the user to override an abstract method.
     """
 
     FlagName: ClassVar[str]

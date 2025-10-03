@@ -53,7 +53,7 @@ autodoc_default_options = {
     "show-inheritance": False,
     "private-members": False,
 }
-add_module_names = True
+add_module_names = False
 autodoc_member_order = "bysource"
 
 # Ensure consistent sidebar across all pages

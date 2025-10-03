@@ -82,7 +82,7 @@ class ResultDVF(
 class FixedParamsDVF(FixedParams):
     """
     read_loss_threshold - percent threshold of N lq reads compared to N input reads for a given variant and sample, above which we flag DVF
-    min_pass_reads - the absolute mininum number of reads required for a variant not to be flagged DVF
+    min_pass_reads - the absolute minimum number of reads required for a variant not to be flagged DVF
     """
     read_loss_threshold: Annotated[float, BeforeValidator(lambda x: bound(x, 0.0, 1.0))]
     min_pass_reads: Annotated[int, BeforeValidator(lambda x: bound(x, 0))]

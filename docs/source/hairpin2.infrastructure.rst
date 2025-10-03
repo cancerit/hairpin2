@@ -1,4 +1,4 @@
-hairpin2.infrastructure package
+infrastructure package
 ===============================
 
 .. automodule:: hairpin2.infrastructure

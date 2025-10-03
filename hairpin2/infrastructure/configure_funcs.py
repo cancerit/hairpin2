@@ -41,7 +41,7 @@ def _create_generic_configure_deco(
             )
 
         cls_proc_ns = (
-            None  # hack to stop type checker getting bizarrely upset on rebind of process_namespace
+            None  # hack to stop the type checker getting bizarrely upset on rebinding of process_namespace
         )
         if cls.ProcessNamespace is None:
             if process_namespace is None:
@@ -64,11 +64,11 @@ def _create_generic_configure_deco(
         # subclass_kwds['process_param_namespace'] = subclass_ns
         # subclass_kwds['engine_factory'] = factory_func
         # subclass_kwds['process_type'] = process_type
-        # subclass_kwds['adds_marks'] = adds_marks  # should probably cross reference against type, but the AddsMarks class var is a stopgap solution anyway
+        # subclass_kwds['adds_marks'] = adds_marks # should probably cross-reference against type, but the AddsMarks class var is a stopgap solution anyway
 
         # def body(ns: dict[str, Any]):
-        #     ns["__module__"] = cls.__module__  # so user class comes from the same module
-        #     ns["__doc__"] = getattr(cls, "__doc__", None)  # so doc is user doc (might actually want to use provided func doc)
+        #     ns["__module__"] = cls.__module__ # so user class comes from the same module
+        #     ns["__doc__"] = getattr(cls, "__doc__", None) # so doc is user doc (might actually want to use provided func doc)
         #     ns["__qualname__"] = getattr(cls, "__qualname__", cls.__name__)
 
         # new_cls = cast(type[ReadAwareProcess], new_class(cls.__name__, bases, subclass_kwds, body))
@@ -169,10 +169,10 @@ def make_variant_flagger(
 #     match step_type:
 #         case 'tagger':
 #             polymorphic_arg = cast(OrderedDict[str, Parameter], sig.parameters.copy()).popitem(last=False)
-#             # check type is alignedsegment, list[alignedsegment] or mapping[Any, AlignedSegement], get appropriate mixin (or config) to inject based on that
+#             # check type is alignedsegment, list[alignedsegment] or mapping[Any, AlignedSegment], get appropriate mixin (or config) to inject based on that
 
 #         case 'flagger':
-#             # check for variant record, ReadView/Mapping/List arg - should only be one acceptable sig pattern I think. N.B. fixed args can be mutable if you need stateful info across many variants.
+#             # check for variant record, ReadView/Mapping/List arg - should only be one acceptable sig pattern, I think. N.B. fixed args can be mutable if you need stateful info across many variants.
 #             # Oh actually you could also provide a run params class to the decorator which we could look for args in first. Not important now.
 #             # NOTE: trying to be too generic now will kill this project
 

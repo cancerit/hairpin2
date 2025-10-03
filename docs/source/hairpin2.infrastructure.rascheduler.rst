@@ -1,4 +1,4 @@
-hairpin2.infrastructure.rascheduler module
+rascheduler module
 ==========================================
 
 .. automodule:: hairpin2.infrastructure.rascheduler

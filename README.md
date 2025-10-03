@@ -1,3 +1,7 @@
+[![python](https://img.shields.io/badge/Python-3.12-blue?style=for-the-badge&logo=python&logoColor=FFD43B)](https://docs.python.org/3.12/)
+[![license](https://img.shields.io/badge/License-MIT-a51931?style=for-the-badge)](LICENSE.txt)
+[![Documentation](https://img.shields.io/badge/Documentation-Online-blue?style=for-the-badge&logo=readthedocs)](https://cancerit.github.io/hairpin2/)
+
 # hairpin2
 `hairpin2` – read-aware artefactual variant flagging
 

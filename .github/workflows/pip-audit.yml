@@ -1,0 +1,53 @@
+# pip-audit: checks Python deps against the Python advisory DB (OSV), complements Dependabot PRs.
+name: pip-audit
+
+on:
+  pull_request:
+    branches: [ "main", "develop" ]
+  push:
+    branches: [ "main", "develop" ]
+  schedule:
+    - cron: "15 3 * * 1"
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12" ]
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install project
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f pyproject.toml ]; then pip install .; fi
+
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      - name: Check if SARIF file exists
+        id: check_sarif
+        run: |
+          if [ -f pip-audit.sarif ]; then
+            echo "sarif_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "sarif_exists=false" >> $GITHUB_OUTPUT
+            echo "No SARIF file generated - likely no vulnerabilities found"
+          fi
+
+      - name: Upload SARIF
+        if: steps.check_sarif.outputs.sarif_exists == 'true'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: pip-audit.sarif

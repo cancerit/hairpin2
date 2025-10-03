@@ -50,7 +50,7 @@ class ResultALF(
 
 
 class FixedParamsALF(FixedParams):
-    avg_AS_threshold: float  # I don't know what an appropriate constraint is numerically so just a type constraint
+    avg_AS_threshold: float  # I don't know what an appropriate constraint is numeric, so just a type constraint
 
 
 def test_ALF(  # test supporting reads

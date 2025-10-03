@@ -26,7 +26,7 @@ from enum import Enum, Flag, StrEnum, auto
 
 class ValidNucleotides(Enum):
     """
-    VCF nucleotides which hairpin2 is able to process.
+    VCF nucleotides, which hairpin2 is able to process.
     """
 
     ALL = set(["A", "C", "T", "G", "N", "*"])
@@ -34,7 +34,7 @@ class ValidNucleotides(Enum):
 
 class Strand(StrEnum):
     """
-    Enum used to indicated strandedness
+    Enum used to indicate strandedness
     """
 
     BOTH = "BOTH"

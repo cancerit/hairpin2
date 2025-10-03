@@ -1,4 +1,4 @@
-hairpin2.process\_wrappers.DVF module
+DVF module
 =====================================
 
 .. automodule:: hairpin2.process_wrappers.DVF

@@ -1,4 +1,4 @@
-hairpin2.infrastructure.cli module
+cli module
 ==================================
 
 .. automodule:: hairpin2.infrastructure.cli

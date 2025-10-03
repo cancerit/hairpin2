@@ -1,4 +1,4 @@
-hairpin2.process\_wrappers.shared module
+shared module
 ========================================
 
 .. automodule:: hairpin2.process_wrappers.shared

@@ -1,4 +1,4 @@
-hairpin2.main module
+main module
 ====================
 
 .. automodule:: hairpin2.main

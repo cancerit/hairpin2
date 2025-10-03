@@ -1,4 +1,4 @@
-hairpin2.process\_wrappers.mark\_support module
+mark\_support module
 ===============================================
 
 .. automodule:: hairpin2.process_wrappers.mark_support

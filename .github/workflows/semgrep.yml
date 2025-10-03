@@ -1,0 +1,30 @@
+#Semgrep: fast, rule-driven SAST with excellent Python coverage, catches a different class of issues.
+
+name: semgrep
+
+on:
+  pull_request:
+    branches: [ "main", "develop" ]
+  push:
+    branches: [ "main", "develop" ]
+  schedule:
+    - cron: "5 2 * * 1"
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  semgrep:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/ci
+          generate-sarif: true
+          upload-sarif: true   # sends SARIF to GitHub Advanced Security "Code scanning"
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }} # optional if using Semgrep App

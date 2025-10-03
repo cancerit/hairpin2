@@ -1,8 +1,10 @@
-# SECTION: Params --------------------------------
-# Users define the params required for a process
-# using the nice pydantic dataclass-like syntax
-# and then they can use those in their process functions
-# with dot syntax. nice. Also free pydantic validation
+"""
+This module provides parameter classes for process configuration.
+
+Users define the params required for a process using the nice pydantic
+dataclass-like syntax, and then they can use those in their process functions
+with dot syntax. Nice. Also provides free pydantic validation.
+"""
 
 from pydantic import BaseModel, ConfigDict
 from pysam import VariantRecord

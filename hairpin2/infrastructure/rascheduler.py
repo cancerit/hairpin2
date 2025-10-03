@@ -111,7 +111,7 @@ class RAExec:
                 )
         return valid, part_procs
 
-    # make wrapped read register itself as marked in it's parent readview if there is one
+    # make wrapped read register itself as marked in its parent readview if there is one
     @staticmethod
     def validate_tagger_order(
         processes: Iterable[ReadAwareProcessProtocol[RunParams, FixedParams | None, None]],
@@ -119,14 +119,14 @@ class RAExec:
         raise_on_fail: bool = False,
     ) -> tuple[bool, set[str]]:
         """
-        Validate that the order of tagger processes as provided in the processses iterable can be run without error.
-        In pratice this means checking that at a minimum, all marks/tags listed in a given process as required (i.e.
-        in require_marks) have been checked and applied by processes occuring prior in the run order.
+        Validate that the order of tagger processes as provided in the processes iterable can be run without error.
+        In practice this means checking that at a minimum, all marks/tags listed in a given process as required (i.e.
+        in require_marks) have been checked and applied by processes occurring prior in the run order.
 
         Args:
             processes (Iterable): Iterable of processes, the order of which defines the run order
             mandate_excludes (bool): if true, then for each process, all marks listed as exclude_marks must have been applied by tagger processes coming prior in the run order, in addition to require_marks
-            raise_on_fail (bool): whether to throw an error on recieving an illegal order, or just return a bool
+            raise_on_fail (bool): whether to throw an error on receiving an illegal order, or just return a bool
         """
         tags_set: set[str] = set()
         valid = True
@@ -191,7 +191,7 @@ class RAExec:
         const_config_keys = ["params", "exec"]
         if not set(const_config_keys) == configd.keys():
             raise ConfigError(
-                f"Config does not have correct top-level keys, expected {const_config_keys}, recieved {list(configd.keys())}"
+                f"Config does not have correct top-level keys, expected {const_config_keys}, received {list(configd.keys())}"
             )
 
         try:

@@ -40,8 +40,6 @@ from hairpin2.process_wrappers.mark_support import TaggerSupporting
 from hairpin2.process_wrappers.shared import RunParamsShared
 
 
-# NOTE: requires VariantFileHeader associated with variant records to have been initialised correctly for the output
-# TODO: improve on the above by yielding back the flag results not the record?
 def hairpin2(
     records: Iterable[pysam.VariantRecord],  # TODO: take extended variant?
     sample_to_alignment: Mapping[str, pysam.AlignmentFile],
@@ -49,8 +47,13 @@ def hairpin2(
     quiet: int = 0,
 ) -> Generator[pysam.VariantRecord, Any, Any]:
     """
-    read-aware artefactual variant flagging algorithms. Flag variants in VCF using statistics calculated from supporting reads found in ALIGNMENTS, and emit the flagged VCF to stdout.
+    read-aware artefactual variant flagging algorithms.
+
+    Flag variants in VCF using statistics calculated from supporting reads found in ALIGNMENTS and emit the flagged VCF to stdout.
+
+    NOTE: requires VariantFileHeader associated with variant records to have been initialised correctly for the output
     """
+    # TODO: improve on the above by yielding back the flag results not the record?
     # # test records
     proc_exec = RAExec.from_config(
         configd,
@@ -97,7 +100,7 @@ def hairpin2(
                         try:
                             _ = next(test_iter)
                         except StopIteration:
-                            continue  # no reads for that sample cover this region  BUG: should warn!!
+                            continue  # no reads for that sample cover this region BUG: should warn!!
                         else:
                             reads_by_sample[k] = list(read_iter)
 
