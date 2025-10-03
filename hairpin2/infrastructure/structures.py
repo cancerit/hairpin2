@@ -316,6 +316,7 @@ class FlagResult(ABC):
     InfoFlagsAllSet: ClassVar[Flag | None]
     variant_flagged: TestOutcomes
     info_flag: Flag | None
+    reads_seen: int
 
     def __post_init__(
         self,
@@ -356,7 +357,7 @@ class FlagResult(ABC):
         # super().__init_subclass__(**kwargs)
 
     @abstractmethod
-    def getinfo(self) -> str:
+    def getinfo(self, alt: str) -> str:
         """
         Return basic filter info in a string formatted for use in the VCF INFO field - "<flag>|<code>".
 

@@ -69,12 +69,14 @@ def hairpin2(
         },
     )
     for record in records:
-        record_flagd: dict[str, list[FlagResult]] = {}
+        # record_flagd: dict[str, list[FlagResult]] = {}
+        alt_resultd: dict[str, list[FlagResult]] = {}
         if record.alts is None:
             if quiet < 1:
                 logging.warning(
                     f"{record.chrom: <7}:{record.pos: >12} (variant id: {record.id!r}) ¦ no alts for this record, skipping variant"
                 )
+            continue
         else:
             # TODO: also need to mandate/require field presence on variant records I suppose
             samples_w_mutants = [
@@ -85,6 +87,7 @@ def hairpin2(
                     logging.warning(
                         f"{record.chrom: <7}:{record.pos: >12} (variant id: {record.id!r}) ¦ no samples exhibit alts associated with this record, skipping variant"
                     )
+                continue
             else:
                 reads_by_sample: dict[str, list[pysam.AlignedSegment]] = {}
 
@@ -106,6 +109,9 @@ def hairpin2(
                 # the ability to handle complex mutations would be a potentially interesting future feature
                 # for extending to more varied artifacts
                 for alt in record.alts:
+                    if alt in alt_resultd.keys():
+                        raise RuntimeError
+                    alt_resultd[alt] = []
                     can_parse_alt = set(alt).issubset(ValidNucleotides.ALL.value)
                     alt_len = len(alt)
 
@@ -138,18 +144,15 @@ def hairpin2(
                         record=record, reads=test_reads, alt=alt, mut_type=mut_type
                     )  # TODO: allow positional args
                     for result in proc_exec.run(run_data):
-                        record_flagd.setdefault(result.FlagName, []).append(
+                        alt_resultd[alt].append(
                             result
-                        )  # if dict entry exists, append, if not, create and append
+                        )
 
-        if any(lst for lst in record_flagd.values()):
-            for fname in record_flagd:
-                if any(
-                    fres.variant_flagged == TestOutcomes.VARIANT_FAIL
-                    for fres in record_flagd[fname]
-                ):
-                    record.filter.add(fname)
-                # TODO: LQF prints no info!
-                record.info.update({fname: ",".join([fl.getinfo() for fl in record_flagd[fname]])})  # pyright: ignore[reportArgumentType, reportUnknownMemberType]
+        for alt, flagl in alt_resultd.items():
+            for flag in flagl:
+                if flag.variant_flagged == TestOutcomes.VARIANT_FAIL:
+                    record.filter.add(flag.FlagName)
+
+                record.info.update({flag.FlagName: flag.getinfo(alt)})  # pyright: ignore[reportArgumentType, reportUnknownMemberType]
 
         yield record

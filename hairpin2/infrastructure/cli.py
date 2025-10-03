@@ -168,8 +168,9 @@ def resolve_config_dicts(ctx: Any, param: Any, values: Iterable[dict[str, Any]])
 
 @click.command(
     epilog="see documentation at https://github.com/cancerit/hairpin2 or at tool install location for further information",
-    options_metavar="[-h, --help] [OPTIONS]",
+    options_metavar="[--help] [OPTIONS]",
 )
+# TODO: add short help opt -h!
 @click.version_option(VERSION, "-v", "--version", message="%(version)s")
 @click.argument("vcf", type=existing_file_path, required=True)
 @click.argument("alignments", nargs=-1, type=existing_file_path, required=True)
@@ -242,45 +243,6 @@ def hairpin2_cli(
     """
     read-aware artefactual variant flagging algorithms. Flag variants in VCF using statistics calculated from supporting reads found in ALIGNMENTS and emit the flagged VCF to stdout.
     """
-    # TODO: verify config
-    # for key in configd:
-    #     if key not in _PARAMS:
-    #         logging.error(f'unrecognised parameter {key!r} in config - check spelling and underscores?')
-    #         sys.exit(EXIT_FAILURE)
-
-    # override from config and ensure all args are set
-    # test args are sensible, exit if not
-    # unfortunately necessary duplication with options since the config remains unverified
-    # TODO: move to validation of FilterParams with pydantic, where there should be full validation anyway
-    # for key in kwargs:
-    #     if kwargs[key] is None:
-    #         if key in configd.keys():
-    #             kwargs[key] = configd[key]
-    #         elif key in _PARAMS:
-    #             if not quiet: logging.info(f'parameter {key!r} not found in config or overridden on command line, falling back to standard default {_PARAMS[key].default}')
-    #             kwargs[key] = _PARAMS[key].default
-    #     if key not in _PARAMS:  # shouldn't happen
-    #         logging.error(f'unrecognised parameter {key!r} in kwargs - this is probably a bug!')
-    #         sys.exit(EXIT_FAILURE)
-    #     else:
-    #         assert kwargs[key] is not None
-    #         if not isinstance(kwargs[key], type(_PARAMS[key].default)):
-    #             logging.error(f'value {kwargs[key]!r} for parameter {key!r} is not of expected type {type(_PARAMS[key].default).__name__}')
-    #             sys.exit(EXIT_FAILURE)
-    #         pmin, pmax = _PARAMS[key].range
-    #         if (pmin is not None and pmin > kwargs[key]) or (pmax is not None and kwargs[key] > pmax):
-    #             logging.error(f'value {kwargs[key]!r} for parameter {key!r} out of range {pmin}<=x<={pmax}')
-    #             sys.exit(EXIT_FAILURE)
-
-    # # set up params based on inputs
-    # shared_prefilter_d = {
-    #     'min_mapq': kwargs['min_mapping_quality'],
-    #     'min_avg_clipq': kwargs['min_clip_quality'],
-    #     'min_baseq': kwargs['min_base_quality']
-    # }
-
-    # kwargs.update(shared_prefilter_d,)
-
     try:
         vcf_in_handle = pysam.VariantFile(vcf)
     except Exception as er:
@@ -433,22 +395,22 @@ def hairpin2_cli(
         f'##FILTER=<ID=LQF,Description="More than {configd["params"]["LQF"]["read_loss_threshold"]} of reads supporting this variant are considered low quality">'
     )
     out_head.add_line(
-        '##INFO=<ID=ADF,Number=1,Type=String,Description="alt|[True,False]|code indicating decision reason for each alt">'
+        '##INFO=<ID=ADF,Number=A,Type=String,Description="alt|outcome|flag|nreads|strand indicating decision reason for each alt">'
     )
     out_head.add_line(
-        '##INFO=<ID=ALF,Number=1,Type=String,Description="alt|[True,False]|code|score indicating decision reason and average AS of supporting reads for each alt">'
+        '##INFO=<ID=ALF,Number=A,Type=String,Description="alt|outcome|flag|nreads|score indicating decision reason and average AS of supporting reads for each alt">'
     )
     out_head.add_line(
-        '##INFO=<ID=DVF,Number=1,Type=String,Description="alt|[True,False]|code|loss indicating decision reason for each alt and ratio of supporting reads suspected to be duplicates">'
+        '##INFO=<ID=DVF,Number=A,Type=String,Description="alt|outcome|flag|nreads|loss indicating decision reason for each alt and ratio of supporting reads suspected to be duplicates">'
     )
     out_head.add_line(
-        '##INFO=<ID=LQF,Number=1,Type=String,Description="alt|[True,False]|code|loss indicating decision reason for each alt and ratio of supporting reads suspected to be low quality">'
+        '##INFO=<ID=LQF,Number=A,Type=String,Description="alt|outcome|flag|nreads|loss indicating decision reason for each alt and ratio of supporting reads suspected to be low quality">'
     )
     out_head.add_line(f"##hairpin2_version={VERSION}")
     out_head.add_line(
         f"##hairpin2_params=[{json.dumps({k: v for k, v in configd['params'].items() if configd['exec'][k]['enable']})}]"
     )
-    out_head.add_line(f"##hairpin2_samples={vcf_sample_to_alignment_map.keys()}")
+    out_head.add_line(f"##hairpin2_samples={set(vcf_sample_to_alignment_map.keys())}")
 
     # test records
     prog_counter = 0

@@ -127,6 +127,15 @@ class ReadAwareProcess(ABC):
         cls.AddsMarks = adds_marks
         cls.FixedParamClass = fixed_param_class
 
+    # since marks are based only on presence
+    # the lack of an exclude mark is enough to pass a check
+    # this makes it easy to enable and disable tagger processes
+    # while leaving it up to the user which way round they want to use a tag
+    # e.g. if you want to be able to easily turn something on/off
+    # make it an exclude mark like LOW-QUAL
+    # conversely if you want to be strict make a require mark like HIGH-QUAL
+    # TODO: this really really should move onto READVIEW
+    # a simple first pass would be to do a dict of reads by tag, and update it after each process
     def require_properties_check(self, run_params: RunParams):
         """
         Filter reads prior to test

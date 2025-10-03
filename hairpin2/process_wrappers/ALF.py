@@ -39,15 +39,14 @@ class ResultALF(
     flag_name="ALF",
     info_enum=AlignmentScoreTest.ResultPack.Info,
 ):
-    alt: str
     reads_seen: int
     avg_as: float | None
 
     @override
-    def getinfo(self) -> str:
+    def getinfo(self, alt:str) -> str:
         info_bits = hex(self.info_flag.value if self.info_flag is not None else 0)
         avg_as = round(self.avg_as, 3) if self.avg_as else "NA"
-        return f"{self.alt}|{self.variant_flagged}|{info_bits}|{self.reads_seen}|{avg_as}"
+        return f"{alt}|{self.variant_flagged}|{info_bits}|{self.reads_seen}|{avg_as}"
 
 
 class FixedParamsALF(FixedParams):
@@ -62,7 +61,7 @@ def test_ALF(  # test supporting reads
     )
 
     flag = ResultALF(
-        result.outcome, result.reason, run_params.alt, len(run_params.reads), result.avg_as
+        result.outcome, result.reason, len(run_params.reads.all), result.avg_as
     )
 
     return flag
