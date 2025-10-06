@@ -101,8 +101,64 @@ class ConfigFile(click.ParamType):
             self.fail(f"Failed to parse {path.name}: {ex}", param, ctx)
 
 
-# TODO: use input configd to overwrite/update a preset default configd so exec configuration is optional
-def resolve_config_dicts(ctx: Any, param: Any, values: Iterable[dict[str, Any]]):  # pyright: ignore[reportUnusedParameter]
+
+def _coerce_value(path: str, raw: str) -> Any:
+    s = raw.strip()
+
+    try:
+        return json.loads(s)
+    except Exception:
+        logging.warning(f"--set {path}: could not interpet value \"{raw}\" as JSON-format value, assuming string")
+        return s
+
+
+def _set_dleaf(targetd: dict[str, Any], path: str, value: Any) -> None:
+    """
+    Set obj[path] = value where path is 'a.b.c' and only override existing leaf.
+    """
+    if not path or "." in (path[0], path[-1]):
+        raise click.BadParameter(f"Invalid path for --set: {path!r}")
+
+    dot_segments = path.split(".")
+    if any(seg == "" for seg in dot_segments):
+        raise click.BadParameter(f"Invalid path (empty segment) for --set: {path!r}")
+    d_recursor: dict[str, Any] = targetd
+
+    # walk all but last key
+    for seg in dot_segments[:-1]:
+        if not isinstance(d_recursor, dict):
+            raise click.BadParameter(f"--set {path}: '{seg}' is not a mapping/dict in config")  # pyright: ignore[reportUnreachable]
+        if seg not in d_recursor:
+            raise click.BadParameter(f"--set {path}: missing key '{seg}' in config")
+        d_recursor = d_recursor[seg]
+
+    terminal_key = dot_segments[-1]
+    if not isinstance(d_recursor, dict):
+        raise click.BadParameter(f"--set {path}: parent of '{terminal_key}' is not a dict")  # pyright: ignore[reportUnreachable]
+    if terminal_key not in d_recursor:
+        raise click.BadParameter(f"--set {path}: missing key '{terminal_key}' in config")
+    if isinstance(d_recursor[terminal_key], dict) or isinstance(d_recursor[terminal_key], list):
+        raise click.BadParameter(
+            f"--set {path}: final target is a mapping/dict or array/list; only leaf values may be overridden"
+        )
+
+    # override
+    d_recursor[terminal_key] = value
+
+
+def _apply_overrides_callback(ctx: click.Context, param: click.Option,  # pyright: ignore[reportUnusedParameter]
+                             pairs: tuple[tuple[str, str], ...]):
+    configd: dict[str, Any] | None = ctx.params.get("configd")
+    if not isinstance(configd, dict):
+        raise click.BadParameter("--set must occur after --config")
+
+    for keypath, raw in pairs:
+        _set_dleaf(configd, keypath, _coerce_value(keypath, raw))
+
+    return None
+
+
+def _resolve_configd_callback(ctx: Any, param: Any, values: Iterable[dict[str, Any]]):  # pyright: ignore[reportUnusedParameter]
     """
     Merge config files
     """
@@ -116,13 +172,13 @@ def resolve_config_dicts(ctx: Any, param: Any, values: Iterable[dict[str, Any]])
                 key in merged
             ):  # TODO: allow splitting params key only across files as long as no sub keys overlap
                 raise click.BadParameter(
-                    f"top-level key {key} appears in more than one config. Top-level keys may not be split across config files"
+                    f"-c/--config: top-level key {key} appears in more than one config. Top-level keys may not be split across config files"
                 )
             merged[key] = val
 
     if not merged.get("exec"):
         merged["exec"] = DEFAULT_EXEC_CONFIG
-        logging.info("execution flow configuration not provided; using defaults")
+        logging.info("-c/--config: execution flow configuration not provided; using defaults")
 
     return merged
 
@@ -143,8 +199,8 @@ def resolve_config_dicts(ctx: Any, param: Any, values: Iterable[dict[str, Any]])
     multiple=True,
     metavar="FILEPATH",
     type=ConfigFile(),
-    help="path to config TOML/s or JSON/s from which processes and execution will be configured",
-    callback=resolve_config_dicts,
+    help="path to config TOML/s or JSON/s from which processes and execution will be configured.",
+    callback=_resolve_configd_callback,
 )
 @click.option(
     "-o",
@@ -152,12 +208,21 @@ def resolve_config_dicts(ctx: Any, param: Any, values: Iterable[dict[str, Any]])
     "output_config_path",
     metavar="FILEPATH",
     type=writeable_file_path,
-    help="log run configuration back to a new JSON file",
+    help="log run configuration back to a new JSON file.",
+)
+@click.option(
+    "--set",
+    nargs=2,
+    multiple=True,
+    type=(str, click.UNPROCESSED),
+    expose_value=False,
+    callback=_apply_overrides_callback,
+    help="Override values in the supplied config. Uses dot paths for the key, and JSON format for the value, e.g., --set params.DVF.read_loss_threshold 0.6. Must be provided after --config."
 )
 @click.option(
     "-m",
     "--name-mapping",
-    metavar="STR | FILEPATH",
+    metavar="JSON_STRING | FILEPATH",
     type=JSONOrFile(),
     help="If sample names in VCF differ from SM tags in alignment files, provide a key here to map them. "
     "Accepts a path to a JSON file, or JSON-formatted string of key-value pairs where keys are sample names in the VCF "
@@ -165,7 +230,7 @@ def resolve_config_dicts(ctx: Any, param: Any, values: Iterable[dict[str, Any]])
     '- e.g. \'{"sample0": "PDxxA", "sample1": "PDxxB"}\' or \'{"sample0": "A.bam", ...}\'. '
     "When only a single alignment is provided, also accepts a JSON-spec top-level array of possible sample of interest names "
     '- e.g. \'["TUMOR","TUMOUR"]\'. '
-    "Note that when providing a JSON-formatted string at the command line you must single quote the string, and use only double quotes internally",
+    "Note that when providing a JSON-formatted string at the command line you must single quote the string, and use only double quotes internally."
 )
 @click.option(
     "-r",
@@ -173,13 +238,13 @@ def resolve_config_dicts(ctx: Any, param: Any, values: Iterable[dict[str, Any]])
     "cram_reference_path",
     metavar="FILEPATH",
     type=existing_file_path,
-    help="path to FASTA format CRAM reference, overrides $REF_PATH and UR tags for CRAM alignments",
+    help="path to FASTA format CRAM reference, overrides $REF_PATH and UR tags for CRAM alignments."
 )
 @click.option(
     "-q",
     "--quiet",
     count=True,
-    help="be quiet (-q to not log INFO level messages, -qq to additionally not log WARN)",
+    help="be quiet (-q to not log INFO level messages, -qq to additionally not log WARN).",
     default=False,
 )
 @click.option(
@@ -187,10 +252,9 @@ def resolve_config_dicts(ctx: Any, param: Any, values: Iterable[dict[str, Any]])
     "--progress",
     "progress_bar",
     is_flag=True,
-    help="display progress bar on stderr during run",
+    help="display progress bar on stderr during run.",
     default=False,
 )
-# TODO: allow arbitrary command line "--flag val" to override config
 def hairpin2_cli(
     vcf: str,
     alignments: list[str],
@@ -421,6 +485,7 @@ def hairpin2_cli(
                 print(file=sys.stderr)
     except ConfigError as er:
         logging.error(f"failed to start hairpin2 executor from config/s, reporting: {er}")
+        sys.exit(EXIT_FAILURE)
 
     if output_config_path:
         try:

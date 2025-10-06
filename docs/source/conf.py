@@ -38,7 +38,7 @@ html_static_path = ["_static"]
 
 # RTD theme options for consistent sidebar
 html_theme_options = {
-    "navigation_depth": 3,
+    "navigation_depth": 4,
     "includehidden": False,
     "titles_only": False,
     "collapse_navigation": False,

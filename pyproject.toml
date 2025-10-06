@@ -37,6 +37,7 @@ docs = [
 
 [project.scripts]
 hairpin2 = "hairpin2.infrastructure.cli:hairpin2_cli"
+hp2-utils = "hairpin2.hp2_utils.cli:hp2_utils"
 
 [tool.ruff]
 line-length = 100
