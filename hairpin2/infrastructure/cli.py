@@ -101,14 +101,15 @@ class ConfigFile(click.ParamType):
             self.fail(f"Failed to parse {path.name}: {ex}", param, ctx)
 
 
-
 def _coerce_value(path: str, raw: str) -> Any:
     s = raw.strip()
 
     try:
         return json.loads(s)
     except Exception:
-        logging.warning(f"--set {path}: could not interpet value \"{raw}\" as JSON-format value, assuming string")
+        logging.warning(
+            f'--set {path}: could not interpet value "{raw}" as JSON-format value, assuming string'
+        )
         return s
 
 
@@ -146,8 +147,11 @@ def _set_dleaf(targetd: dict[str, Any], path: str, value: Any) -> None:
     d_recursor[terminal_key] = value
 
 
-def _apply_overrides_callback(ctx: click.Context, param: click.Option,  # pyright: ignore[reportUnusedParameter]
-                             pairs: tuple[tuple[str, str], ...]):
+def _apply_overrides_callback(
+    ctx: click.Context,
+    param: click.Option,  # pyright: ignore[reportUnusedParameter]
+    pairs: tuple[tuple[str, str], ...],
+):
     configd: dict[str, Any] | None = ctx.params.get("configd")
     if not isinstance(configd, dict):
         raise click.BadParameter("--set must occur after --config")
@@ -178,7 +182,7 @@ def _resolve_configd_callback(ctx: Any, param: Any, values: Iterable[dict[str, A
 
     if not merged.get("exec"):
         merged["exec"] = DEFAULT_EXEC_CONFIG
-        logging.info("-c/--config: execution flow configuration not provided; using defaults")
+        logging.info("execution flow configuration not provided; using defaults")
 
     return merged
 
@@ -217,7 +221,7 @@ def _resolve_configd_callback(ctx: Any, param: Any, values: Iterable[dict[str, A
     type=(str, click.UNPROCESSED),
     expose_value=False,
     callback=_apply_overrides_callback,
-    help="Override values in the supplied config. Uses dot paths for the key, and JSON format for the value, e.g., --set params.DVF.read_loss_threshold 0.6. Must be provided after --config."
+    help="Override values in the supplied config. Uses dot paths for the key, and JSON format for the value, e.g., --set params.DVF.read_loss_threshold 0.6. Must be provided after --config.",
 )
 @click.option(
     "-m",
@@ -230,7 +234,7 @@ def _resolve_configd_callback(ctx: Any, param: Any, values: Iterable[dict[str, A
     '- e.g. \'{"sample0": "PDxxA", "sample1": "PDxxB"}\' or \'{"sample0": "A.bam", ...}\'. '
     "When only a single alignment is provided, also accepts a JSON-spec top-level array of possible sample of interest names "
     '- e.g. \'["TUMOR","TUMOUR"]\'. '
-    "Note that when providing a JSON-formatted string at the command line you must single quote the string, and use only double quotes internally."
+    "Note that when providing a JSON-formatted string at the command line you must single quote the string, and use only double quotes internally.",
 )
 @click.option(
     "-r",
@@ -238,7 +242,7 @@ def _resolve_configd_callback(ctx: Any, param: Any, values: Iterable[dict[str, A
     "cram_reference_path",
     metavar="FILEPATH",
     type=existing_file_path,
-    help="path to FASTA format CRAM reference, overrides $REF_PATH and UR tags for CRAM alignments."
+    help="path to FASTA format CRAM reference, overrides $REF_PATH and UR tags for CRAM alignments.",
 )
 @click.option(
     "-q",

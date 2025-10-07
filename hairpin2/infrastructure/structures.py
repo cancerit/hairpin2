@@ -256,7 +256,7 @@ class ReadView(Mapping[Any, tuple[Read_T, ...]]):
         return self._data.values()
 
     @override
-    def items(self):  # pyright: ignore[reportIncompatibleMethodOverride]
+    def items(self):
         return self._data.items()
 
     @property
@@ -266,7 +266,7 @@ class ReadView(Mapping[Any, tuple[Read_T, ...]]):
     @staticmethod
     def validate_read_map(read_map: Mapping[str, Sequence[AlignedSegment]]):
         for vals in read_map.values():
-            if len(vals) != len(set(id(el) for el in vals)):
+            if len(vals) != len({id(el) for el in vals}):
                 raise ValueError(
                     "Sequence of objects in mapping contains duplicated references pointing to the same object in memory (i.e. the same read has been included twice). Cannot create ReadView"
                 )

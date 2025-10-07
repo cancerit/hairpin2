@@ -52,6 +52,7 @@ class TagSupportingReads:
 
     class SupportFlags(Flag):
         CLEAR = 0
+        SAMFLAG = auto()
         FIELDS_MISSING = auto()
         NOT_ALIGNED = auto()
         NOT_ALT = auto()
@@ -81,7 +82,7 @@ class TagSupportingReads:
         else:
             if (
                 not mate_cig[0].isdigit()
-                or not all([(c.isalnum() or c == "=") for c in mate_cig])
+                or not all((c.isalnum() or c == "=") for c in mate_cig)
                 or len(mate_cig) < 2
             ):
                 mate_cig = None
@@ -118,7 +119,7 @@ class TagSupportingReads:
                             for q, r in read.get_aligned_pairs()
                             if q in range(mut_pos + 1, mut_pos + len(alt) + 1)
                         ]
-                        if any([r is not None for _, r in mut_alns]):
+                        if any(r is not None for _, r in mut_alns):
                             support_flag |= cls.SupportFlags.BAD_OP
                         if (
                             cast(str, read.query_sequence)[mut_pos + 1 : mut_pos + len(alt) + 1]
@@ -130,10 +131,13 @@ class TagSupportingReads:
             mut_alns = [q for q, r in read.get_aligned_pairs() if r in rng]
             if len(mut_alns) != len(rng):
                 support_flag |= cls.SupportFlags.SHORT
-            if any([x is not None for x in mut_alns[1:-1]]) or any(
-                [x is None for x in [mut_alns[0], mut_alns[-1]]]
+            if any(x is not None for x in mut_alns[1:-1]) or any(
+                x is None for x in [mut_alns[0], mut_alns[-1]]
             ):
                 support_flag |= cls.SupportFlags.BAD_OP
+
+        if not (read.flag & 0x2) or read.flag & 0xE00:
+            support_flag |= cls.SupportFlags.SAMFLAG
 
         # ValidatorFlag not returned but kept in case useful in the future
         if support_flag == cls.SupportFlags.CLEAR:
@@ -160,7 +164,6 @@ class TagLowQualReads:
 
     class QualFlags(Flag):
         CLEAR = 0
-        SAMFLAG = auto()
         MAPQUAL = auto()
         CLIPQUAL = auto()
         BASEQUAL = auto()
@@ -178,9 +181,6 @@ class TagLowQualReads:
         mark: bool = True,
     ) -> bool:
         qual_flag = cls.QualFlags.CLEAR  # 0 - evaluates false
-
-        if not (read.flag & 0x2) or read.flag & 0xE00:
-            qual_flag |= cls.QualFlags.SAMFLAG
 
         if read.mapping_quality < min_mapqual:
             qual_flag |= cls.QualFlags.MAPQUAL
@@ -200,12 +200,8 @@ class TagLowQualReads:
                 )
             else:
                 if any(
-                    [
-                        bq < min_basequal
-                        for bq in cast(array[Any], read.query_qualities)[
-                            mut_pos : mut_pos + len(alt)
-                        ]
-                    ]
+                    bq < min_basequal
+                    for bq in cast(array[Any], read.query_qualities)[mut_pos : mut_pos + len(alt)]
                 ):
                     qual_flag |= cls.QualFlags.BASEQUAL
 
@@ -229,37 +225,6 @@ class TagFragmentReads:
     Used to tag reads as an overlapping mate. This tag can then be used by other processes to
     include/exclude reads with that tag from their analysis
     """
-
-    # @staticmethod
-    # def check_fragment_overlap(read: ExtendedRead, vcf_start: int, mark: bool = True):
-    # """
-    # Alternate pc8 approach
-    # """
-    #     overlap = False
-
-    #     mate_cig = str(read.get_tag("MC"))  # will error if no tag
-
-    #     # NOTE: introduces strand bias!!
-    #     # NOTE: does not check if the overlapping member supports variant!
-    #     # Will discard overlapping read2 even if read1 doesn't support var
-    #     if read.flag & 0x80:  # if second in pair
-    #         read_range = range(
-    #             read.reference_start,
-    #             read.reference_end,  # pyright: ignore[reportArgumentType]
-    #         )
-    #         mate_range = range(
-    #             read.next_reference_start, ref_end_via_cigar(mate_cig, read.next_reference_start)
-    #         )
-    #         overlapping_positions = set(read_range).intersection(mate_range)
-    #         if vcf_start in overlapping_positions:
-    #             overlap = True
-
-    #     if overlap and mark:
-    #         mark_read(read, Tags.OVERLAP_TAG)
-
-    #     record_operation(read, TaggerNamespaces.MARK_OVERLAP)
-
-    #     return overlap
 
     @staticmethod
     def check_for_mates(reads: Iterable[ExtendedRead]):
@@ -355,7 +320,7 @@ class TagStutterDuplicateReads:
                 # assert len(endpoint_diffs) == 4  # sanity check - commented out but left in as a hint
                 max_diff_per_comparison.append(max(endpoint_diffs))
 
-            if all([x <= duplication_window_size for x in max_diff_per_comparison]):
+            if all(x <= duplication_window_size for x in max_diff_per_comparison):
                 # then the read pair being examined is a duplicate of the others in the pool
                 dup_endpoint_comparison_pool.append(
                     testing_endpoints
@@ -564,7 +529,7 @@ class AnomalousDistributionTest:
                     med_f = median(
                         la2ms_f
                     )  # range calculation replaced with true MAD calc (for r strand also)
-                    mad_f = median(map(lambda x: abs(x - med_f), la2ms_f))
+                    mad_f = median(abs(val - med_f) for val in la2ms_f)
                     sd_f = stdev(la2ms_f)
                     if (
                         len(la2ms_r) <= low_n_supporting_reads_boundary
@@ -592,7 +557,7 @@ class AnomalousDistributionTest:
                 # the nested if statement here makes the combined condition mutually exclusive with the above
                 if len(la2ms_r) > low_n_supporting_reads_boundary:
                     med_r = median(la2ms_r)
-                    mad_r = median(map(lambda x: abs(x - med_r), la2ms_r))
+                    mad_r = median(abs(val - med_r) for val in la2ms_r)
                     sd_r = stdev(la2ms_r)
                     if len(la2ms_f) <= low_n_supporting_reads_boundary:
                         strand = Strand.R

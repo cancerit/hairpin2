@@ -45,7 +45,7 @@ class CigarError(ValueError):
 def ref_end_via_cigar(cig_str: str, ref_start: int) -> int:
     if (
         not cig_str[0].isdigit()
-        or not all([(c.isalnum() or c == "=") for c in cig_str])
+        or not all((c.isalnum() or c == "=") for c in cig_str)
         or len(cig_str) < 2
     ):
         raise CigarError("could not interpret cigar string {}".format(cig_str))

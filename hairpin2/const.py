@@ -29,7 +29,7 @@ class ValidNucleotides(Enum):
     VCF nucleotides, which hairpin2 is able to process.
     """
 
-    ALL = set(["A", "C", "T", "G", "N", "*"])
+    ALL = {"A", "C", "T", "G", "N", "*"}
 
 
 class Strand(StrEnum):
