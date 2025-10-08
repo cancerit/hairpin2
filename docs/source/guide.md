@@ -71,7 +71,6 @@ min_base_quality = 25
 `min_avg_clip_quality` is the minimum mean quality of aligned bases for a read which contains soft clipping.
 `min_mapping_quality` is the minimum mapping quality (aka mapq) for a read.
 `min_base_quality` is the minimum base quality for any position covering the variant in a read.
-The test also marks reads based on their SAM flags.
 
 Reads found to be of insufficient quality are marked with the tag {py:attr}`~hairpin2.const.Tags.LOW_QUAL_TAG`
 
