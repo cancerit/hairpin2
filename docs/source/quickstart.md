@@ -7,7 +7,7 @@ The easiest end-user approach is to install into a virtual environment:
 python -m venv .env
 source .env/bin/activate
 pip install .
-hairpin --help  # see helptext
+hairpin --help
 ```
 
 ### Usage
@@ -31,7 +31,13 @@ See the [guide](#guide-target) for a complete walkthrough, and the [interface](#
 ### Command Line Interface
 
 ```
-Usage: hairpin2 [--help] [OPTIONS] VCF ALIGNMENTS...
+Usage: hairpin2 [-h, --help] [OPTIONS] VCF ALIGNMENTS...
+
+  read-aware artefactual variant flagging algorithms. Flag variants in VCF
+  using statistics calculated from supporting reads found in ALIGNMENTS and
+  emit the flagged VCF to stdout.
+
+Usage: hairpin2 [-h, --help] [OPTIONS] VCF ALIGNMENTS...
 
   read-aware artefactual variant flagging algorithms. Flag variants in VCF
   using statistics calculated from supporting reads found in ALIGNMENTS and
@@ -41,13 +47,17 @@ Options:
   -v, --version                   Show the version and exit.
   -c, --config FILEPATH           path to config TOML/s or JSON/s from which
                                   processes and execution will be configured.
+                                  May be provided multiple times; individual
+                                  configs can be provided for each top level
+                                  key (params, exec).
   -o, --output-config FILEPATH    log run configuration back to a new JSON
                                   file.
   --set <TEXT TEXT>...            Override values in the supplied config. Uses
                                   dot paths for the key, and JSON format for
                                   the value, e.g., --set
                                   params.DVF.read_loss_threshold 0.6. Must be
-                                  provided after --config.
+                                  provided after --config. May be provided
+                                  multiple times.
   -m, --name-mapping JSON_STRING | FILEPATH
                                   If sample names in VCF differ from SM tags
                                   in alignment files, provide a key here to
@@ -72,7 +82,7 @@ Options:
   -q, --quiet                     be quiet (-q to not log INFO level messages,
                                   -qq to additionally not log WARN).
   -p, --progress                  display progress bar on stderr during run.
-  --help                          Show this message and exit.
+  -h, --help                      Show this message and exit.
 ```
 
 To expand on `--name-mapping` – when using multisample VCFs, hairpin2 compares VCF sample names found in the VCF header to SM tags in alignments to match samples of interest to the correct alignment. If these IDs are different between the VCF and alignments, you'll need to provide a JSON key. If there are multiple samples of interest in a multisample VCF, and therefore it is necessary to provide multiple alignments, you will need to provide a mapping for each pair - e.g. `-m '{"sample1":"SM1", "sample2":"SM2", ...}'` or `-m '{"sample1:"1.bam", ...}'`. If there is only one sample of interest, and therefore only one alignment is provided to the tool, then you also have an optional shorthand - you need only indicate which VCF sample is the sample of interest, e.g. `-m '["TUMOR"]'`. When there is only one sample of interest, and therefore one alignment, but the sample of interest may have one of several possible names, you may also provide a comma separated string of possible names for the sample of interest, e.g. `-m '["TUMOR", "TUMOUR"]'` - users have found this valuable for high throughput workflows where the VCF input may be coming from one of several prior tools or callers (which may name samples differently). In all cases, there must be one and only one match between each alignment and VCF sample. In all cases, a path to a JSON file may be provided instead of the JSON string. Note that a VCF containing both a TUMOUR and a NORMAL sample contains 2 samples, and therefore is a multisample VCF.
