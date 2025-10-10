@@ -98,9 +98,9 @@ mark-duplicates only operates on reads marked with {py:attr}`~hairpin2.const.Tag
 
 The following processes examine the reads covering the variant position, after they have been appropriately tagged by the read tagging processes described above. Beyond simpy flagging the variant in the FILTER field, each flagger process details the outcome of its test directly into the INFO field of the VCF record. Therefore in addition to a description of the process and relevant parameters, a description of the possible outcome reasoning is also provided. Note that any INFO field set by hairpin2 can be expanded into a more human-readable description via the [explain-var](#explain-qs-target) subtool. For all cases, the high-level outcomes are as follows:
 
-:::{list-table} **Outcomes**
+```{list-table} **Outcomes**
 :header-rows: 1
-* -
+* - Name
   - Description
 * - PASS
   - The variant passed the test, and therefore was not flagged.
@@ -108,7 +108,7 @@ The following processes examine the reads covering the variant position, after t
   - The variant failed the test, and therefore was flagged.
 * - NA
   - The test could not be carried out.
-:::
+```
 
 
 ##### LQF
@@ -125,15 +125,18 @@ The test is performed by examining the proportion of reads supporting a variant 
 
 LQF excludes from testing any reads tagged with {py:attr}`~hairpin2.const.Tags.OVERLAP_TAG` by [mark-overlap](#mark-overlap) to avoid double counting.  
 
-:::{list-table} **Parameters**
+```{list-table} Parameters
 :header-rows: 1
-*  - Name
-   - Description
-*  - read_loss_threshold
-   - threshold of low quality reads against total reads. If this threshold is exceeded, there are too many low quality reads, and the variant is flagged.
-*  - min_pass_reads
-   - minimum number of supporting reads without {py:attr}`~hairpin2.const.Tags.STUTTER_DUP_TAG` and {py:attr}`~hairpin2.const.Tags.LOW_QUAL_TAG` necessary for a variant to pass the test. If there are fewer, the variant is flagged.
-:::
+:widths: 30 70
+
+* - **Name**
+  - **Description**
+* - `read_loss_threshold`
+  - Threshold of low-quality reads against total reads. If this threshold is exceeded, there are too many low-quality reads, and the variant is flagged.
+* - `min_pass_reads`
+  - Minimum number of supporting reads without {py:attr}`~hairpin2.const.Tags.STUTTER_DUP_TAG` and {py:attr}`~hairpin2.const.Tags.LOW_QUAL_TAG` necessary for a variant to pass the test. If there are fewer, the variant is flagged.
+```
+
 :::{list-table} **Conditions**
 :header-rows: 1
 
@@ -243,28 +246,27 @@ min_non_edge_reads = 0
 
 ADF is an implementation of the following conditional described by [Ellis et al, 2020](https://www.nature.com/articles/s41596-020-00437-6). The full text of the conditional is reproduced below, with editorials in []. There is a point of ambiguity in the original conditional; the interpretation that this tool has opted for is indicated by [] and is expanded upon subsequently.  
 
-<!-- I'd love to get this into a better formatted box -->
-From Ellis et al.:
+```{admonition} From Ellis et al.:
+:class: qoute
 
----
-    For each variant, if the number of variant-supporting reads determined is low (i.e. 0–1
-    reads) for one strand, follow Option A. For each variant, if both strands have sufficient variant-supported reads
-    (i.e. ≥2 reads), follow Option B.
+For each variant, if the number of variant-supporting reads determined is low (i.e. 0–1
+reads) for one strand, follow Option 1. For each variant, if both strands have sufficient variant-supported reads
+(i.e. ≥2 reads), follow Option 2.
+
+- Option A - Low number of variant-supporting reads on one strand
+    - (i) For each variant, if one strand had too few variant-supporting reads, the other strand must
+    conform to:
+        - Fewer than 90% of variant-supporting reads [ON THE STRAND] have the variant located within the first 15% of the read measured from the alignment start position.
+        - MAD >0 [MEDIAN ABSOLUTE DEVIATION] and s.d. >4 for that strand.
+
+- Option B - Sufficient variant-supporting reads on both strands
+    - (i) For each variant, if both strands have sufficient variant-supporting reads (i.e., ≥2 reads),
+    then one of the following must be true:
+        - Fewer than 90% of variant-supporting reads should have the variant located within the first 15% of the read measured from the alignment start position.
+        - MAD >2 and s.d. >2 for both strands.
+        - MAD >1 and s.d. >10 for one strand (i.e., strong evidence of high variability in variant position in variant-supporting reads).
     
-    A) Low number of variant-supporting reads on one strand
-        (i) For each variant, if one strand had too few variant-supporting reads, the other strand must
-        conform to:
-            - Fewer than 90% of variant-supporting reads [ON THE STRAND] have the variant located within the first 15% of the read measured from the alignment start position.
-            - MAD >0 [MEDIAN ABSOLUTE DEVIATION] and s.d. >4 for that strand.
-    
-    B) Sufficient variant-supporting reads on both strands
-        (i) For each variant, if both strands have sufficient variant-supporting reads (i.e., ≥2 reads),
-        then one of the following must be true:
-            - Fewer than 90% of variant-supporting reads should have the variant located within the first 15% of the read measured from the alignment start position.
-            - MAD >2 and s.d. >2 for both strands.
-            - MAD >1 and s.d. >10 for one strand (i.e., strong evidence of high variability in variant position in variant-supporting reads).
-    
----
+```
 
 The point of ambiguity is whether or not, on path A, to include the single read from the strand which does not sufficiently
 support the variant in the test of positional distribution across the supporting reads.
