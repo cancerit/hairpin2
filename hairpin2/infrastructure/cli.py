@@ -167,7 +167,6 @@ def _resolve_configd_callback(ctx: Any, param: Any, values: Iterable[dict[str, A
     Merge config files
     """
     # handle substitutions, merge
-    # TODO: substitutions from vars, substitutions from cli flags
     merged: dict[str, Any] = {}
 
     for configd in values:
@@ -189,9 +188,9 @@ def _resolve_configd_callback(ctx: Any, param: Any, values: Iterable[dict[str, A
 
 @click.command(
     epilog="see documentation at https://github.com/cancerit/hairpin2 or at tool install location for further information",
-    options_metavar="[--help] [OPTIONS]",
+    options_metavar="[-h, --help] [OPTIONS]",
+    context_settings=dict(help_option_names=['-h', '--help'])
 )
-# TODO: add short help opt -h!
 @click.version_option(VERSION, "-v", "--version", message="%(version)s")
 @click.argument("vcf", type=existing_file_path, required=True)
 @click.argument("alignments", nargs=-1, type=existing_file_path, required=True)

@@ -183,8 +183,6 @@ def make_extended_read(read: AlignedSegment | ExtendedRead) -> ExtendedRead:
         )  # pyright: ignore[reportUnreachable]
 
 
-# TODO: on reflection, this should attempt to mark the underlying object
-# in addition to the proxy.
 def mark_read(
     read: ExtendedRead,  # | AlignedSegment - TODO
     mark: str,

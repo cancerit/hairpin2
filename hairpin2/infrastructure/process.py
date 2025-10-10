@@ -193,7 +193,7 @@ class ReadAwareProcess(ABC):
             )
         if not isinstance(var_params, RunParams):
             # The following message is not strictly true, but should be
-            # TODO: init subclass should tie a type[RunParams] to the class
+            # TODO: should tie a type[RunParams] to the class
             raise TypeError(
                 "Process can only be primed with an instance of the RunParams subclass tied to this flagger."
             )  # pyright: ignore[reportUnreachable]
