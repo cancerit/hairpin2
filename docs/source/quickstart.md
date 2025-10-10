@@ -3,17 +3,17 @@
 
 ### Installation
 The easiest end-user approach is to install into a virtual environment:
-```
+```bash
 python -m venv .env
 source .env/bin/activate
 pip install .
-hairpin -h  # see helptext
+hairpin --help  # see helptext
 ```
 
 ### Usage
 
 The recommended usage is to provide a config of flag parameters along with the VCF in question and the relavant alignment/s (.sam/.bam/.cram), like so:
-```
+```bash
 vcf_sample_name="TUMOUR"
 aln="aln.cram"
 hairpin2 \
@@ -93,9 +93,10 @@ Commands:
   get-params   get run parameters from a VCF
 ```
 
+(explain-qs-target)=
 #### explain-var
 `explain-var` operates on any of the INFO fields set by hairpin2 in the output VCF, revealing the specific reasoning as to the decision the tool made for a given flag. This is very useful when tuning hairpin2 to new data, or querying results about which you are curious. Usage is as follows:
-```
+```bash
 hp2-utils explain-var "ADF=G|PASS|0x77|19|BOTH"  # an example INFO string
 ```
 returning:
@@ -105,14 +106,14 @@ ALT: G
 variant outcome was PASS via conditions ['NO_TESTABLE_READS', 'INSUFFICIENT_READS', 'EDGE_CLUSTERING', 'BOTH_STRAND_DISTRIB_BOTH', 'BOTH_STRAND_DISTRIB_ONE', 'MIN_NON_EDGE'] on strand BOTH
 reads examined: 19
 ```
-More information can be found at [Understanding Decisions](#explain-target).
 
-More Info TBD including where to find condition explanation and how to understand the outcome
+More information can be found at [Understanding Decisions](#understanding-decisions-target).
 
+(get-params-qs-target)=
 #### get-params
 hairpin2 stores all run parameters in a reduced representation in the header of the output VCF. `get-params` allows translation of the stored parameters back into a JSON, which can then be used for other hairpin2 runs. Usage of `get-params` is as follows:
-```
+```bash
 hp2-utils get-params my.hairpin2.vcf > parameters_used.json
 ```
 
-More information can be found at [Reproducibility & Parameter Distribution](#get-target).
+More information can be found at [Reproducibility & Parameter Distribution](#repro-target).

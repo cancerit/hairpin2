@@ -203,7 +203,7 @@ def _resolve_configd_callback(ctx: Any, param: Any, values: Iterable[dict[str, A
     multiple=True,
     metavar="FILEPATH",
     type=ConfigFile(),
-    help="path to config TOML/s or JSON/s from which processes and execution will be configured.",
+    help="path to config TOML/s or JSON/s from which processes and execution will be configured. May be provided multiple times; individual configs can be provided for each top level key (params, exec).",
     callback=_resolve_configd_callback,
 )
 @click.option(
@@ -221,7 +221,7 @@ def _resolve_configd_callback(ctx: Any, param: Any, values: Iterable[dict[str, A
     type=(str, click.UNPROCESSED),
     expose_value=False,
     callback=_apply_overrides_callback,
-    help="Override values in the supplied config. Uses dot paths for the key, and JSON format for the value, e.g., --set params.DVF.read_loss_threshold 0.6. Must be provided after --config.",
+    help="Override values in the supplied config. Uses dot paths for the key, and JSON format for the value, e.g., --set params.DVF.read_loss_threshold 0.6. Must be provided after --config. May be provided multiple times.",
 )
 @click.option(
     "-m",
@@ -453,7 +453,7 @@ def hairpin2_cli(
     enc_confpack = base64.b85encode(  # encode bytes to ascii so we can store as valid string in VCF
         confpack  # NOTE: base91 even shorter, but not in stdlib
     ).decode("ascii")
-    # NOTE: could add an explanatory line about the param encoding into the header
+    out_head.add_line(f"##hairpin2_params_info=The hairpin2_params key contains a reduced representation of the parameters used to run hairpin2 on this VCF. It is a JSON compressed with zlib and encoded with base85. You can retreive the JSON with hp2_utils get-params.")
     out_head.add_line(f"##hairpin2_params={enc_confpack}")
     out_head.add_line(f"##hairpin2_samples={set(vcf_sample_to_alignment_map.keys())}")
 

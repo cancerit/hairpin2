@@ -24,7 +24,7 @@
 from dataclasses import dataclass
 from typing import Annotated, override
 
-from pydantic import BeforeValidator
+from pydantic import AfterValidator
 
 from hairpin2.const import FlaggerNamespaces, Strand
 from hairpin2.infrastructure.configure_funcs import make_variant_flagger
@@ -59,19 +59,19 @@ def validate_positive(val: int | float):
 
 class FixedParamsADF(FixedParams):
     # relative proportion, by percentage, of a read to be considered 'the edge'
-    edge_definition: Annotated[float, BeforeValidator(lambda x: bound(x, 0.0, 1.0))]
+    edge_definition: Annotated[float, AfterValidator(lambda x: bound(x, 0.0, 1.0))]
     # percentage threshold
-    edge_clustering_threshold: Annotated[float, BeforeValidator(lambda x: bound(x, 0.0, 1.0))]
+    edge_clustering_threshold: Annotated[float, AfterValidator(lambda x: bound(x, 0.0, 1.0))]
     # exclusive (and subsequent params)
-    min_MAD_one_strand: Annotated[float, BeforeValidator(validate_positive)]
-    min_sd_one_strand: Annotated[float, BeforeValidator(validate_positive)]
-    min_MAD_both_strand_weak: Annotated[float, BeforeValidator(validate_positive)]
-    min_sd_both_strand_weak: Annotated[float, BeforeValidator(validate_positive)]
-    min_MAD_both_strand_strong: Annotated[float, BeforeValidator(validate_positive)]
-    min_sd_both_strand_strong: Annotated[float, BeforeValidator(validate_positive)]
-    min_non_edge_reads: Annotated[int, BeforeValidator(validate_positive)]
+    min_MAD_one_strand: Annotated[float, AfterValidator(validate_positive)]
+    min_sd_one_strand: Annotated[float, AfterValidator(validate_positive)]
+    min_MAD_both_strand_weak: Annotated[float, AfterValidator(validate_positive)]
+    min_sd_both_strand_weak: Annotated[float, AfterValidator(validate_positive)]
+    min_MAD_both_strand_strong: Annotated[float, AfterValidator(validate_positive)]
+    min_sd_both_strand_strong: Annotated[float, AfterValidator(validate_positive)]
+    min_non_edge_reads: Annotated[int, AfterValidator(validate_positive)]
     # inclusive
-    low_n_supporting_reads_boundary: Annotated[int, BeforeValidator(validate_positive)]
+    low_n_supporting_reads_boundary: Annotated[int, AfterValidator(validate_positive)]
 
 
 def test_adf(run_params: RunParamsShared, fixed_params: FixedParamsADF):

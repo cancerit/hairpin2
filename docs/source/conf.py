@@ -21,6 +21,8 @@ extensions = [
     "sphinx.ext.viewcode",
 ]
 
+myst_enable_extensions = ["colon_fence"]
+
 source_suffix = {".rst": "restructuredtext", ".md": "markdown"}
 
 templates_path = ["_templates"]

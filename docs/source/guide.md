@@ -35,13 +35,14 @@ For an input VCF, `hairpin2` will iterate over the records therein and analyse e
 
 This section details each process and its relevant parameters (if any), in execution order. The connection/interdependence between steps is also described. The parameters are also shown in their relevant TOML table as written in a hairpin2 TOML config.
 
+For each variant examined, `haripin2` determines the mutation type (SUB, INS, DEL), fetches all reads covering the mutant position from the alignments, and then walks through the following steps.
+
 For a more complete description of the internals (including some advanced options that hairpin2 provides), see [Advanced Usage](#advanced-usage).
 
------
-
-For each variant examined, `haripin2` determines the mutation type (SUB, INS, DEL), fetches all reads covering the mutant position from the alignments, and then walks through the following steps. Note that tags applied to reads are internal, and are not written back to the alignment file.
-
 #### Read Taggers
+---------
+
+These processes execute prior to flaggers, examining the reads which cover the variant position. They apply extended tags to them such that downstream processes can filter/exclude/include reads from their analyses as needed. Note that tags applied to reads are internal, and are not written back to the alignment file.
 
 ##### mark-support
 
@@ -60,7 +61,7 @@ The second read found for a given qname is marked with the tag {py:attr}`~hairpi
 mark-overlap only operates on reads marked with {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG` by [mark-support](#mark-support) - i.e. those that supporting the variant. As such, {py:attr}`~hairpin2.const.Tags.OVERLAP_TAG` is only applied to read2 of an overlapping pair which supports the variant
 
 ##### mark-low-qual
-```
+```toml
 [params.mark-low-qual]
 min_avg_clip_quality = 35
 min_mapping_quality = 11
@@ -77,7 +78,7 @@ Reads found to be of insufficient quality are marked with the tag {py:attr}`~hai
 mark-low-qual only operates on reads marked with {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG` by [mark-support](#mark-support), i.e. those that support the variant
 
 ##### mark-duplicates
-```
+```toml
 [params.mark-duplicates]
 duplication_window_size = 6  # 
 ```
@@ -93,9 +94,25 @@ mark-duplicates only operates on reads marked with {py:attr}`~hairpin2.const.Tag
 
 
 #### Variant Flaggers
+---------
+
+The following processes examine the reads covering the variant position, after they have been appropriately tagged by the read tagging processes described above. Beyond simpy flagging the variant in the FILTER field, each flagger process details the outcome of its test directly into the INFO field of the VCF record. Therefore in addition to a description of the process and relevant parameters, a description of the possible outcome reasoning is also provided. Note that any INFO field set by hairpin2 can be expanded into a more human-readable description via the [explain-var](#explain-qs-target) subtool. For all cases, the high-level outcomes are as follows:
+
+:::{list-table} **Outcomes**
+:header-rows: 1
+* -
+  - Description
+* - PASS
+  - The variant passed the test, and therefore was not flagged.
+* - FAIL
+  - The variant failed the test, and therefore was flagged.
+* - NA
+  - The test could not be carried out.
+:::
+
 
 ##### LQF
-```
+```toml
 [params.LQF]
 read_loss_threshold = 0.99
 min_pass_reads = 2
@@ -108,12 +125,33 @@ The test is performed by examining the proportion of reads supporting a variant 
 
 LQF excludes from testing any reads tagged with {py:attr}`~hairpin2.const.Tags.OVERLAP_TAG` by [mark-overlap](#mark-overlap) to avoid double counting.  
 
-`read_loss_threshold` is the threshold of low quality reads against total reads. If this threshold is exceeded, there are too many low quality reads, and the variant is flagged.  
+:::{list-table} **Parameters**
+:header-rows: 1
+*  - Name
+   - Description
+*  - read_loss_threshold
+   - threshold of low quality reads against total reads. If this threshold is exceeded, there are too many low quality reads, and the variant is flagged.
+*  - min_pass_reads
+   - minimum number of supporting reads without {py:attr}`~hairpin2.const.Tags.STUTTER_DUP_TAG` and {py:attr}`~hairpin2.const.Tags.LOW_QUAL_TAG` necessary for a variant to pass the test. If there are fewer, the variant is flagged.
+:::
+:::{list-table} **Conditions**
+:header-rows: 1
 
-`min_pass_reads` is the minimum number of supporting reads without {py:attr}`~hairpin2.const.Tags.STUTTER_DUP_TAG` and {py:attr}`~hairpin2.const.Tags.LOW_QUAL_TAG` necessary for a variant to pass the test. If there are fewer, the variant is flagged.
+*   - Name
+    - Description
+*   - INSUFFICIENT_READS
+    - Were there were enough reads to perform the test after read tag filtering, or not?
+*   - THRESHOLD
+    - Did the proportion of reads with stutter or low quality tags exceed the threshold, or not?
+*   - MIN_PASS
+    - Were there were enough supporting reads remaining without stutter or low quality tags, or not?
+:::
+
+In the case of a LQF `PASS`, all three condiitions will be noted in the INFO field, since the variant must necessarily have passed all three. A `FAIL` may have `THRESHOLD`, `MIN_PASS`, or both. `NA` will only be seen with `INSUFFICIENT_READS`.
+
 
 ##### DVF
-```
+```toml
 [params.DVF]
 read_loss_threshold = 0.49
 min_pass_reads = 2
@@ -124,14 +162,36 @@ nsamples_threshold = 0
 
 The test is performed by examining the proportion of reads supporting a variant marked with {py:attr}`~hairpin2.const.Tags.STUTTER_DUP_TAG` compared to the total number of supporting reads (i.e. those tagged with {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG`). Note that this does not consider reads marked as duplicates in the alignment file itself, as it is assumed that such duplication will have been addressed by the variant caller in making the call. The aim here is to find otherwise hidden duplicates that a variant caller is unlikely to have accounted for. Also note that since the parameters are independent from [LQF](#LQF), the results of these two flags do not simply overlap.  
 
-DVF excludes from testing any reads tagged with {py:attr}`~hairpin2.const.Tags.OVERLAP_TAG` by [mark-overlap](#mark-overlap) to avoid double counting, or {py:attr}`~hairpin2.const.Tags.LOW_QUAL_TAG` by [mark-low-qual](#mark-low-qual).  
+DVF excludes from testing any reads tagged with {py:attr}`~hairpin2.const.Tags.OVERLAP_TAG` by [mark-overlap](#mark-overlap) to avoid double counting, or {py:attr}`~hairpin2.const.Tags.LOW_QUAL_TAG` by [mark-low-qual](#mark-low-qual).
 
-`read_loss_threshold` is the threshold of duplicate reads against total reads. If this threshold is exceeded, there are too many duplicate reads, and the variant is flagged.  
+:::{list-table} **Parameters**
+:header-rows: 1
+*  - Name
+   - Description
+*  - read_loss_threshold
+   - threshold of duplicate reads against total reads.
+    If this threshold is exceeded, there are too many duplicate reads,
+    and the variant is flagged.
+*  - min_pass_reads
+   - minimum number of supporting reads without {py:attr}`~hairpin2.const.Tags.STUTTER_DUP_TAG` necessary for a variant to pass the test. If there are fewer, the variant is flagged.
+:::
+:::{list-table} **Conditions**
+:header-rows: 1
 
-`min_pass_reads` is the minimum number of supporting reads without {py:attr}`~hairpin2.const.Tags.STUTTER_DUP_TAG` necessary for a variant to pass the test. If there are fewer, the variant is flagged.
+*   - Name
+    - Description
+*   - INSUFFICIENT_READS
+    - Were there were enough reads to perform the test after read tag filtering, or not?
+*   - THRESHOLD
+    - Did the proportion of reads with stutter or low quality tags exceed the threshold, or not?
+*   - MIN_PASS
+    - Were there were enough supporting reads remaining without stutter or low quality tags, or not?
+:::
+
+In the case of a DVF `PASS`, all three condiitions will be noted in the INFO field, since the variant must necessarily have passed all three. A `FAIL` may have `THRESHOLD`, `MIN_PASS`, or both. `NA` will only be seen with `INSUFFICIENT_READS`.
 
 ##### ALF
-```
+```toml
 [params.ALF]
 avg_AS_threshold = 0.93
 ```
@@ -142,8 +202,30 @@ ALF operates only on reads tagged with {py:attr}`~hairpin2.const.Tags.SUPPORT_TA
 
 ALF excludes from testing any reads tagged with {py:attr}`~hairpin2.const.Tags.LOW_QUAL_TAG` by [mark-low-qual](#mark-low-qual), {py:attr}`~hairpin2.const.Tags.OVERLAP_TAG` by [mark-overlap](#mark-overlap), or {py:attr}`~hairpin2.const.Tags.STUTTER_DUP_TAG` by [mark-duplicates](#mark-duplicates).
 
+:::{list-table} **Parameters**
+:header-rows: 1
+*  - Name
+   - Description
+*  - avg_AS_threshold
+   - threshold of mean alignment score per base. If this threshold is not reached, mean alignment score per base is too low, and the variant is flagged.
+:::
+:::{list-table} **Conditions**
+:header-rows: 1
+
+*   - Name
+    - Description
+*   - INSUFFICIENT_READS
+    - Were there were enough reads to perform the test after read tag filtering, or not?
+*   - INSUFFICIENT_AS_TAGS
+    - Of the available reads for testing, do enough of them have an AS tag to perform the test, or not?
+*   - ON_THRESHOLD
+    - Were there were enough supporting reads remaining without stutter or low quality tags, or not?
+:::
+
+In the case of a ALF `PASS`, all three condiitions will be noted in the INFO field, since the variant must necessarily have passed all three. A `FAIL` will only have `ON_THRESHOLD`. `NA` will be seen with one of `INSUFFICIENT_READS` or `INSUFFICIENT_AS_TAGS`.
+
 ##### ADF
-```
+```toml
 [params.ADF]
 edge_definition = 0.15
 edge_clustering_threshold = 0.9
@@ -190,56 +272,83 @@ The present interpretation is that the test should be applied only to the reads 
 since the phrasing "the other strand must conform to" implies the exclusion of the single read on the low-support
 strand.  
 
-The parameters exposed for this flag by hairpin2 are as follows:  
-
----
-
-`edge_definition` - the percentage fraction of a read to be considered the edge when interpreting the conditional above, where 15% is used.  
-
-`edge_clustering_threshold` - percentage threshold for the maximum fraction of reads that may express the variant at read edge as defined by `edge_defintion` when interpreting the conditional above, where 90% is used.  
-
-`min_MAD_one_strand` - the threshold for Median Absolute Deviation to be used on path A of the conditional above, where 0 is used.  
-
-`min_sd_one_strand` - the threshold for standard deviation to be used on path A of the condtional above, where 2 is used.  
-
-`min_MAD_both_strand_weak` - the threshold for Median Absolute Deviation to be used on path B, list option 2 of the condtional above, where 2 is used.  
-
-`min_sd_both_strand_weak` - the threshold for standard deviation to be used on Path B, list option 2 of the conditional above, where 2 is used.  
-
-`min_MAD_both_strand_strong` - the threshold for Median Absolute Deviation to be used on path B, list option 3 of the condtional above, where 1 is used.  
-
-`min_sd_both_strand_strong` - the threshold for standard deviation to be used on Path B, list option 3 of the conditional above, where 10 is used.  
-
-`low_n_supporting_reads_boundary` - the threshold for the minimum number of variant-supporting reads to be considered "low", per the first sentence of the conditional above, where 1 is used.  
-
-`min_non_edge_reads`- an additional condition is added by hairpin2 - whether at least N supporting reads express away from the read
-edge. This condition is controlled by `min_non_edge_reads`.  
-
-In the default parameter configs provided, all values are set to those described in the original conditional (per the param block at the top of this section). `min_non_edge_reads` is set to 0, effectively disabling it.
-
----
 
 ADF operates only on reads tagged with {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG` by [mark-support](#mark-support), i.e. only reads that support the given variant.  
 
 ADF excludes from testing any reads tagged with {py:attr}`~hairpin2.const.Tags.LOW_QUAL_TAG` by [mark-low-qual](#mark-low-qual), {py:attr}`~hairpin2.const.Tags.OVERLAP_TAG` by [mark-overlap](#mark-overlap), or {py:attr}`~hairpin2.const.Tags.STUTTER_DUP_TAG` by [mark-duplicates](#mark-duplicates).
 
-(explain-target)=
+:::{list-table} **Parameters**
+:header-rows: 1
+*  - Name
+   - Description
+*  - edge_definition
+   - percentage fraction of a read to be considered the edge when interpreting the conditional above, where 15% is used.  
+*  - edge_clustering_threshold
+   - percentage threshold for the maximum fraction of reads that may express the variant at read edge as defined by `edge_defintion` when interpreting the conditional above, where 90% is used.  
+*  - min_MAD_one_strand
+   - threshold for Median Absolute Deviation to be used on path A of the conditional above, where 0 is used.  
+*  - min_sd_one_strand
+   - threshold for standard deviation to be used on path A of the condtional above, where 2 is used.  
+*  - min_MAD_both_strand_weak
+   - threshold for Median Absolute Deviation to be used on path B, list option 2 of the condtional above, where 2 is used.  
+*  - min_sd_both_strand_weak
+   - threshold for standard deviation to be used on Path B, list option 2 of the conditional above, where 2 is used.  
+*  - min_MAD_both_strand_strong
+   - threshold for Median Absolute Deviation to be used on path B, list option 3 of the condtional above, where 1 is used.  
+*  - min_sd_both_strand_strong
+   - threshold for standard deviation to be used on Path B, list option 3 of the conditional above, where 10 is used.  
+*  - low_n_supporting_reads_boundary
+   - threshold for the minimum number of variant-supporting reads to be considered "low", per the first sentence of the conditional above, where 1 is used.  
+*  - min_non_edge_reads
+   - threshold; at least N supporting reads express variant away from the read edge as defined by edge_definition.
+:::
+
+`min_non_edge_reads` is an addition/extension from hairpin2 beyond the original test described by Ellis et al. In the default parameter configs provided, all values are set to those described in the original conditional (per the param block at the top of this section) - `min_non_edge_reads` is set to 0, effectively disabling it.
+
+:::{list-table} **Conditions**
+:header-rows: 1
+
+*   - Name
+    - Description
+*   - NO_TESTABLE_READS
+    - ...
+*   - INSUFFICIENT_READS
+    - not the same as in other flags! confusing
+*   - EDGE_CLUSTERING
+    - ...
+*   - ONE_STRAND_DISTRIB
+    - ...
+*   - BOTH_STRAND_DISTRIB_BOTH
+    - ...
+*   - BOTH_STRAND_DISTRIB_ONE
+    - ...
+*   - MIN_NON_EDGE
+    - ...
+:::
+
+In the case of an ADF `PASS` ...
+
+#### Process Relationships Summary
+
+TODO table
+
+(understanding-decisions-target)=
 ### Understanding Decisions
 
 explain-var TBD
 
-(get-target)=
+(repro-target)=
 ### Reproducibility & Parameter Distribution
 
 param packing TBD
 
 ### Advanced Usage
 
-#### Processes
+<!-- #### Processes -->
 
-TBD
+<!-- TBD -->
 
- A process in this context is an implementation of scientific/biological logic (see {py:mod}`hairpin2.sci_funcs`) wrapped with infrastructure so `hairpin2` can expose fixed parameters via the configs, validate and filter data for each process, and so on. Each process will take data per each iteration (reads, a variant record, associated calcuations) and fixed parameters (if needed). Fixed parameters simply indicates that the value is fixed for the duration of a hairpin2 run. In addition to the infrastructure concerns described, wrapping each scientific step in these processes makes it easier to reason about the flow of execution, surface the interdependence between steps, and allows for some more ....
+ <!-- A process in this context is an implementation of scientific/biological logic (see {py:mod}`hairpin2.sci_funcs`) wrapped with infrastructure so `hairpin2` can expose fixed parameters via the configs, validate and filter data for each process, and so on. Each process will take data per each iteration (reads, a variant record, associated calcuations) and fixed parameters (if needed). Fixed parameters simply indicates that the value is fixed for the duration of a hairpin2 run. In addition to the infrastructure concerns described, wrapping each scientific step in these processes makes it easier to reason about the flow of execution, surface the interdependence between steps, and allows for some more .... -->
 
 #### Exec Config \[EXPERIMENTAL\]
 
