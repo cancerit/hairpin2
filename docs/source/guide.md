@@ -330,27 +330,71 @@ ADF excludes from testing any reads tagged with {py:attr}`~hairpin2.const.Tags.L
 
 In the case of an ADF `PASS` ...
 
-#### Process Relationships Summary
+#### Process Relationships Table
 
-TODO table
+:::{list-table} **Read Taggers**
+:header-rows: 1
+
+*   - Name
+    - Adds Tag
+    - Requires Tags
+    - Excludes Tags
+*   - ...
+    - ...
+    - ...
+    - ...
+:::
+:::{list-table} **Variant Flaggers**
+:header-rows: 1
+
+*   - Name
+    - Requires Tags
+    - Excludes Tags
+*   - ...
+    - ...
+    - ...
+:::
 
 (understanding-decisions-target)=
 ### Understanding Decisions
 
-explain-var TBD
+hairpin2 stores detailed reasoning for each flagging decision in the INFO field of each tested variant. There will be VCF-spec standard key=value pairs for each flag tested. The key is the flag name, as would be applied to the FILTER column if the variant fails, e.g., `LQF`. For each flag, there will be as many key=value pairs as there are alts for the variant.  
+
+The value side of the key=value pair is formatted as pipe (|) separated fields. The standard fields shared by all flags are as follows:
+
+:::{list-table} **Value Fields**
+*   - alt
+    - The alt to which this data applies
+*   - outcome
+    - The result of testing for this alt (PASS, FAIL, NA)
+*   - conditions
+    - The conditions upon which the outcome is based, stored as a bitwise hex flag
+*   - nreads
+    - The number of reads examined by this test, after filtering to appropriately tagged reads
+:::
+
+A flag may add any number of subsequent extra fields. So in full, a hairpin2 INFO key=value pair looks like `<flag_name>=<alt>|<outcome>|<conditions>|<nreads>|...`.
+
+key=value paris for any hairpin2 flag can be input to the [explain-var](#explain-qs-target) tool to convert this data into a more human-readable format, including descriptions of any additional fields. All fields are also fully described in the VCF header.
 
 (repro-target)=
 ### Reproducibility & Parameter Distribution
 
-param packing TBD
+hairpin2 stores the complete information necessary to distribute and reproduce a run directly in the VCF header. The following header keys are used
+
+:::{list-table} **Header Keys**
+*   - hairpin2_version
+    - stores version of hairpin2 used
+*   - hairpin2_params
+    - stores paramters and execution configuration
+*   - hairpin2_samples
+    - stores which samples in the VCF were selected for testing
+:::
+
+The hairpin2_params key stores data in a JSON compressed with `zlib` and encoded to an ascii string using `base85`. The result is a string of ascii characters, much shorter than the original JSON, which does not invite or allow accidental editing of the parameters once written into the header (either by hand or by another tool). Since zlib compression includes an error-checking checksum, the string is guaranteed to transform back into the exact parameters encoded. Base85 encoding ensures that only VCF-safe characters are used  per the VCF format spec. Most importantly, the parameter JSON can be extracted from a VCF using [get-params](#get-params-qs-target).  
+
 
 ### Advanced Usage
-
-<!-- #### Processes -->
-
-<!-- TBD -->
-
- <!-- A process in this context is an implementation of scientific/biological logic (see {py:mod}`hairpin2.sci_funcs`) wrapped with infrastructure so `hairpin2` can expose fixed parameters via the configs, validate and filter data for each process, and so on. Each process will take data per each iteration (reads, a variant record, associated calcuations) and fixed parameters (if needed). Fixed parameters simply indicates that the value is fixed for the duration of a hairpin2 run. In addition to the infrastructure concerns described, wrapping each scientific step in these processes makes it easier to reason about the flow of execution, surface the interdependence between steps, and allows for some more .... -->
 
 #### Exec Config \[EXPERIMENTAL\]
 

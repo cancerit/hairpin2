@@ -437,6 +437,7 @@ def hairpin2_cli(
     )
     # store complete description of hp2 run in header
     out_head.add_line(f"##hairpin2_version={VERSION}")
+    out_head.add_line(f"##hairpin2_params_info=The hairpin2_params key contains a reduced representation of the parameters used to run hairpin2 on this VCF. It is a JSON compressed with zlib and encoded with base85. You can retreive the JSON with hp2_utils get-params.")
     # squeeze params into a tiny representation so we don't clog the output VCF
     confpack = zlib.compress(
         json.dumps(
@@ -453,7 +454,6 @@ def hairpin2_cli(
     enc_confpack = base64.b85encode(  # encode bytes to ascii so we can store as valid string in VCF
         confpack  # NOTE: base91 even shorter, but not in stdlib
     ).decode("ascii")
-    out_head.add_line(f"##hairpin2_params_info=The hairpin2_params key contains a reduced representation of the parameters used to run hairpin2 on this VCF. It is a JSON compressed with zlib and encoded with base85. You can retreive the JSON with hp2_utils get-params.")
     out_head.add_line(f"##hairpin2_params={enc_confpack}")
     out_head.add_line(f"##hairpin2_samples={set(vcf_sample_to_alignment_map.keys())}")
 
