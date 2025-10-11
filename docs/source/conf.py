@@ -68,5 +68,4 @@ html_sidebars = {
     ],
 }
 
-html_css_files = ['custom.css']
-
+html_css_files = ["custom.css"]

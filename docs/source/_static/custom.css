@@ -11,8 +11,8 @@ table.docutils {
   overflow-x: auto;
 }
 
-.wy-table-responsive table td{
-    white-space: normal;
+.wy-table-responsive table td {
+  white-space: normal;
 }
 
 /* Add padding to prevent clipping on smaller screens */
@@ -26,14 +26,17 @@ table.docutils td {
 }
 
 
-.admonition.qoute .admonition-title::before {
-  content: "\f0f3";  /* Font Awesome bell icon */
-  font-family: normal 900 1em/1 "Font Awesome 6 Free";  /* Ensure the correct font is used */
-  font-weight: 900;  /* Use the solid style */
+.admonition.quote .admonition-title::before {
+  content: "\f0f3";
+  /* Font Awesome bell icon */
+  font-family: normal 900 1em/1 "Font Awesome 6 Free";
+  /* Ensure the correct font is used */
+  font-weight: 900;
+  /* Use the solid style */
   margin-right: 0.5em;
 }
 
-.admonition.qoute .admonition-title svg {
-    display: none;  /* Hide default icon if using SVG */
+.admonition.quote .admonition-title svg {
+  display: none;
+  /* Hide default icon if using SVG */
 }
-

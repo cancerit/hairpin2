@@ -5,12 +5,15 @@
 It is recommended to read [Quickstart](#quickstart-target) prior to reading the guide.
 ```
 
-Given a VCF, and alignment files for the relevant samples of that VCF, `hairpin2` will return a VCF with variants flagged as follows:
+Given a VCF, and alignment files for the relevant samples of that VCF, `hairpin2` will return a VCF with variants flagged in the FILTER column as follows:
 
 :::{list-table}
 :width: 100
 :widths: 15 95
+:header-rows: 1
 
+*   - FILTER
+    - Description
 *   - **ADF**
     - An implementation and extension of the artefact detection algorithm described in [Ellis et al, 2020](https://www.nature.com/articles/s41596-020-00437-6). It detects variants which appear with anomalously regular positional distribution in supporting reads.
 *   - **ALF**
@@ -19,10 +22,6 @@ Given a VCF, and alignment files for the relevant samples of that VCF, `hairpin2
     -  Uses a relatively naive but effective algorithm for detecting variants that are the result of hidden duplicates, themselves a result of PCR error.
 *   - **LQF**
     - Tests whether a variant is largely supported by low quality reads.
-:::
-
-:::{admonition} A further note on DVF
-In regions of low complexity, homopolymer tracts and secondary structure can cause PCR stuttering. PCR stuttering can lead to, for example, an erroneous additional A on the read when amplifying a tract of As. If duplicated reads contain stutter, this can lead to variation of read length and alignment to reference between reads that are in fact duplicates. Because of this, these duplicates both evade dupmarking and give rise to spurious variants when calling. The DVF flag attempts to catch these variants by examining the regularity of the start and end coordinates of collections of supporting reads and their mates.
 :::
 
 
@@ -38,8 +37,6 @@ For an input VCF, `hairpin2` will iterate over the records therein and analyse e
 This section details each process and its relevant parameters (if any), in execution order. The connection/interdependence between steps is also described. The parameters are also shown in their relevant TOML table as written in a hairpin2 TOML config.
 
 For each variant examined, `haripin2` determines the mutation type (SUB, INS, DEL), fetches all reads covering the mutant position from the alignments, and then walks through the following steps.
-
-For a more complete description of the internals (including some advanced options that hairpin2 provides), see [Advanced Usage](#advanced-usage).
 
 ### Read Taggers
 ---------
@@ -71,19 +68,34 @@ min_base_quality = 25
 ```
 
 `mark-low-qual` uses {py:class}`~hairpin2.sci_funcs.TagLowQualReads` to mark reads that fail quality assessment.
-`min_avg_clip_quality` is the minimum mean quality of aligned bases for a read which contains soft clipping.
-`min_mapping_quality` is the minimum mapping quality (aka mapq) for a read.
-`min_base_quality` is the minimum base quality for any position covering the variant in a read.
 
 Reads found to be of insufficient quality are marked with the tag {py:attr}`~hairpin2.const.Tags.LOW_QUAL_TAG`. This step is essential to the LQF flag.
 
-mark-low-qual only operates on reads marked with {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG` by [mark-support](#mark-support), i.e. those that support the variant
+mark-low-qual only operates on reads marked with {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG` by [mark-support](#mark-support), i.e. those that support the variant.
+
+:::{list-table} **Parameters**
+:header-rows: 1
+:width: 100
+:widths: 30 70
+*   - Name
+    - Description
+*   - min_avg_clip_quality
+    - Minimum mean quality of aligned bases for a read which contains soft clipping.
+*   - min_mapping_quality
+    - Minimum mapping quality (aka mapq) for a read.
+*   - min_base_quality
+    - Minimum base quality for any position covering the variant in a read.
+:::
 
 #### mark-duplicates
 ```toml
 [params.mark-duplicates]
 duplication_window_size = 6
 ```
+
+:::{admonition} Stutter Duplicates
+In regions of low complexity, homopolymer tracts and secondary structure can cause PCR stuttering. PCR stuttering can lead to, for example, an erroneous additional A on the read when amplifying a tract of As. If duplicated reads contain stutter, this can lead to variation of read length and alignment to reference between reads that are in fact duplicates. Because of this variation, these duplicates both evade dupmarking and give rise to spurious variants when calling.
+:::
 
 `mark-duplicates` uses {py:class}`~hairpin2.sci_funcs.TagStutterDuplicateReads` to mark reads which appear to be hidden PCR duplicates.
 The algorithm is simply based on assessing the variation of endpoints amongst the tested reads. If a read start/end and it's mate start/end
@@ -93,6 +105,16 @@ be duplicates of each other.
 Reads found to be duplicates are marked with the tag {py:attr}`~hairpin2.const.Tags.STUTTER_DUP_TAG`, excepting the highest quality read of the suspected duplicates. This step is essential to the DVF flag.
 
 mark-duplicates only operates on reads marked with {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG` by [mark-support](#mark-support), i.e. those that support the variant.
+
+:::{list-table} **Parameters**
+:header-rows: 1
+:width: 100
+:widths: 30 70
+*   - Name
+    - Description
+*   - duplication_window_size
+    - Alignment start/end window within which groups of fragments may be considered to be duplicates of one another.
+:::
 
 
 ### Variant Flaggers
@@ -261,7 +283,7 @@ min_non_edge_reads = 0
 ADF is an implementation of the following conditional described by [Ellis et al, 2020](https://www.nature.com/articles/s41596-020-00437-6). The full text of the conditional is reproduced below, with editorials in []. There is a point of ambiguity in the original conditional; the interpretation that this tool has opted for is indicated by [] and is expanded upon subsequently.  
 
 ```{admonition} From Ellis et al.:
-:class: qoute
+:class: quote
 
 For each variant, if the number of variant-supporting reads determined is low (i.e. 0–1
 reads) for one strand, follow Option 1. For each variant, if both strands have sufficient variant-supported reads
@@ -355,49 +377,49 @@ In the case of an ADF `PASS` ...
 :header-rows: 1
 
 *   - Name
+    - Tests Reads With
+    - Excludes Reads With
     - Adds Tag
-    - Requires Tags
-    - Excludes Tags
 *   - mark-support
-    - ...
-    - ...
-    - ...
+    - Any
+    - None
+    - {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG`
 *   - mark-overlap
-    - ...
-    - ...
-    - ...
+    - {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG`
+    - None
+    - {py:attr}`~hairpin2.const.Tags.OVERLAP_TAG`
 *   - mark-low-qual
-    - ...
-    - ...
-    - ...
+    - {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG`
+    - None
+    - {py:attr}`~hairpin2.const.Tags.LOW_QUAL_TAG`
 *   - mark-duplicates
-    - ...
-    - ...
-    - ...
+    - {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG`
+    - {py:attr}`~hairpin2.const.Tags.LOW_QUAL_TAG`
+    - {py:attr}`~hairpin2.const.Tags.STUTTER_DUP_TAG`
 :::
 :::{list-table} **Variant Flaggers**
 :header-rows: 1
 
 *   - Flag
-    - Requires Tags
-    - Excludes Tags
-    - Depends On
+    - Tests Reads With
+    - Excludes Reads With
+    - Examines Tag
 *   - LQF
-    - ...
-    - ...
-    - ...
+    - {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG`
+    - {py:attr}`~hairpin2.const.Tags.OVERLAP_TAG`
+    - {py:attr}`~hairpin2.const.Tags.LOW_QUAL_TAG`, {py:attr}`~hairpin2.const.Tags.STUTTER_DUP_TAG`
 *   - DVF
-    - ...
-    - ...
-    - ...
+    - {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG`
+    - {py:attr}`~hairpin2.const.Tags.OVERLAP_TAG`, {py:attr}`~hairpin2.const.Tags.LOW_QUAL_TAG`
+    - {py:attr}`~hairpin2.const.Tags.STUTTER_DUP_TAG`
 *   - ALF
-    - ...
-    - ...
-    - ...
+    - {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG`
+    - {py:attr}`~hairpin2.const.Tags.OVERLAP_TAG`, {py:attr}`~hairpin2.const.Tags.LOW_QUAL_TAG`, {py:attr}`~hairpin2.const.Tags.STUTTER_DUP_TAG`
+    - None
 *   - ADF
-    - ...
-    - ...
-    - ...
+    - {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG`
+    - {py:attr}`~hairpin2.const.Tags.OVERLAP_TAG`, {py:attr}`~hairpin2.const.Tags.LOW_QUAL_TAG`, {py:attr}`~hairpin2.const.Tags.STUTTER_DUP_TAG`
+    - None
 :::
 
 
@@ -411,7 +433,7 @@ TODO
 
 hairpin2 stores detailed reasoning for each flagging decision in the INFO field of each tested variant. There will be VCF-spec standard key=value pairs for each flag tested. The key is the flag name, as would be applied to the FILTER column if the variant fails, e.g., `LQF`. For each flag, there will be as many key=value pairs as there are alts for the variant.  
 
-The value side of the key=value pair is formatted as pipe (|) separated fields. The standard fields shared by all flags are as follows:
+The value side of the key=value pair is formatted as pipe (`|`) separated fields. The standard fields shared by all flags are as follows:
 
 :::{list-table} **Value Fields**
 :width: 100
@@ -447,11 +469,4 @@ hairpin2 stores the complete information necessary to distribute and reproduce a
 :::
 
 The hairpin2_params key stores data in a JSON compressed with `zlib` and encoded to an ascii string using `base85`. The result is a string of ascii characters, much shorter than the original JSON, which does not invite or allow accidental editing of the parameters once written into the header (either by hand or by another tool). Since zlib compression includes an error-checking checksum, the string is guaranteed to transform back into the exact parameters encoded. Base85 encoding ensures that only VCF-safe characters are used  per the VCF format spec. Most importantly, the parameter JSON can be extracted from a VCF using [get-params](#get-params-qs-target).  
-
-
-## Advanced Usage
-
-### Exec Config \[EXPERIMENTAL\]
-
-The exec config serves two purposes - to allow experimentation with process interdependence, and to highlight and surface implicit process independence
 

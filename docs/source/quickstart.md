@@ -1,7 +1,7 @@
 (quickstart-target)=
 # Quickstart
 
-### Installation
+## Installation
 The easiest end-user approach is to install into a virtual environment:
 ```bash
 python -m venv .env
@@ -10,7 +10,7 @@ pip install .
 hairpin --help
 ```
 
-### Usage
+## Usage
 
 The recommended usage is to provide a config of flag parameters along with the VCF in question and the relavant alignment/s (.sam/.bam/.cram), like so:
 ```bash
@@ -28,7 +28,7 @@ The default parameters provided are those found to be appropriate on series of L
 
 See the [guide](#guide-target) for a complete walkthrough, and the [interface](#Command_Line_Interface) section below for a description of the command line options.
 
-### Command Line Interface
+## Command Line Interface
 
 ```
 Usage: hairpin2 [-h, --help] [OPTIONS] VCF ALIGNMENTS...
@@ -88,7 +88,7 @@ Options:
 To expand on `--name-mapping` – when using multisample VCFs, hairpin2 compares VCF sample names found in the VCF header to SM tags in alignments to match samples of interest to the correct alignment. If these IDs are different between the VCF and alignments, you'll need to provide a JSON key. If there are multiple samples of interest in a multisample VCF, and therefore it is necessary to provide multiple alignments, you will need to provide a mapping for each pair - e.g. `-m '{"sample1":"SM1", "sample2":"SM2", ...}'` or `-m '{"sample1:"1.bam", ...}'`. If there is only one sample of interest, and therefore only one alignment is provided to the tool, then you also have an optional shorthand - you need only indicate which VCF sample is the sample of interest, e.g. `-m '["TUMOR"]'`. When there is only one sample of interest, and therefore one alignment, but the sample of interest may have one of several possible names, you may also provide a comma separated string of possible names for the sample of interest, e.g. `-m '["TUMOR", "TUMOUR"]'` - users have found this valuable for high throughput workflows where the VCF input may be coming from one of several prior tools or callers (which may name samples differently). In all cases, there must be one and only one match between each alignment and VCF sample. In all cases, a path to a JSON file may be provided instead of the JSON string. Note that a VCF containing both a TUMOUR and a NORMAL sample contains 2 samples, and therefore is a multisample VCF.
 
 
-### hp2-utils
+## hp2-utils
 
 `hairpin2` comes with a daughter tool, `hp2-utils`. `hp2-utils` provides some additional functionality to assist with the usage of hairpin2.  
 
@@ -104,7 +104,7 @@ Commands:
 ```
 
 (explain-qs-target)=
-#### explain-var
+### explain-var
 `explain-var` operates on any of the INFO fields set by hairpin2 in the output VCF, revealing the specific reasoning as to the decision the tool made for a given flag. This is very useful when tuning hairpin2 to new data, or querying results about which you are curious. Usage is as follows:
 ```bash
 hp2-utils explain-var "ADF=G|PASS|0x77|19|BOTH"  # an example INFO string
@@ -120,7 +120,7 @@ reads examined: 19
 More information can be found at [Understanding Decisions](#understanding-decisions-target).
 
 (get-params-qs-target)=
-#### get-params
+### get-params
 hairpin2 stores all run parameters in a reduced representation in the header of the output VCF. `get-params` allows translation of the stored parameters back into a JSON, which can then be used for other hairpin2 runs. Usage of `get-params` is as follows:
 ```bash
 hp2-utils get-params my.hairpin2.vcf > parameters_used.json

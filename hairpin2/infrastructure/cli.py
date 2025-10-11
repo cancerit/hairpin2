@@ -189,7 +189,7 @@ def _resolve_configd_callback(ctx: Any, param: Any, values: Iterable[dict[str, A
 @click.command(
     epilog="see documentation at https://github.com/cancerit/hairpin2 or at tool install location for further information",
     options_metavar="[-h, --help] [OPTIONS]",
-    context_settings=dict(help_option_names=['-h', '--help'])
+    context_settings=dict(help_option_names=["-h", "--help"]),
 )
 @click.version_option(VERSION, "-v", "--version", message="%(version)s")
 @click.argument("vcf", type=existing_file_path, required=True)
@@ -436,16 +436,13 @@ def hairpin2_cli(
     )
     # store complete description of hp2 run in header
     out_head.add_line(f"##hairpin2_version={VERSION}")
-    out_head.add_line(f"##hairpin2_params_info=The hairpin2_params key contains a reduced representation of the parameters used to run hairpin2 on this VCF. It is a JSON compressed with zlib and encoded with base85. You can retreive the JSON with hp2_utils get-params.")
+    out_head.add_line(
+        "##hairpin2_params_info=The hairpin2_params key contains a reduced representation of the parameters used to run hairpin2 on this VCF. It is a JSON compressed with zlib and encoded with base85. You can retreive the JSON with hp2_utils get-params."
+    )
     # squeeze params into a tiny representation so we don't clog the output VCF
     confpack = zlib.compress(
         json.dumps(
-            {
-                "params": {
-                    k: v for k, v in configd["params"].items() if configd["exec"][k]["enable"]
-                },
-                "exec": configd["exec"],
-            },
+            {"params": configd["params"]},
             separators=(",", ":"),  # minify json
         ).encode("ascii"),
         level=9,
