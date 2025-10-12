@@ -61,7 +61,7 @@ pip install -e ".[dev,doc]"
 
 `hairpin2` is chiefly the work of:
 
-> Alex Byrne - [blex.bio](blex.bio) - Lead Developer/Contact  
-> Anh Phuong Le - [GitHub](https://github.com/Phuong-Le)  
-> Peter Campbell - [Quotient Therapeutics](https://quotient-tx.com/team/peter-campbell)
+Alex Byrne - [blex.bio](blex.bio) - Lead Developer/Contact  
+Anh Phuong Le - [GitHub](https://github.com/Phuong-Le)  
+Peter Campbell - [Quotient Therapeutics](https://quotient-tx.com/team/peter-campbell)
 
