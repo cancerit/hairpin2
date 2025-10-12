@@ -57,7 +57,7 @@ pip install -e ".[dev,doc]"
 
 ### AUTHORS
 
-`hairpin2` was developed at the Wellcome Sanger Institue via collaboration between CASM Informatics and CASM faculty. We thank all contributors and scientific collaborators for their input and expertise.
+`hairpin2` was developed at the Wellcome Sanger Institue in collaboration between CASM Informatics and CASM faculty. We thank all contributors and scientific collaborators for their input and expertise.
 
 `hairpin2` is chiefly the work of:  
  > Alex Byrne - CASM Informatics - [blex.bio](blex.bio) - Lead Developer/Contact  
