@@ -518,5 +518,5 @@ hairpin2 is designed for paired-end data where alignment records have the `MC` t
 
 ## Further Development
 
-We are very open to making updates and improvements to the tool to support a wide variety of use cases. If you have a request, please get in touch via the [GitHub](https://github.com/cancerit/hairpin2)
+We are very open to making updates and improvements to the tool to support a wide variety of use cases. If you have a request, please get in touch via the [GitHub](https://github.com/cancerit/hairpin2).
 
