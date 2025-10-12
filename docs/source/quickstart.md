@@ -1,6 +1,8 @@
 (quickstart-target)=
 # Quickstart
 
+Given a VCF, and BAM files for the samples of that VCF, hairpin2 will return a VCF with variants flagged in the FILTER column with `ADF` if variants have anomalous distributions indicating that they are likely to be artefactual, `ALF` if relevant reads have lower median alignment score per base than a specified threshold, `DVF` if variants appear to be the result of PCR error, and `LQF` if the variant is largely supported by low quality reads.
+
 ## Installation
 The easiest end-user approach is to install into a virtual environment:
 ```bash
@@ -26,8 +28,9 @@ A config of default parameters is provided in `example-configs/default-params.to
 
 The default parameters provided are those found to be appropriate on series of LCMB data. Your use case, data, and opinions may differ - hairpin2 is extensively customisable via the config, and descriptions of the parameters can be found in the [Processes and Parameters](#process-target) section of the guide.  
 
-See the [guide](#guide-target) for a complete walkthrough, and the [interface](#Command_Line_Interface) section below for a description of the command line options.
+See the [guide](#guide-target) for a complete walkthrough, and the [interface](#interface-target) section below for a description of the command line options.
 
+(interface-target)=
 ## Command Line Interface
 
 ```

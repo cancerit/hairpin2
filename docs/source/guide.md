@@ -464,7 +464,7 @@ if you prefer JSON:
 }
 ```
 
-LCMB default parameters are provided in both JSON and TOML format in the example-configs/ directory in the hairpin2 GitHub repository.  
+LCMB default parameters are provided in both JSON and TOML format in the `example-configs/` directory found in the hairpin2 [GitHub repository](https://github.com/cancerit/hairpin2).  
 
 (understanding-decisions-target)=
 ## Understanding Decisions
@@ -511,4 +511,12 @@ hairpin2 stores the complete information necessary to distribute and reproduce a
 The parameters are stored in a reduced represenation and can be extracted from a VCF using [get-params](#get-params-qs-target) back into standard JSON format. It is not necessary to understand the way in which the parameters are encoded into the header (explained below) to use this functionality.  
 
 The hairpin2_params key stores data in a JSON compressed with `zlib` and encoded to an ascii string using `base85`. The result is a string of ascii characters, much shorter than the original JSON, which does not invite or allow accidental editing of the parameters once written into the header (either by hand or by another tool). Since zlib compression includes an error-checking checksum, the string is guaranteed to transform back into the exact parameters encoded. Base85 encoding ensures that only VCF-safe characters are used  per the VCF format spec. 
+
+## Assumptions & Limitations
+
+hairpin2 is designed for paired-end data where alignment records have the `MC` tag and the complete CIGAR string is present in the `CIGAR` field (rather than the `CG:B,I` tag). If the `MC` tag is not present in your data, it can be added using `samtools fixmate` or `biobambam2 bamsormadup`. The tool can handle substitions, insertions, and deletions formatted per the VCF specification. At this time, the tool will not investigate mutations notated with angle brackets, e.g. `<DEL>`, complex mutations, or monomorphic reference. No further assumptions are made – other alignment tags and VCF fields are used, however they are mandatory per the relevant format specifications. If these requirements are limiting and you need the tool to be extended in some way, please request it.
+
+## Further Development
+
+We are very open to making updates and improvements to the tool to support a wide variety of use cases. If you have a request, please get in touch via the [GitHub](https://github.com/cancerit/hairpin2)
 
