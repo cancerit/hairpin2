@@ -73,4 +73,4 @@ def test_insufficient_reads():
     readsin = []
     result = AlignmentScoreTest.test_variant_reads(readsin, 0.93)
     assert result.outcome == TestOutcomes.NA
-    assert result.reason & AlignmentScoreTest.ResultPack.Info.INSUFFICIENT_READS
+    assert result.reason & AlignmentScoreTest.ResultPack.Info.NO_READS

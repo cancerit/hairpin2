@@ -442,7 +442,12 @@ def hairpin2_cli(
     # squeeze params into a tiny representation so we don't clog the output VCF
     confpack = zlib.compress(
         json.dumps(
-            {"params": configd["params"]},
+            {
+                "params": {
+                    k: v for k, v in configd["params"].items() if configd["exec"][k]["enable"]
+                },
+                "exec": configd["exec"],
+            },
             separators=(",", ":"),  # minify json
         ).encode("ascii"),
         level=9,

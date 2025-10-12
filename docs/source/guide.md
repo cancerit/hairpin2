@@ -9,18 +9,23 @@ Given a VCF, and alignment files for the relevant samples of that VCF, `hairpin2
 
 :::{list-table}
 :width: 100
-:widths: 15 95
+:widths: 15 25 60
 :header-rows: 1
 
 *   - FILTER
+    - Expanded Name
     - Description
 *   - **ADF**
+    - **A**nomalous **D**istribution **F**lag
     - An implementation and extension of the artefact detection algorithm described in [Ellis et al, 2020](https://www.nature.com/articles/s41596-020-00437-6). It detects variants which appear with anomalously regular positional distribution in supporting reads.
 *   - **ALF**
+    - **AL**ignment score **F**lag
     - Indicates variants which are supported by reads with poor signal-to-noise, per the alignment score. It is complementary to the `ADF` flag – artefacts with anomalous distributions often cause a marked decrease in alignment score.
 *   - **DVF**
-    -  Uses a relatively naive but effective algorithm for detecting variants that are the result of hidden duplicates, themselves a result of PCR error.
+    - **D**uplication **V**ariant **F**lag
+    -  Uses a relatively naive but effective algorithm for detecting variants that are the result of [hidden duplicates](#dup-explain-target), themselves a result of PCR error.
 *   - **LQF**
+    - **L**ow **Q**uality **F**lag
     - Tests whether a variant is largely supported by low quality reads.
 :::
 
@@ -34,9 +39,60 @@ All flags are tunable such that their parameters can be configured to a variety 
 
 For an input VCF, `hairpin2` will iterate over the records therein and analyse each record via a series of interdependent scientific steps.
 
-This section details each process and its relevant parameters (if any), in execution order. The connection/interdependence between steps is also described. The parameters are also shown in their relevant TOML table as written in a hairpin2 TOML config.
+This section details each process and its relevant parameters (if any) and outcomes, in execution order. The connection/interdependence between steps is also described. The parameters are also shown in their relevant TOML table as written in a hairpin2 TOML config at the top of each section.
 
-For each variant examined, `haripin2` determines the mutation type (SUB, INS, DEL), fetches all reads covering the mutant position from the alignments, and then walks through the following steps.
+For each variant examined, `haripin2` determines the mutation type (SUB, INS, DEL), fetches all reads covering the mutant position from the alignments, and then walks through the steps described in this section. A reference table is provided below for a high level overview to refer back to while reading about each process in more detail.  
+
+### Process Relationships Reference
+
+:::{list-table} **Read Taggers**
+:header-rows: 1
+
+*   - Name
+    - Tests Reads With
+    - Excludes Reads With
+    - Adds Tag
+*   - mark-support
+    - Any
+    - None
+    - {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG`
+*   - mark-overlap
+    - {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG`
+    - None
+    - {py:attr}`~hairpin2.const.Tags.OVERLAP_TAG`
+*   - mark-low-qual
+    - {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG`
+    - None
+    - {py:attr}`~hairpin2.const.Tags.LOW_QUAL_TAG`
+*   - mark-duplicates
+    - {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG`
+    - {py:attr}`~hairpin2.const.Tags.LOW_QUAL_TAG`
+    - {py:attr}`~hairpin2.const.Tags.STUTTER_DUP_TAG`
+:::
+:::{list-table} **Variant Flaggers**
+:header-rows: 1
+
+*   - Flag
+    - Tests Reads With
+    - Excludes Reads With
+    - Examines Tag
+*   - LQF
+    - {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG`
+    - {py:attr}`~hairpin2.const.Tags.OVERLAP_TAG`
+    - {py:attr}`~hairpin2.const.Tags.LOW_QUAL_TAG`, {py:attr}`~hairpin2.const.Tags.STUTTER_DUP_TAG`
+*   - DVF
+    - {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG`
+    - {py:attr}`~hairpin2.const.Tags.OVERLAP_TAG`, {py:attr}`~hairpin2.const.Tags.LOW_QUAL_TAG`
+    - {py:attr}`~hairpin2.const.Tags.STUTTER_DUP_TAG`
+*   - ALF
+    - {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG`
+    - {py:attr}`~hairpin2.const.Tags.OVERLAP_TAG`, {py:attr}`~hairpin2.const.Tags.LOW_QUAL_TAG`, {py:attr}`~hairpin2.const.Tags.STUTTER_DUP_TAG`
+    - None
+*   - ADF
+    - {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG`
+    - {py:attr}`~hairpin2.const.Tags.OVERLAP_TAG`, {py:attr}`~hairpin2.const.Tags.LOW_QUAL_TAG`, {py:attr}`~hairpin2.const.Tags.STUTTER_DUP_TAG`
+    - None
+:::
 
 ### Read Taggers
 ---------
@@ -57,7 +113,7 @@ mark-support has no dependence on other steps
 
 The second read found for a given qname is marked with the tag {py:attr}`~hairpin2.const.Tags.OVERLAP_TAG`
 
-mark-overlap only operates on reads marked with {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG` by [mark-support](#mark-support) - i.e. those that supporting the variant. As such, {py:attr}`~hairpin2.const.Tags.OVERLAP_TAG` is only applied to read2 of an overlapping pair which supports the variant
+mark-overlap only operates on reads marked with {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG` by [mark-support](#mark-support) - i.e. those that supporting the variant.
 
 #### mark-low-qual
 ```toml
@@ -93,7 +149,8 @@ mark-low-qual only operates on reads marked with {py:attr}`~hairpin2.const.Tags.
 duplication_window_size = 6
 ```
 
-:::{admonition} Stutter Duplicates
+(dup-explain-target)=
+:::{admonition} Hidden Stutter Duplicates
 In regions of low complexity, homopolymer tracts and secondary structure can cause PCR stuttering. PCR stuttering can lead to, for example, an erroneous additional A on the read when amplifying a tract of As. If duplicated reads contain stutter, this can lead to variation of read length and alignment to reference between reads that are in fact duplicates. Because of this variation, these duplicates both evade dupmarking and give rise to spurious variants when calling.
 :::
 
@@ -162,22 +219,22 @@ LQF excludes from testing any reads tagged with {py:attr}`~hairpin2.const.Tags.O
   - Minimum number of supporting reads without {py:attr}`~hairpin2.const.Tags.STUTTER_DUP_TAG` and {py:attr}`~hairpin2.const.Tags.LOW_QUAL_TAG` necessary for a variant to pass the test. If there are fewer, the variant is flagged.
 :::
 
-:::{list-table} **Conditions**
+:::{list-table} **INFO Conditions**
 :header-rows: 1
 :width: 100
 :widths: 30 70
 
 *   - Name
     - Description
-*   - INSUFFICIENT_READS
-    - Were there were enough reads to perform the test after read tag filtering, or not?
+*   - NO_READS
+    - Check for suffcient reads available for testing, after excludes.
 *   - THRESHOLD
-    - Did the proportion of reads with stutter or low quality tags exceed the threshold, or not?
+    - Check for proportion of reads with stutter or low quality tags against the provided threshold.
 *   - MIN_PASS
-    - Were there were enough supporting reads remaining without stutter or low quality tags, or not?
+    - Check for sufficient reads without stutter or low quality tags against the provided minimum.
 :::
 
-In the case of a LQF `PASS`, all three condiitions will be noted in the INFO field, since the variant must necessarily have passed all three. A `FAIL` may have `THRESHOLD`, `MIN_PASS`, or both. `NA` will only be seen with `INSUFFICIENT_READS`.
+In the case of a LQF `PASS`, all three condiitions will be noted in the INFO field, since the variant must necessarily have passed all three. A `FAIL` may have `THRESHOLD`, `MIN_PASS`, or both. `NA` will only be seen with `NO_READS`. The INFO field for LQF additionally contains the proportion of reads tested found to have the {py:attr}`~hairpin2.const.Tags.LOW_QUAL_TAG` or {py:attr}`~hairpin2.const.Tags.STUTTER_DUP_TAG`.  
 
 
 #### DVF
@@ -207,22 +264,22 @@ DVF excludes from testing any reads tagged with {py:attr}`~hairpin2.const.Tags.O
 *  - min_pass_reads
    - minimum number of supporting reads without {py:attr}`~hairpin2.const.Tags.STUTTER_DUP_TAG` necessary for a variant to pass the test. If there are fewer, the variant is flagged.
 :::
-:::{list-table} **Conditions**
+:::{list-table} **INFO Conditions**
 :header-rows: 1
 :width: 100
 :widths: 30 70
 
 *   - Name
     - Description
-*   - INSUFFICIENT_READS
-    - Were there were enough reads to perform the test after read tag filtering, or not?
+*   - NO_READS
+    - Check for suffcient reads available for testing, after excludes.
 *   - THRESHOLD
-    - Did the proportion of reads with stutter or low quality tags exceed the threshold, or not?
+    - Check for proportion of reads with the stutter tag against the provided threshold.
 *   - MIN_PASS
-    - Were there were enough supporting reads remaining without stutter or low quality tags, or not?
+    - Check for sufficient reads without the stutter tag against the provided minimum.
 :::
 
-In the case of a DVF `PASS`, all three condiitions will be noted in the INFO field, since the variant must necessarily have passed all three. A `FAIL` may have `THRESHOLD`, `MIN_PASS`, or both. `NA` will only be seen with `INSUFFICIENT_READS`.
+In the case of a DVF `PASS`, all three condiitions will be noted in the INFO field, since the variant must necessarily have passed all three. A `FAIL` may have `THRESHOLD`, `MIN_PASS`, or both. `NA` will only be seen with `NO_READS`. The INFO field for DVF additionally contains the proportion of reads tested found to have the {py:attr}`~hairpin2.const.Tags.STUTTER_DUP_TAG`.  
 
 #### ALF
 ```toml
@@ -246,22 +303,22 @@ ALF excludes from testing any reads tagged with {py:attr}`~hairpin2.const.Tags.L
 *  - avg_AS_threshold
    - threshold of mean alignment score per base. If this threshold is not reached, mean alignment score per base is too low, and the variant is flagged.
 :::
-:::{list-table} **Conditions**
+:::{list-table} **INFO Conditions**
 :header-rows: 1
 :width: 100
 :widths: 30 70
 
 *   - Name
     - Description
-*   - INSUFFICIENT_READS
-    - Were there were enough reads to perform the test after read tag filtering, or not?
+*   - NO_READS
+    - Check for suffcient reads available for testing, after excludes.
 *   - INSUFFICIENT_AS_TAGS
-    - Of the available reads for testing, do enough of them have an AS tag to perform the test, or not?
+    - Check for sufficient reads with AS tag to perform the test
 *   - ON_THRESHOLD
-    - Were there were enough supporting reads remaining without stutter or low quality tags, or not?
+    - Check for sufficient reads remaining without stutter or low quality tags
 :::
 
-In the case of a ALF `PASS`, all three condiitions will be noted in the INFO field, since the variant must necessarily have passed all three. A `FAIL` will only have `ON_THRESHOLD`. `NA` will be seen with one of `INSUFFICIENT_READS` or `INSUFFICIENT_AS_TAGS`.
+In the case of a ALF `PASS`, all three condiitions will be noted in the INFO field, since the variant must necessarily have passed all three. A `FAIL` will only have `ON_THRESHOLD`. `NA` will be seen with one of `NO_READS` or `INSUFFICIENT_AS_TAGS`. The INFO field for ALF additionally contains the mean alignment score per base seen on reads tested for the variant.
 
 #### ADF
 ```toml
@@ -346,87 +403,68 @@ ADF excludes from testing any reads tagged with {py:attr}`~hairpin2.const.Tags.L
 
 `min_non_edge_reads` is an addition/extension from hairpin2 beyond the original test described by Ellis et al. In the default parameter configs provided, all values are set to those described in the original conditional (per the param block at the top of this section) - `min_non_edge_reads` is set to 0, effectively disabling it.
 
-:::{list-table} **Conditions**
+:::{list-table} **INFO Conditions**
 :header-rows: 1
 :width: 100
 :widths: 30 70
 
 *   - Name
     - Description
-*   - NO_TESTABLE_READS
-    - ...
+*   - NO_READS
+    - Check for reads available for testing, after excludes.
 *   - INSUFFICIENT_READS
-    - not the same as in other flags! confusing
+    - Check for minimum reads available for testing on at least one strand, as defined by `low_n_supporting_reads_boundary`.
 *   - EDGE_CLUSTERING
-    - ...
+    - Check for fewer than `edge_clustering_threshold`% of reads expressing variant within `edge_definition` of alignment start, from both Option A and B in Ellis et al.
 *   - ONE_STRAND_DISTRIB
-    - ...
+    - Check for MAD and standard deviation condition from Option A in Ellis et. al., as defined by `min_MAD_one_strand` and `min_sd_one_strand`.
 *   - BOTH_STRAND_DISTRIB_BOTH
-    - ...
+    - Check for MAD and standard deviation condition from Option B as applied to both strands in Ellis et al., as defined by `min_MAD_both_strand_weak` and `min_sd_both_strand_weak`.
 *   - BOTH_STRAND_DISTRIB_ONE
-    - ...
+    - Check for MAD and standard devation condition from Option B as applied to one strand in Ellis et al., as defined by `min_MAD_both_strand_strong` and `min_sd_both_strand_strong`.
 *   - MIN_NON_EDGE
-    - ...
+    - Check for suffcient reads expressing variant away from read edge, as defined by `edge definition`.
 :::
 
-In the case of an ADF `PASS` ...
-
-### Process Relationships Table
-
-:::{list-table} **Read Taggers**
-:header-rows: 1
-
-*   - Name
-    - Tests Reads With
-    - Excludes Reads With
-    - Adds Tag
-*   - mark-support
-    - Any
-    - None
-    - {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG`
-*   - mark-overlap
-    - {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG`
-    - None
-    - {py:attr}`~hairpin2.const.Tags.OVERLAP_TAG`
-*   - mark-low-qual
-    - {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG`
-    - None
-    - {py:attr}`~hairpin2.const.Tags.LOW_QUAL_TAG`
-*   - mark-duplicates
-    - {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG`
-    - {py:attr}`~hairpin2.const.Tags.LOW_QUAL_TAG`
-    - {py:attr}`~hairpin2.const.Tags.STUTTER_DUP_TAG`
-:::
-:::{list-table} **Variant Flaggers**
-:header-rows: 1
-
-*   - Flag
-    - Tests Reads With
-    - Excludes Reads With
-    - Examines Tag
-*   - LQF
-    - {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG`
-    - {py:attr}`~hairpin2.const.Tags.OVERLAP_TAG`
-    - {py:attr}`~hairpin2.const.Tags.LOW_QUAL_TAG`, {py:attr}`~hairpin2.const.Tags.STUTTER_DUP_TAG`
-*   - DVF
-    - {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG`
-    - {py:attr}`~hairpin2.const.Tags.OVERLAP_TAG`, {py:attr}`~hairpin2.const.Tags.LOW_QUAL_TAG`
-    - {py:attr}`~hairpin2.const.Tags.STUTTER_DUP_TAG`
-*   - ALF
-    - {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG`
-    - {py:attr}`~hairpin2.const.Tags.OVERLAP_TAG`, {py:attr}`~hairpin2.const.Tags.LOW_QUAL_TAG`, {py:attr}`~hairpin2.const.Tags.STUTTER_DUP_TAG`
-    - None
-*   - ADF
-    - {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG`
-    - {py:attr}`~hairpin2.const.Tags.OVERLAP_TAG`, {py:attr}`~hairpin2.const.Tags.LOW_QUAL_TAG`, {py:attr}`~hairpin2.const.Tags.STUTTER_DUP_TAG`
-    - None
-:::
-
+In the case of an ADF `PASS`/`FAIL`, all associated conditions passed/failed will be found in the INFO field. The specific conditions therein depend on which branch of the conditional was used. The INFO field contains the strand/s to help indicate the branch taken. `NA` will be seen with either NO_READS or INSUFFICIENT_READS only.  
 
 ## Writing a Config
 
-TODO
+hairpin2 configs can be written in either JSON or TOML format. We recommend [TOML](https://toml.io/en/), but both are fully supported. In either case, for standard usage a config needs a single top level key, `params`, which will then contain keys for each process by title, e.g. `mark-duplicates`, `ADF`, etc. Finally, under the process keys come the parameters. This format is pleasant to express in TOML:
 
+```toml
+[params.mark-duplicates]
+duplication_window_size = 6
+
+
+[params.DVF]
+read_loss_threshold = 0.49
+min_pass_reads = 2
+nsamples_threshold = 0
+
+# other processes... (n.b. toml allows comments)
+```
+
+if you prefer JSON:
+
+```json
+{
+  "params": {
+    "mark-low-qual": {
+      "min_avg_clip_quality": 35,
+      "min_mapping_quality": 11,
+      "min_base_quality": 25
+    },
+    "LQF": {
+      "read_loss_threshold": 0.99,
+      "min_pass_reads": 2,
+      "nsamples_threshold": 0
+    }
+  }
+}
+```
+
+LCMB default parameters are provided in both JSON and TOML format in the example-configs/ directory in the hairpin2 GitHub repository.  
 
 (understanding-decisions-target)=
 ## Understanding Decisions
@@ -455,6 +493,8 @@ key=value paris for any hairpin2 flag can be input to the [explain-var](#explain
 (repro-target)=
 ## Reproducibility & Parameter Distribution
 
+hairpin2 uses only deterministic processes and so is reproducible within the standard computational bounds of that term. Singuarity and Docker definition files are provided for containerisation if needed.
+
 hairpin2 stores the complete information necessary to distribute and reproduce a run directly in the VCF header. The following header keys are used
 
 :::{list-table} **Header Keys**
@@ -468,5 +508,7 @@ hairpin2 stores the complete information necessary to distribute and reproduce a
     - stores which samples in the VCF were selected for testing
 :::
 
-The hairpin2_params key stores data in a JSON compressed with `zlib` and encoded to an ascii string using `base85`. The result is a string of ascii characters, much shorter than the original JSON, which does not invite or allow accidental editing of the parameters once written into the header (either by hand or by another tool). Since zlib compression includes an error-checking checksum, the string is guaranteed to transform back into the exact parameters encoded. Base85 encoding ensures that only VCF-safe characters are used  per the VCF format spec. Most importantly, the parameter JSON can be extracted from a VCF using [get-params](#get-params-qs-target).  
+The parameters are stored in a reduced represenation and can be extracted from a VCF using [get-params](#get-params-qs-target) back into standard JSON format. It is not necessary to understand the way in which the parameters are encoded into the header (explained below) to use this functionality.  
+
+The hairpin2_params key stores data in a JSON compressed with `zlib` and encoded to an ascii string using `base85`. The result is a string of ascii characters, much shorter than the original JSON, which does not invite or allow accidental editing of the parameters once written into the header (either by hand or by another tool). Since zlib compression includes an error-checking checksum, the string is guaranteed to transform back into the exact parameters encoded. Base85 encoding ensures that only VCF-safe characters are used  per the VCF format spec. 
 

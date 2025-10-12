@@ -78,7 +78,8 @@ def explain_variant(info: str):
 
 @hp2_utils.command("get-params", short_help="get run parameters from a VCF")
 @click.argument("vcf", metavar="VCF-PATH")
-def get_params(vcf: str):
+@click.option("--exec", is_flag=True)
+def get_params(vcf: str, exec: bool = False):
     """
     Find and decode a hairpin2 parameter string from a VCF back into a JSON.
 
@@ -96,6 +97,8 @@ def get_params(vcf: str):
                 try:
                     comp_bytes = base64.b85decode(val)
                     configd = json.loads(zlib.decompress(comp_bytes))
+                    if not exec:
+                        configd.pop('exec', None)
                     json.dump(configd, fp=sys.stdout, indent="  ")
                 except Exception as ex:
                     print(

@@ -360,7 +360,7 @@ class AlignmentScoreTest:
     class ResultPack:
         class Info(Flag):
             NODATA = 0
-            INSUFFICIENT_READS = 1
+            NO_READS = 1
             INSUFFICIENT_AS_TAGS = 2
             ON_THRESHOLD = 4
 
@@ -379,7 +379,7 @@ class AlignmentScoreTest:
         pc8's Alignment Score Assessor
         """
         if not reads:
-            result = cls.ResultPack(TestOutcomes.NA, None, cls.ResultPack.Info.INSUFFICIENT_READS)
+            result = cls.ResultPack(TestOutcomes.NA, None, cls.ResultPack.Info.NO_READS)
         else:
             aln_scores: list[float] = []
 
@@ -450,7 +450,7 @@ class AnomalousDistributionTest:
     class ResultPack:
         class Info(Flag):
             NODATA = 0
-            NO_TESTABLE_READS = 1
+            NO_READS = 1
             INSUFFICIENT_READS = 2
             EDGE_CLUSTERING = 4
             ONE_STRAND_DISTRIB = 8
@@ -485,7 +485,7 @@ class AnomalousDistributionTest:
             result = cls.ResultPack(
                 TestOutcomes.NA,
                 Strand.BOTH,
-                cls.ResultPack.Info.NO_TESTABLE_READS,
+                cls.ResultPack.Info.NO_READS,
             )
         else:
             # *l*engths of *a*lignment starts *to* *m*utant query positions
@@ -635,7 +635,7 @@ class AnomalousDistributionTest:
                     info_bits |= (
                         cls.ResultPack.Info.MIN_NON_EDGE
                         | cls.ResultPack.Info.INSUFFICIENT_READS
-                        | cls.ResultPack.Info.NO_TESTABLE_READS
+                        | cls.ResultPack.Info.NO_READS
                     )
 
                 assert strand is not None  # appease a type checker
@@ -657,7 +657,7 @@ class ProportionBasedTest:
     class ResultPack:
         class Info(Flag):
             NODATA = 0
-            INSUFFICIENT_READS = 1
+            NO_READS = 1
             THRESHOLD = 2
             MIN_PASS = 4
 
@@ -674,7 +674,7 @@ class ProportionBasedTest:
         min_without: int = 0,
     ) -> ResultPack:
         if not reads:
-            result = cls.ResultPack(TestOutcomes.NA, cls.ResultPack.Info.INSUFFICIENT_READS, 0)
+            result = cls.ResultPack(TestOutcomes.NA, cls.ResultPack.Info.NO_READS, 0)
         else:
             info_bits = cls.ResultPack.Info.NODATA
             outcome = TestOutcomes.VARIANT_PASS
