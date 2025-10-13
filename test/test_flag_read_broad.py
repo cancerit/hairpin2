@@ -21,43 +21,37 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from hairpin2.readqc import qc_read_broad, ValidatorFlags
-import pysam
-from pysam.libcalignedsegment import SAM_FLAGS as s
 import copy
 
+import pysam
+from hairpin2.readqc import ValidatorFlags, qc_read
+from pysam.libcalignedsegment import SAM_FLAGS as s
 
 # perfect read pair:
 r = pysam.AlignedSegment()
-r.query_name = 'read1'
-r.query_sequence = 'CTGDAAAACC'
-r.query_qualities = pysam.qualitystring_to_array('AAAAAAAAAA')
+r.query_name = "read1"
+r.query_sequence = "CTGDAAAACC"
+r.query_qualities = pysam.qualitystring_to_array("AAAAAAAAAA")
 r.flag = s.FPAIRED | s.FPROPER_PAIR | s.FREAD1  # 0x43
 r.reference_id = 0
 r.reference_start = 95
 r.next_reference_start = 95
 r.mapping_quality = 20
-r.cigarstring = '10M'
-r.set_tag('MC', '10M')
+r.cigarstring = "10M"
+r.set_tag("MC", "10M")
 
 
 def test_path_clear():
     expected = ValidatorFlags.CLEAR
-    result = qc_read_broad(read=r,
-                             vcf_start=99,
-                             min_mapqual=11,
-                             min_clipqual=35)
+    result = qc_read(read=r, vcf_start=99, min_mapqual=11, min_clipqual=35)
     assert expected == result
 
 
 def test_path_missing_mc():
     expected = ValidatorFlags.READ_FIELDS_MISSING
     rc = copy.deepcopy(r)
-    rc.set_tag('MC', None)
-    result = qc_read_broad(read=rc,
-                             vcf_start=99,
-                             min_mapqual=11,
-                             min_clipqual=35)
+    rc.set_tag("MC", None)
+    result = qc_read(read=rc, vcf_start=99, min_mapqual=11, min_clipqual=35)
     assert expected == result
 
 
@@ -65,24 +59,16 @@ def test_path_missing_field():
     expected = ValidatorFlags.READ_FIELDS_MISSING
     rc = copy.deepcopy(r)
     rc.cigarstring = None
-    result = qc_read_broad(read=rc,
-                             vcf_start=99,
-                             min_mapqual=11,
-                             min_clipqual=35)
+    result = qc_read(read=rc, vcf_start=99, min_mapqual=11, min_clipqual=35)
     assert expected == result
 
 
 def test_path_set_flag_mapqual_clipqual():
-    expected = (ValidatorFlags.FLAG
-                | ValidatorFlags.MAPQUAL
-                | ValidatorFlags.CLIPQUAL)
+    expected = ValidatorFlags.FLAG | ValidatorFlags.MAPQUAL | ValidatorFlags.CLIPQUAL
     rc = copy.deepcopy(r)
     rc.flag = s.FQCFAIL  # 0x200
-    rc.cigarstring = '1S9M'
-    result = qc_read_broad(read=rc,
-                             vcf_start=99,
-                             min_mapqual=30,
-                             min_clipqual=40)
+    rc.cigarstring = "1S9M"
+    result = qc_read(read=rc, vcf_start=99, min_mapqual=30, min_clipqual=40)
     assert expected == result
 
 
@@ -90,10 +76,7 @@ def test_path_overlap():
     expected = ValidatorFlags.OVERLAP
     rc = copy.deepcopy(r)
     rc.flag = s.FPAIRED | s.FPROPER_PAIR | s.FREAD2  # 0x80
-    result = qc_read_broad(read=rc,
-                             vcf_start=99,
-                             min_mapqual=11,
-                             min_clipqual=40)
+    result = qc_read(read=rc, vcf_start=99, min_mapqual=11, min_clipqual=40)
     assert expected == result
 
 
@@ -101,9 +84,6 @@ def test_path_no_overlap():
     expected = ValidatorFlags.CLEAR
     rc = copy.deepcopy(r)
     rc.flag = s.FPAIRED | s.FPROPER_PAIR | s.FREAD2  # 0x80
-    rc.set_tag('MC', '3M')
-    result = qc_read_broad(read=rc,
-                             vcf_start=99,
-                             min_mapqual=11,
-                             min_clipqual=40)
+    rc.set_tag("MC", "3M")
+    result = qc_read(read=rc, vcf_start=99, min_mapqual=11, min_clipqual=40)
     assert expected == result

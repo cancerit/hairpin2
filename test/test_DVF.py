@@ -22,64 +22,66 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 from copy import deepcopy
-import pysam
-from hairpin2.filters import DVF
+from typing import cast
 
+from hairpin2.flaggers import DVF
+from hairpin2.structures import ReadView
+from pysam import AlignedSegment, VariantRecord, qualitystring_to_array
+
+from .helpers import comp_ReadView, unsafe_construct_params
 
 # perfect read pair:
-r = pysam.AlignedSegment()
-r.query_name = 'read1'
-r.query_sequence = 'CTGDAAAACC' * 10
-r.query_qualities = pysam.qualitystring_to_array('AAAAAAAAAA' * 10)
+r = AlignedSegment()
+r.query_name = "read1"
+r.query_sequence = "CTGDAAAACC" * 10
+r.query_qualities = qualitystring_to_array("AAAAAAAAAA" * 10)
 r.flag = 0x43
 r.reference_id = 0
 r.reference_start = 100
 r.next_reference_start = 100
 r.mapping_quality = 20
-r.cigarstring = '100M'
-r.set_tag('MC', '100M')
+r.cigarstring = "100M"
+r.set_tag("MC", "100M")
 
 
-### TEST NODES AND EDGES
+fake_rec = cast(VariantRecord, cast(object, ""))  # not used by DVF test method
+fake_alt = "_"  # not material for DVF test record, just for record keeping
+
+
 def test_path_insufficient_reads():
-    dv = DVF.Filter(fixed_params=DVF.Params())
-    readsin: dict[str, list[pysam.AlignedSegment]] = {'_': []}
-    readsout, result = dv.test('_', readsin)
-    assert result.code == DVF.DVCodes.INSUFFICIENT_READS
+    dv = DVF.FlaggerDVF(
+        prefilter_params=DVF.PrefilterParamsDVF(min_mapq=0, min_avg_clipq=0, min_baseq=0),
+        fixed_params=DVF.FixedParamsDVF(),
+    )
+    reads = ReadView({"_": []})
+    rsnapshot = deepcopy(reads)
+    dv._var_params = unsafe_construct_params(
+        DVF.VarParamsDVF, record=None, alt=fake_alt, reads=reads
+    )  # unsafe prime
+
+    result = dv.test()
+    assert result.code == DVF.InfoFlagsDVF.INSUFFICIENT_READS
     assert result.flag == None
-    assert readsin == readsout
+    assert comp_ReadView(reads, rsnapshot)
 
 
 def test_path_duplicated():
-    boundary_wobble = 10
-    dv = DVF.Filter(fixed_params=DVF.Params((boundary_wobble - 1)))
+    dv = DVF.FlaggerDVF(
+        prefilter_params=DVF.PrefilterParamsDVF(min_mapq=0, min_avg_clipq=0, min_baseq=0),
+        fixed_params=DVF.FixedParamsDVF(),
+    )
     r1 = deepcopy(r)
-    r1.reference_start -= boundary_wobble
-    r1.next_reference_start -= boundary_wobble
-    readsin: dict[str, list[pysam.AlignedSegment]] = {'_': [r, r], '_2': [r], '_3': [r, r, r1]}
-    readsout, result = dv.test('_', readsin)
-    assert result.code == DVF.DVCodes.DUPLICATION
+    r1.set_tag("zD", 1, "i")
+    reads = ReadView({"_": [r, r1, r1]}, _internal_switches=["no_validate"])
+    rsnapshot = deepcopy(reads)
+    dv._var_params = unsafe_construct_params(
+        DVF.VarParamsDVF, record=None, alt=fake_alt, reads=reads
+    )  # unsafe prime
+
+    result = dv.test()
+    assert result.code == DVF.InfoFlagsDVF.DUPLICATION
     assert result.flag == True
-    assert readsin != readsout
-    assert len(readsout.keys()) == 3
-    assert len(readsout.values()) == 3
+    assert comp_ReadView(reads, rsnapshot)
 
 
-# test parameters behave as intended
-def test_check_window():
-    """
-    duplication_window_size must define an inclusive window size in number of bases within which reads are considered duplicated
-    """
-    boundary_wobble = 10
-    r1 = deepcopy(r)
-    r1.reference_start -= boundary_wobble
-    r1.next_reference_start -= boundary_wobble
-    readsin: dict[str, list[pysam.AlignedSegment]] = {'_': [r, r1]}
-    dv = DVF.Filter(fixed_params=DVF.Params((boundary_wobble - 1)))
-    _, result = dv.test('_', readsin)
-    assert result.flag == False
-    dv = DVF.Filter(fixed_params=DVF.Params((boundary_wobble)))
-    _, result = dv.test('_', readsin)
-    assert result.flag == True
-
-
+# TODO: test loss ratio, nsamples params

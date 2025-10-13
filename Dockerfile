@@ -6,16 +6,8 @@ WORKDIR /hairpin2
 
 COPY . /hairpin2
 
-RUN adduser --disabled-password --gecos '' ubuntu && chsh -s /bin/bash && mkdir -p /home/ubuntu
+RUN pip install --root-user-action ignore --no-warn-script-location /hairpin2
 
-USER ubuntu
-WORKDIR /home/ubuntu
-
-RUN pip install --no-warn-script-location /hairpin2
-
-ENV PATH=$PATH:/home/ubuntu/.local/bin
-
-# Define a test script to check the installation of hairpin
 RUN LOC=$(which hairpin2) \
     && if [ -z "$LOC" ]; then \
     echo "hairpin install failed" && exit 1; \

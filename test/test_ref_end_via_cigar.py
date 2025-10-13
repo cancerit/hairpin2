@@ -22,16 +22,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from hairpin2.ref2seq import ref_end_via_cigar
 from pytest import raises
+
+from hairpin2.utils.ref2seq import ref_end_via_cigar
 
 
 def test_path_valueerror():
     with raises(ValueError):
-        _ = ref_end_via_cigar('30M2I* ,', 0)
+        _ = ref_end_via_cigar("30M2I* ,", 0)
 
 
 def test_path_normal():
     expected = 50
-    result = ref_end_via_cigar('20M10I30M', 0)
+    result = ref_end_via_cigar("20M10I30M", 0)
     assert expected == result

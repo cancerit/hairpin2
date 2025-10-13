@@ -1,0 +1,58 @@
+[exec]
+# taggers
+[exec.mark-support]
+enable = true
+require-marks = []
+exclude-marks = []
+
+[exec.mark-overlap]
+enable = true
+require-marks = ["SUPPORTS-VAR"]
+exclude-marks = []
+
+[exec.mark-low-qual]
+enable = true
+require-marks = ["SUPPORTS-VAR"]
+exclude-marks = []
+
+[exec.mark-duplicates]
+enable = true
+require-marks = ["SUPPORTS-VAR"]
+exclude-marks = []
+
+# flaggers
+[exec.LQF]
+enable = true
+require-marks = ["SUPPORTS-VAR"]
+exclude-marks = ["IS-OVERLAPPING-READ2"]
+
+[exec.DVF]
+enable = true
+require-marks = ["SUPPORTS-VAR"]
+exclude-marks = [
+  "IS-OVERLAPPING-READ2",
+  "LOW-QUAL"
+]
+
+[exec.ALF]
+enable = true
+require-marks = ["SUPPORTS-VAR"]
+exclude-marks = [
+  "LOW-QUAL",
+  "IS-OVERLAPPING-READ2",
+  "IS-STUTTER-DUP"
+]
+
+[exec.ADF]
+enable = true
+require-marks = ["SUPPORTS-VAR"]
+exclude-marks = [
+  "LOW-QUAL",
+  "IS-OVERLAPPING-READ2",
+  "IS-STUTTER-DUP"
+]
+
+
+# runtime options
+[exec.opts]
+mandate-excludes = true

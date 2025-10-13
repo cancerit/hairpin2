@@ -34,29 +34,32 @@ def ref2querypos(
         if aln_pair[1] == ref_pos:
             query_pos = aln_pair[0]
     if query_pos is None or len(pos_aln) == 0:
-        raise ValueError('reference position not covered by read')
+        raise ValueError("reference position not covered by read")
     return query_pos
 
 
-def ref_end_via_cigar(
-    cig_str: str,
-    ref_start: int
-) -> int:
-    if (not cig_str[0].isdigit() or
-        not all([(c.isalnum() or c == '=') for c in cig_str]) or
-            len(cig_str) < 2):
-        raise ValueError('could not interpret cigar string {}'.format(cig_str))
+class CigarError(ValueError):
+    pass
+
+
+def ref_end_via_cigar(cig_str: str, ref_start: int) -> int:
+    if (
+        not cig_str[0].isdigit()
+        or not all((c.isalnum() or c == "=") for c in cig_str)
+        or len(cig_str) < 2
+    ):
+        raise CigarError("could not interpret cigar string {}".format(cig_str))
     cig_l = []
-    digit_accumulator: str = ''
+    digit_accumulator: str = ""
     for char in cig_str:
         if char.isdigit():
             digit_accumulator += char
         else:
             cig_l.append(digit_accumulator)
             cig_l.append(char)
-            digit_accumulator = ''
+            digit_accumulator = ""
     cig_t = list(zip(cig_l[0::2], cig_l[1::2]))
     for op_len, op_code in cig_t:
-        if op_code in ['M', 'D', 'N', '=', 'X']:
+        if op_code in ["M", "D", "N", "=", "X"]:
             ref_start += int(op_len)
     return ref_start
