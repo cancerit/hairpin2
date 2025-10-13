@@ -22,7 +22,7 @@ Given a VCF, and BAM files for the samples of that VCF, return a VCF with varian
 
  - `LQF`; The `LQF` flag is a superset of the `DVF` flag - it tests whether a read is largely supported by both low quality reads and stutter duplicate reads (which are also considered low quality). Note that because the parameters for each `LQF` and `DVF` are independent, you can indepedently set the sensitivity of each - so the result of LQF is not necessarily a complete overlap with DVF (and usually is not).  
 
-All flags are tunable such that their parameters can be configured to a variety of use cases and sequencing methods.
+All flags are tunable such that their parameters can be configured to a variety of use cases and sequencing methods
 
 ### DEPENDENCIES
 * `Python >= 3.12`
