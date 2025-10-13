@@ -23,4 +23,3 @@ Read :ref:`quickstart-target` to get started!
    tests
    hairpin2
    dev
-   changes
