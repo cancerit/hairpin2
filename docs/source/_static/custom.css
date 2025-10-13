@@ -1,0 +1,42 @@
+/* Ensure list-tables stay within the RTD theme content width */
+table.docutils {
+  width: 100% !important;
+  table-layout: fixed;
+  word-wrap: break-word;
+  white-space: normal;
+}
+
+/* Allow horizontal scrolling if content still overflows */
+.wy-table-responsive {
+  overflow-x: auto;
+}
+
+.wy-table-responsive table td {
+  white-space: normal;
+}
+
+/* Add padding to prevent clipping on smaller screens */
+.wy-table-responsive table.docutils {
+  margin-bottom: 1rem;
+}
+
+/* Optional: tighter line spacing for long text */
+table.docutils td {
+  line-height: 1.4;
+}
+
+
+.admonition.quote .admonition-title::before {
+  content: "\f0f3";
+  /* Font Awesome bell icon */
+  font-family: normal 900 1em/1 "Font Awesome 6 Free";
+  /* Ensure the correct font is used */
+  font-weight: 900;
+  /* Use the solid style */
+  margin-right: 0.5em;
+}
+
+.admonition.quote .admonition-title svg {
+  display: none;
+  /* Hide default icon if using SVG */
+}
