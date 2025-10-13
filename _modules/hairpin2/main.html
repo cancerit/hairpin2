@@ -1,0 +1,338 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>hairpin2.main &mdash; hairpin2 3.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=be469e84" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=acc74ff5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            hairpin2
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../quickstart.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../quickstart.html#usage">Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../quickstart.html#command-line-interface">Command Line Interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../quickstart.html#hp2-utils">hp2-utils</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../quickstart.html#explain-var">explain-var</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../quickstart.html#get-params">get-params</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../guide.html">Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../guide.html#processes-and-parameters">Processes and Parameters</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../guide.html#process-relationships-reference">Process Relationships Reference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../guide.html#read-taggers">Read Taggers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../guide.html#mark-support">mark-support</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../guide.html#mark-overlap">mark-overlap</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../guide.html#mark-low-qual">mark-low-qual</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../guide.html#mark-duplicates">mark-duplicates</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../guide.html#variant-flaggers">Variant Flaggers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../guide.html#lqf">LQF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../guide.html#dvf">DVF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../guide.html#alf">ALF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../guide.html#adf">ADF</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../guide.html#writing-a-config">Writing a Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../guide.html#understanding-decisions">Understanding Decisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../guide.html#reproducibility-parameter-distribution">Reproducibility &amp; Parameter Distribution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../guide.html#assumptions-limitations">Assumptions &amp; Limitations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../guide.html#further-development">Further Development</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../hairpin2.html">hairpin2 package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../hairpin2.html#scientific-modules">Scientific Modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../hairpin2.const.html">const module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.const.html#hairpin2.const.ValidNucleotides"><code class="docutils literal notranslate"><span class="pre">ValidNucleotides</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.const.html#hairpin2.const.Strand"><code class="docutils literal notranslate"><span class="pre">Strand</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.const.html#hairpin2.const.MutTypes"><code class="docutils literal notranslate"><span class="pre">MutTypes</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.const.html#hairpin2.const.Tags"><code class="docutils literal notranslate"><span class="pre">Tags</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.const.html#hairpin2.const.TaggerNamespaces"><code class="docutils literal notranslate"><span class="pre">TaggerNamespaces</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.const.html#hairpin2.const.FlaggerNamespaces"><code class="docutils literal notranslate"><span class="pre">FlaggerNamespaces</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../hairpin2.sci_funcs.html">sci_funcs module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagSupportingReads"><code class="docutils literal notranslate"><span class="pre">TagSupportingReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagLowQualReads"><code class="docutils literal notranslate"><span class="pre">TagLowQualReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagFragmentReads"><code class="docutils literal notranslate"><span class="pre">TagFragmentReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagStutterDuplicateReads"><code class="docutils literal notranslate"><span class="pre">TagStutterDuplicateReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.AlignmentScoreTest"><code class="docutils literal notranslate"><span class="pre">AlignmentScoreTest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.AnomalousDistributionTest"><code class="docutils literal notranslate"><span class="pre">AnomalousDistributionTest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.ProportionBasedTest"><code class="docutils literal notranslate"><span class="pre">ProportionBasedTest</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../hairpin2.main.html">main module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.main.html#hairpin2.main.hairpin2"><code class="docutils literal notranslate"><span class="pre">hairpin2()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../hairpin2.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../hairpin2.infrastructure.html">infrastructure package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.infrastructure.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../hairpin2.process_wrappers.html">process_wrappers package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.process_wrappers.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../dev.html">Developer Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">hairpin2</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">hairpin2.main</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for hairpin2.main</h1><div class="highlight"><pre>
+<span></span><span class="c1"># hairpin2</span>
+<span class="c1">#</span>
+<span class="c1"># Copyright (C) 2024, 2025 Genome Research Ltd.</span>
+<span class="c1">#</span>
+<span class="c1"># Author: Alex Byrne &lt;ab63@sanger.ac.uk&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># Permission is hereby granted, free of charge, to any person obtaining a copy</span>
+<span class="c1"># of this software and associated documentation files (the &quot;Software&quot;), to deal</span>
+<span class="c1"># in the Software without restriction, including without limitation the rights</span>
+<span class="c1"># to use, copy, modify, merge, publish, distribute, sublicense, and/or sell</span>
+<span class="c1"># copies of the Software, and to permit persons to whom the Software is</span>
+<span class="c1"># furnished to do so, subject to the following conditions:</span>
+<span class="c1">#</span>
+<span class="c1"># The above copyright notice and this permission notice shall be included in all</span>
+<span class="c1"># copies or substantial portions of the Software.</span>
+<span class="c1">#</span>
+<span class="c1"># THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR</span>
+<span class="c1"># IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,</span>
+<span class="c1"># FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE</span>
+<span class="c1"># AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER</span>
+<span class="c1"># LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,</span>
+<span class="c1"># OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE</span>
+<span class="c1"># SOFTWARE.</span>
+
+<span class="c1"># pyright: reportImplicitStringConcatenation=false</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Mapping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">tee</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">pysam</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">hairpin2.const</span><span class="w"> </span><span class="kn">import</span> <span class="n">MutTypes</span><span class="p">,</span> <span class="n">ValidNucleotides</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hairpin2.infrastructure.rascheduler</span><span class="w"> </span><span class="kn">import</span> <span class="n">RAExec</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hairpin2.infrastructure.structures</span><span class="w"> </span><span class="kn">import</span> <span class="n">FlagResult</span><span class="p">,</span> <span class="n">ReadView</span><span class="p">,</span> <span class="n">TestOutcomes</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hairpin2.process_wrappers</span><span class="w"> </span><span class="kn">import</span> <span class="n">ADF</span><span class="p">,</span> <span class="n">ALF</span><span class="p">,</span> <span class="n">DVF</span><span class="p">,</span> <span class="n">LQF</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hairpin2.process_wrappers.mark_overlap</span><span class="w"> </span><span class="kn">import</span> <span class="n">TaggerOverlap</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hairpin2.process_wrappers.mark_support</span><span class="w"> </span><span class="kn">import</span> <span class="n">TaggerSupporting</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hairpin2.process_wrappers.shared</span><span class="w"> </span><span class="kn">import</span> <span class="n">RunParamsShared</span>
+
+
+<div class="viewcode-block" id="hairpin2">
+<a class="viewcode-back" href="../../hairpin2.main.html#hairpin2.main.hairpin2">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">hairpin2</span><span class="p">(</span>
+    <span class="n">records</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">pysam</span><span class="o">.</span><span class="n">VariantRecord</span><span class="p">],</span>  <span class="c1"># TODO: take extended variant?</span>
+    <span class="n">sample_to_alignment</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pysam</span><span class="o">.</span><span class="n">AlignmentFile</span><span class="p">],</span>
+    <span class="n">configd</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">quiet</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">pysam</span><span class="o">.</span><span class="n">VariantRecord</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    read-aware artefactual variant flagging algorithms.</span>
+
+<span class="sd">    Flag variants in VCF using statistics calculated from supporting reads found in ALIGNMENTS and emit the flagged VCF to stdout.</span>
+
+<span class="sd">    NOTE: requires VariantFileHeader associated with variant records to have been initialised correctly for the output</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># TODO: improve on the above by yielding back the flag results not the record?</span>
+    <span class="c1"># # test records</span>
+    <span class="n">proc_exec</span> <span class="o">=</span> <span class="n">RAExec</span><span class="o">.</span><span class="n">from_config</span><span class="p">(</span>
+        <span class="n">configd</span><span class="p">,</span>
+        <span class="p">{</span>
+            <span class="n">TaggerSupporting</span><span class="p">,</span>
+            <span class="n">TaggerOverlap</span><span class="p">,</span>
+            <span class="n">LQF</span><span class="o">.</span><span class="n">TaggerLowQual</span><span class="p">,</span>
+            <span class="n">DVF</span><span class="o">.</span><span class="n">TaggerDupmark</span><span class="p">,</span>
+            <span class="n">LQF</span><span class="o">.</span><span class="n">FlaggerLQF</span><span class="p">,</span>
+            <span class="n">ADF</span><span class="o">.</span><span class="n">FlaggerADF</span><span class="p">,</span>
+            <span class="n">ALF</span><span class="o">.</span><span class="n">FlaggerALF</span><span class="p">,</span>
+            <span class="n">DVF</span><span class="o">.</span><span class="n">FlaggerDVF</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">records</span><span class="p">:</span>
+        <span class="c1"># record_flagd: dict[str, list[FlagResult]] = {}</span>
+        <span class="n">alt_resultd</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">FlagResult</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">record</span><span class="o">.</span><span class="n">alts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">quiet</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">chrom</span><span class="si">:</span><span class="s2"> &lt;7</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">pos</span><span class="si">:</span><span class="s2"> &gt;12</span><span class="si">}</span><span class="s2"> (variant id: </span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">id</span><span class="si">!r}</span><span class="s2">) ¦ no alts for this record, skipping variant&quot;</span>
+                <span class="p">)</span>
+            <span class="k">continue</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># TODO: also need to mandate/require field presence on variant records I suppose</span>
+            <span class="n">samples_w_mutants</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">name</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">record</span><span class="o">.</span><span class="n">samples</span> <span class="k">if</span> <span class="n">record</span><span class="o">.</span><span class="n">samples</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="s2">&quot;GT&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">samples_w_mutants</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">quiet</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">chrom</span><span class="si">:</span><span class="s2"> &lt;7</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">pos</span><span class="si">:</span><span class="s2"> &gt;12</span><span class="si">}</span><span class="s2"> (variant id: </span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">id</span><span class="si">!r}</span><span class="s2">) ¦ no samples exhibit alts associated with this record, skipping variant&quot;</span>
+                    <span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">reads_by_sample</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">pysam</span><span class="o">.</span><span class="n">AlignedSegment</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+
+                <span class="c1"># get pileup</span>
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">sample_to_alignment</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">samples_w_mutants</span><span class="p">:</span>
+                        <span class="n">read_iter</span><span class="p">,</span> <span class="n">test_iter</span> <span class="o">=</span> <span class="n">tee</span><span class="p">(</span>
+                            <span class="n">v</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">chrom</span><span class="p">,</span> <span class="n">record</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">start</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+                        <span class="p">)</span>
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="n">_</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">test_iter</span><span class="p">)</span>
+                        <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+                            <span class="k">continue</span>  <span class="c1"># no reads for that sample cover this region BUG: should warn!!</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">reads_by_sample</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">read_iter</span><span class="p">)</span>
+
+                <span class="c1"># --- test by alt ---</span>
+                <span class="c1"># TODO: put mutation type detection under testing</span>
+                <span class="c1"># the ability to handle complex mutations would be a potentially interesting future feature</span>
+                <span class="c1"># for extending to more varied artifacts</span>
+                <span class="k">for</span> <span class="n">alt</span> <span class="ow">in</span> <span class="n">record</span><span class="o">.</span><span class="n">alts</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">alt</span> <span class="ow">in</span> <span class="n">alt_resultd</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                        <span class="k">raise</span> <span class="ne">RuntimeError</span>
+                    <span class="n">alt_resultd</span><span class="p">[</span><span class="n">alt</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="n">can_parse_alt</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">alt</span><span class="p">)</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">ValidNucleotides</span><span class="o">.</span><span class="n">ALL</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+                    <span class="n">alt_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">alt</span><span class="p">)</span>
+
+                    <span class="c1"># NOTE: (intentionally) doesn&#39;t support symbolic del/ins</span>
+                    <span class="k">if</span> <span class="n">can_parse_alt</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">record</span><span class="o">.</span><span class="n">rlen</span> <span class="o">==</span> <span class="n">alt_len</span><span class="p">:</span>
+                            <span class="n">mut_type</span> <span class="o">=</span> <span class="n">MutTypes</span><span class="o">.</span><span class="n">SUB</span>
+                        <span class="k">elif</span> <span class="n">alt_len</span> <span class="o">&lt;</span> <span class="n">record</span><span class="o">.</span><span class="n">rlen</span><span class="p">:</span>
+                            <span class="n">mut_type</span> <span class="o">=</span> <span class="n">MutTypes</span><span class="o">.</span><span class="n">DEL</span>  <span class="c1"># NOTE: track back how a * del would be handled</span>
+                        <span class="k">elif</span> <span class="n">record</span><span class="o">.</span><span class="n">rlen</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                            <span class="n">mut_type</span> <span class="o">=</span> <span class="n">MutTypes</span><span class="o">.</span><span class="n">INS</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="n">quiet</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+                                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">chrom</span><span class="si">:</span><span class="s2"> &lt;7</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">pos</span><span class="si">:</span><span class="s2"> &gt;12</span><span class="si">}</span><span class="s2"> (variant id: </span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">id</span><span class="si">!r}</span><span class="s2">) ¦ could not infer mutation type from ALT/REF: </span><span class="si">{</span><span class="n">alt</span><span class="si">!r}</span><span class="s2">/</span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">ref</span><span class="si">!r}</span><span class="s2">, skipping variant&quot;</span>
+                                <span class="p">)</span>
+                            <span class="k">continue</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">quiet</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+                            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">chrom</span><span class="si">:</span><span class="s2"> &lt;7</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">pos</span><span class="si">:</span><span class="s2"> &gt;12</span><span class="si">}</span><span class="s2"> (variant id: </span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">id</span><span class="si">!r}</span><span class="s2">) ¦ ALT: </span><span class="si">{</span><span class="n">alt</span><span class="si">!r}</span><span class="s2"> contains nucleotides hairpin2 does not parse (only </span><span class="si">{</span><span class="n">ValidNucleotides</span><span class="o">.</span><span class="n">ALL</span><span class="o">.</span><span class="n">value</span><span class="si">!r}</span><span class="s2">), skipping variant&quot;</span>
+                            <span class="p">)</span>
+                        <span class="k">continue</span>
+
+                    <span class="c1"># instantiate test data obj/s</span>
+                    <span class="n">test_reads</span> <span class="o">=</span> <span class="n">ReadView</span><span class="p">(</span>
+                        <span class="n">ReadView</span><span class="o">.</span><span class="n">convert_pysam_to_extread</span><span class="p">(</span><span class="n">reads_by_sample</span><span class="p">,</span> <span class="n">validate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="n">run_data</span> <span class="o">=</span> <span class="n">RunParamsShared</span><span class="p">(</span>
+                        <span class="n">record</span><span class="o">=</span><span class="n">record</span><span class="p">,</span> <span class="n">reads</span><span class="o">=</span><span class="n">test_reads</span><span class="p">,</span> <span class="n">alt</span><span class="o">=</span><span class="n">alt</span><span class="p">,</span> <span class="n">mut_type</span><span class="o">=</span><span class="n">mut_type</span>
+                    <span class="p">)</span>  <span class="c1"># TODO: allow positional args</span>
+                    <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">proc_exec</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">run_data</span><span class="p">):</span>
+                        <span class="n">alt_resultd</span><span class="p">[</span><span class="n">alt</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">alt</span><span class="p">,</span> <span class="n">flagl</span> <span class="ow">in</span> <span class="n">alt_resultd</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">flag</span> <span class="ow">in</span> <span class="n">flagl</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">flag</span><span class="o">.</span><span class="n">variant_flagged</span> <span class="o">==</span> <span class="n">TestOutcomes</span><span class="o">.</span><span class="n">VARIANT_FAIL</span><span class="p">:</span>
+                    <span class="n">record</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">flag</span><span class="o">.</span><span class="n">FlagName</span><span class="p">)</span>
+
+                <span class="n">record</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">flag</span><span class="o">.</span><span class="n">FlagName</span><span class="p">:</span> <span class="n">flag</span><span class="o">.</span><span class="n">getinfo</span><span class="p">(</span><span class="n">alt</span><span class="p">)})</span>  <span class="c1"># pyright: ignore[reportArgumentType, reportUnknownMemberType]</span>
+
+        <span class="k">yield</span> <span class="n">record</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Alex Byrne.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

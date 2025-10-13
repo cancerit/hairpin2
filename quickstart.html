@@ -1,0 +1,309 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quickstart &mdash; hairpin2 3.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=be469e84" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=acc74ff5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Guide" href="guide.html" />
+    <link rel="prev" title="hairpin2 documentation" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            hairpin2
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#usage">Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#command-line-interface">Command Line Interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#hp2-utils">hp2-utils</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#explain-var">explain-var</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-params">get-params</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="guide.html">Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="guide.html#processes-and-parameters">Processes and Parameters</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="guide.html#process-relationships-reference">Process Relationships Reference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="guide.html#read-taggers">Read Taggers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#mark-support">mark-support</a></li>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#mark-overlap">mark-overlap</a></li>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#mark-low-qual">mark-low-qual</a></li>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#mark-duplicates">mark-duplicates</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="guide.html#variant-flaggers">Variant Flaggers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#lqf">LQF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#dvf">DVF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#alf">ALF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#adf">ADF</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="guide.html#writing-a-config">Writing a Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide.html#understanding-decisions">Understanding Decisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide.html#reproducibility-parameter-distribution">Reproducibility &amp; Parameter Distribution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide.html#assumptions-limitations">Assumptions &amp; Limitations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide.html#further-development">Further Development</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="hairpin2.html">hairpin2 package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="hairpin2.html#scientific-modules">Scientific Modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="hairpin2.const.html">const module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.ValidNucleotides"><code class="docutils literal notranslate"><span class="pre">ValidNucleotides</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.Strand"><code class="docutils literal notranslate"><span class="pre">Strand</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.MutTypes"><code class="docutils literal notranslate"><span class="pre">MutTypes</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.Tags"><code class="docutils literal notranslate"><span class="pre">Tags</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.TaggerNamespaces"><code class="docutils literal notranslate"><span class="pre">TaggerNamespaces</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.FlaggerNamespaces"><code class="docutils literal notranslate"><span class="pre">FlaggerNamespaces</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="hairpin2.sci_funcs.html">sci_funcs module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagSupportingReads"><code class="docutils literal notranslate"><span class="pre">TagSupportingReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagLowQualReads"><code class="docutils literal notranslate"><span class="pre">TagLowQualReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagFragmentReads"><code class="docutils literal notranslate"><span class="pre">TagFragmentReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagStutterDuplicateReads"><code class="docutils literal notranslate"><span class="pre">TagStutterDuplicateReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.sci_funcs.html#hairpin2.sci_funcs.AlignmentScoreTest"><code class="docutils literal notranslate"><span class="pre">AlignmentScoreTest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.sci_funcs.html#hairpin2.sci_funcs.AnomalousDistributionTest"><code class="docutils literal notranslate"><span class="pre">AnomalousDistributionTest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.sci_funcs.html#hairpin2.sci_funcs.ProportionBasedTest"><code class="docutils literal notranslate"><span class="pre">ProportionBasedTest</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="hairpin2.main.html">main module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.main.html#hairpin2.main.hairpin2"><code class="docutils literal notranslate"><span class="pre">hairpin2()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="hairpin2.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="hairpin2.infrastructure.html">infrastructure package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.infrastructure.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="hairpin2.process_wrappers.html">process_wrappers package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.process_wrappers.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="dev.html">Developer Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">hairpin2</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Quickstart</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/quickstart.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="quickstart">
+<span id="quickstart-target"></span><h1>Quickstart<a class="headerlink" href="#quickstart" title="Link to this heading"></a></h1>
+<p>Given a VCF, and BAM files for the samples of that VCF, hairpin2 will return a VCF with variants flagged in the FILTER column with <code class="docutils literal notranslate"><span class="pre">ADF</span></code> if variants have anomalous distributions indicating that they are likely to be artefactual, <code class="docutils literal notranslate"><span class="pre">ALF</span></code> if relevant reads have lower median alignment score per base than a specified threshold, <code class="docutils literal notranslate"><span class="pre">DVF</span></code> if variants appear to be the result of PCR error, and <code class="docutils literal notranslate"><span class="pre">LQF</span></code> if the variant is largely supported by low quality reads.</p>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
+<p>The easiest end-user approach is to install into a virtual environment:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>.env
+<span class="nb">source</span><span class="w"> </span>.env/bin/activate
+pip<span class="w"> </span>install<span class="w"> </span>.
+hairpin<span class="w"> </span>--help
+</pre></div>
+</div>
+</section>
+<section id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Link to this heading"></a></h2>
+<p>The recommended usage is to provide a config of flag parameters along with the VCF in question and the relavant alignment/s (.sam/.bam/.cram), like so:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">vcf_sample_name</span><span class="o">=</span><span class="s2">&quot;TUMOUR&quot;</span>
+<span class="nv">aln</span><span class="o">=</span><span class="s2">&quot;aln.cram&quot;</span>
+hairpin2<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-c<span class="w"> </span>myconfig.toml<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-m<span class="w"> </span><span class="s1">&#39;{&quot;$vcf_sample_name&quot;:&quot;$aln&quot;}&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>variants.vcf<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="nv">$aln</span><span class="w"> </span>&gt;<span class="w"> </span>output.vcf
+</pre></div>
+</div>
+<p>A config of default parameters is provided in <code class="docutils literal notranslate"><span class="pre">example-configs/default-params.toml</span></code>. Both TOML and JSON based configs are supported.</p>
+<p>The default parameters provided are those found to be appropriate on series of LCMB data. Your use case, data, and opinions may differ - hairpin2 is extensively customisable via the config, and descriptions of the parameters can be found in the <a class="reference internal" href="guide.html#process-target"><span class="std std-ref">Processes and Parameters</span></a> section of the guide.</p>
+<p>See the <a class="reference internal" href="guide.html#guide-target"><span class="std std-ref">guide</span></a> for a complete walkthrough, and the <a class="reference internal" href="#interface-target">interface</a> section below for a description of the command line options.</p>
+</section>
+<section id="command-line-interface">
+<span id="interface-target"></span><h2>Command Line Interface<a class="headerlink" href="#command-line-interface" title="Link to this heading"></a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Usage: hairpin2 [-h, --help] [OPTIONS] VCF ALIGNMENTS...
+
+  read-aware artefactual variant flagging algorithms. Flag variants in VCF
+  using statistics calculated from supporting reads found in ALIGNMENTS and
+  emit the flagged VCF to stdout.
+
+Usage: hairpin2 [-h, --help] [OPTIONS] VCF ALIGNMENTS...
+
+  read-aware artefactual variant flagging algorithms. Flag variants in VCF
+  using statistics calculated from supporting reads found in ALIGNMENTS and
+  emit the flagged VCF to stdout.
+
+Options:
+  -v, --version                   Show the version and exit.
+  -c, --config FILEPATH           path to config TOML/s or JSON/s from which
+                                  processes and execution will be configured.
+                                  May be provided multiple times; individual
+                                  configs can be provided for each top level
+                                  key (params, exec).
+  -o, --output-config FILEPATH    log run configuration back to a new JSON
+                                  file.
+  --set &lt;TEXT TEXT&gt;...            Override values in the supplied config. Uses
+                                  dot paths for the key, and JSON format for
+                                  the value, e.g., --set
+                                  params.DVF.read_loss_threshold 0.6. Must be
+                                  provided after --config. May be provided
+                                  multiple times.
+  -m, --name-mapping JSON_STRING | FILEPATH
+                                  If sample names in VCF differ from SM tags
+                                  in alignment files, provide a key here to
+                                  map them. Accepts a path to a JSON file, or
+                                  JSON-formatted string of key-value pairs
+                                  where keys are sample names in the VCF and
+                                  all values are either the SM tag or the
+                                  filepath of the relevant alignment - e.g.
+                                  &#39;{&quot;sample0&quot;: &quot;PDxxA&quot;, &quot;sample1&quot;: &quot;PDxxB&quot;}&#39;
+                                  or &#39;{&quot;sample0&quot;: &quot;A.bam&quot;, ...}&#39;. When only a
+                                  single alignment is provided, also accepts a
+                                  JSON-spec top-level array of possible sample
+                                  of interest names - e.g.
+                                  &#39;[&quot;TUMOR&quot;,&quot;TUMOUR&quot;]&#39;. Note that when
+                                  providing a JSON-formatted string at the
+                                  command line you must single quote the
+                                  string, and use only double quotes
+                                  internally.
+  -r, --cram-reference FILEPATH   path to FASTA format CRAM reference,
+                                  overrides $REF_PATH and UR tags for CRAM
+                                  alignments.
+  -q, --quiet                     be quiet (-q to not log INFO level messages,
+                                  -qq to additionally not log WARN).
+  -p, --progress                  display progress bar on stderr during run.
+  -h, --help                      Show this message and exit.
+</pre></div>
+</div>
+<p>To expand on <code class="docutils literal notranslate"><span class="pre">--name-mapping</span></code> – when using multisample VCFs, hairpin2 compares VCF sample names found in the VCF header to SM tags in alignments to match samples of interest to the correct alignment. If these IDs are different between the VCF and alignments, you’ll need to provide a JSON key. If there are multiple samples of interest in a multisample VCF, and therefore it is necessary to provide multiple alignments, you will need to provide a mapping for each pair - e.g. <code class="docutils literal notranslate"><span class="pre">-m</span> <span class="pre">'{&quot;sample1&quot;:&quot;SM1&quot;,</span> <span class="pre">&quot;sample2&quot;:&quot;SM2&quot;,</span> <span class="pre">...}'</span></code> or <code class="docutils literal notranslate"><span class="pre">-m</span> <span class="pre">'{&quot;sample1:&quot;1.bam&quot;,</span> <span class="pre">...}'</span></code>. If there is only one sample of interest, and therefore only one alignment is provided to the tool, then you also have an optional shorthand - you need only indicate which VCF sample is the sample of interest, e.g. <code class="docutils literal notranslate"><span class="pre">-m</span> <span class="pre">'[&quot;TUMOR&quot;]'</span></code>. When there is only one sample of interest, and therefore one alignment, but the sample of interest may have one of several possible names, you may also provide a comma separated string of possible names for the sample of interest, e.g. <code class="docutils literal notranslate"><span class="pre">-m</span> <span class="pre">'[&quot;TUMOR&quot;,</span> <span class="pre">&quot;TUMOUR&quot;]'</span></code> - users have found this valuable for high throughput workflows where the VCF input may be coming from one of several prior tools or callers (which may name samples differently). In all cases, there must be one and only one match between each alignment and VCF sample. In all cases, a path to a JSON file may be provided instead of the JSON string. Note that a VCF containing both a TUMOUR and a NORMAL sample contains 2 samples, and therefore is a multisample VCF.</p>
+</section>
+<section id="hp2-utils">
+<h2>hp2-utils<a class="headerlink" href="#hp2-utils" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">hairpin2</span></code> comes with a daughter tool, <code class="docutils literal notranslate"><span class="pre">hp2-utils</span></code>. <code class="docutils literal notranslate"><span class="pre">hp2-utils</span></code> provides some additional functionality to assist with the usage of hairpin2.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Usage</span><span class="p">:</span> <span class="n">hp2</span><span class="o">-</span><span class="n">utils</span> <span class="p">[</span><span class="n">OPTIONS</span><span class="p">]</span> <span class="n">COMMAND</span> <span class="p">[</span><span class="n">ARGS</span><span class="p">]</span><span class="o">...</span>
+
+<span class="n">Options</span><span class="p">:</span>
+  <span class="o">--</span><span class="n">help</span>  <span class="n">Show</span> <span class="n">this</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">exit</span><span class="o">.</span>
+
+<span class="n">Commands</span><span class="p">:</span>
+  <span class="n">explain</span><span class="o">-</span><span class="n">var</span>  <span class="n">explain</span> <span class="n">a</span> <span class="n">hairpin2</span> <span class="n">flagging</span> <span class="n">decision</span>
+  <span class="n">get</span><span class="o">-</span><span class="n">params</span>   <span class="n">get</span> <span class="n">run</span> <span class="n">parameters</span> <span class="kn">from</span><span class="w"> </span><span class="nn">a</span> <span class="n">VCF</span>
+</pre></div>
+</div>
+<section id="explain-var">
+<span id="explain-qs-target"></span><h3>explain-var<a class="headerlink" href="#explain-var" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">explain-var</span></code> operates on any of the INFO fields set by hairpin2 in the output VCF, revealing the specific reasoning as to the decision the tool made for a given flag. This is very useful when tuning hairpin2 to new data, or querying results about which you are curious. Usage is as follows:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>hp2-utils<span class="w"> </span>explain-var<span class="w"> </span><span class="s2">&quot;ADF=G|PASS|0x77|19|BOTH&quot;</span><span class="w">  </span><span class="c1"># an example INFO string</span>
+</pre></div>
+</div>
+<p>returning:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">FLAG</span><span class="p">:</span> <span class="n">ADF</span>
+<span class="n">ALT</span><span class="p">:</span> <span class="n">G</span>
+<span class="n">variant</span> <span class="n">outcome</span> <span class="n">was</span> <span class="n">PASS</span> <span class="n">via</span> <span class="n">conditions</span> <span class="p">[</span><span class="s1">&#39;NO_TESTABLE_READS&#39;</span><span class="p">,</span> <span class="s1">&#39;INSUFFICIENT_READS&#39;</span><span class="p">,</span> <span class="s1">&#39;EDGE_CLUSTERING&#39;</span><span class="p">,</span> <span class="s1">&#39;BOTH_STRAND_DISTRIB_BOTH&#39;</span><span class="p">,</span> <span class="s1">&#39;BOTH_STRAND_DISTRIB_ONE&#39;</span><span class="p">,</span> <span class="s1">&#39;MIN_NON_EDGE&#39;</span><span class="p">]</span> <span class="n">on</span> <span class="n">strand</span> <span class="n">BOTH</span>
+<span class="n">reads</span> <span class="n">examined</span><span class="p">:</span> <span class="mi">19</span>
+</pre></div>
+</div>
+<p>More information can be found at <a class="reference internal" href="guide.html#understanding-decisions-target"><span class="std std-ref">Understanding Decisions</span></a>.</p>
+</section>
+<section id="get-params">
+<span id="get-params-qs-target"></span><h3>get-params<a class="headerlink" href="#get-params" title="Link to this heading"></a></h3>
+<p>hairpin2 stores all run parameters in a reduced representation in the header of the output VCF. <code class="docutils literal notranslate"><span class="pre">get-params</span></code> allows translation of the stored parameters back into a JSON, which can then be used for other hairpin2 runs. Usage of <code class="docutils literal notranslate"><span class="pre">get-params</span></code> is as follows:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>hp2-utils<span class="w"> </span>get-params<span class="w"> </span>my.hairpin2.vcf<span class="w"> </span>&gt;<span class="w"> </span>parameters_used.json
+</pre></div>
+</div>
+<p>More information can be found at <a class="reference internal" href="guide.html#repro-target"><span class="std std-ref">Reproducibility &amp; Parameter Distribution</span></a>.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="hairpin2 documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="guide.html" class="btn btn-neutral float-right" title="Guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Alex Byrne.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

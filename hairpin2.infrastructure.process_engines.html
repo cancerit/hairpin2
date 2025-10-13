@@ -1,0 +1,248 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>process_engines module &mdash; hairpin2 3.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=be469e84" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=acc74ff5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="process_params module" href="hairpin2.infrastructure.process_params.html" />
+    <link rel="prev" title="process module" href="hairpin2.infrastructure.process.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            hairpin2
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#usage">Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#command-line-interface">Command Line Interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#hp2-utils">hp2-utils</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="quickstart.html#explain-var">explain-var</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quickstart.html#get-params">get-params</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="guide.html">Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="guide.html#processes-and-parameters">Processes and Parameters</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="guide.html#process-relationships-reference">Process Relationships Reference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="guide.html#read-taggers">Read Taggers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#mark-support">mark-support</a></li>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#mark-overlap">mark-overlap</a></li>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#mark-low-qual">mark-low-qual</a></li>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#mark-duplicates">mark-duplicates</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="guide.html#variant-flaggers">Variant Flaggers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#lqf">LQF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#dvf">DVF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#alf">ALF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#adf">ADF</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="guide.html#writing-a-config">Writing a Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide.html#understanding-decisions">Understanding Decisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide.html#reproducibility-parameter-distribution">Reproducibility &amp; Parameter Distribution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide.html#assumptions-limitations">Assumptions &amp; Limitations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide.html#further-development">Further Development</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="hairpin2.html">hairpin2 package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="hairpin2.html#scientific-modules">Scientific Modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="hairpin2.const.html">const module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.ValidNucleotides"><code class="docutils literal notranslate"><span class="pre">ValidNucleotides</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.Strand"><code class="docutils literal notranslate"><span class="pre">Strand</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.MutTypes"><code class="docutils literal notranslate"><span class="pre">MutTypes</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.Tags"><code class="docutils literal notranslate"><span class="pre">Tags</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.TaggerNamespaces"><code class="docutils literal notranslate"><span class="pre">TaggerNamespaces</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.FlaggerNamespaces"><code class="docutils literal notranslate"><span class="pre">FlaggerNamespaces</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="hairpin2.sci_funcs.html">sci_funcs module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagSupportingReads"><code class="docutils literal notranslate"><span class="pre">TagSupportingReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagLowQualReads"><code class="docutils literal notranslate"><span class="pre">TagLowQualReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagFragmentReads"><code class="docutils literal notranslate"><span class="pre">TagFragmentReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagStutterDuplicateReads"><code class="docutils literal notranslate"><span class="pre">TagStutterDuplicateReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.sci_funcs.html#hairpin2.sci_funcs.AlignmentScoreTest"><code class="docutils literal notranslate"><span class="pre">AlignmentScoreTest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.sci_funcs.html#hairpin2.sci_funcs.AnomalousDistributionTest"><code class="docutils literal notranslate"><span class="pre">AnomalousDistributionTest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.sci_funcs.html#hairpin2.sci_funcs.ProportionBasedTest"><code class="docutils literal notranslate"><span class="pre">ProportionBasedTest</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="hairpin2.main.html">main module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.main.html#hairpin2.main.hairpin2"><code class="docutils literal notranslate"><span class="pre">hairpin2()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="reference internal" href="hairpin2.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="hairpin2.infrastructure.html">infrastructure package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="hairpin2.infrastructure.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="hairpin2.process_wrappers.html">process_wrappers package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.process_wrappers.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="dev.html">Developer Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">hairpin2</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="hairpin2.html">hairpin2 package</a></li>
+          <li class="breadcrumb-item"><a href="hairpin2.infrastructure.html">infrastructure package</a></li>
+      <li class="breadcrumb-item active">process_engines module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/hairpin2.infrastructure.process_engines.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-hairpin2.infrastructure.process_engines">
+<span id="process-engines-module"></span><h1>process_engines module<a class="headerlink" href="#module-hairpin2.infrastructure.process_engines" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.process_engines.ProcessEngineProtocol">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ProcessEngineProtocol</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/infrastructure/process_engines.html#ProcessEngineProtocol"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.infrastructure.process_engines.ProcessEngineProtocol" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Protocol</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.process_engines.ProcessEngineProtocol.run_process">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">run_process</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">R</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">O</span></span></span><a class="reference internal" href="_modules/hairpin2/infrastructure/process_engines.html#ProcessEngineProtocol.run_process"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.infrastructure.process_engines.ProcessEngineProtocol.run_process" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.process_engines.ReadTaggerEngine">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ReadTaggerEngine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">F</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mod_func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">R</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">FixedParams_T</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">R</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">adds_marks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/infrastructure/process_engines.html#ReadTaggerEngine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.infrastructure.process_engines.ReadTaggerEngine" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.process_engines.ReadTaggerEngine.run_process">
+<span class="sig-name descname"><span class="pre">run_process</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">R</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/hairpin2/infrastructure/process_engines.html#ReadTaggerEngine.run_process"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.infrastructure.process_engines.ReadTaggerEngine.run_process" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.process_engines.ReadTaggerEngine.tagger_params">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">tagger_params</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">F</span></em><a class="headerlink" href="#hairpin2.infrastructure.process_engines.ReadTaggerEngine.tagger_params" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.process_engines.VariantFlaggerEngine">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">VariantFlaggerEngine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">FixedParams_T</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flagger_func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">RunParams_T</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">FixedParams_T</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">EngineResult_T</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">type</span><span class="p"><span class="pre">[</span></span><span class="pre">EngineResult_T</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/infrastructure/process_engines.html#VariantFlaggerEngine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.infrastructure.process_engines.VariantFlaggerEngine" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.process_engines.VariantFlaggerEngine.run_process">
+<span class="sig-name descname"><span class="pre">run_process</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="hairpin2.infrastructure.process_params.html#hairpin2.infrastructure.process_params.RunParams" title="hairpin2.infrastructure.process_params.RunParams"><span class="pre">RunParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.FlagResult" title="hairpin2.infrastructure.structures.FlagResult"><span class="pre">FlagResult</span></a></span></span><a class="reference internal" href="_modules/hairpin2/infrastructure/process_engines.html#VariantFlaggerEngine.run_process"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.infrastructure.process_engines.VariantFlaggerEngine.run_process" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.process_engines.VariantFlaggerEngine.flagger_params">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">flagger_params</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="hairpin2.infrastructure.process_params.html#hairpin2.infrastructure.process_params.FixedParams" title="hairpin2.infrastructure.process_params.FixedParams"><span class="pre">FixedParams</span></a></em><a class="headerlink" href="#hairpin2.infrastructure.process_engines.VariantFlaggerEngine.flagger_params" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.process_engines.ProcessKindEnum">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ProcessKindEnum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/infrastructure/process_engines.html#ProcessKindEnum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.infrastructure.process_engines.ProcessKindEnum" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.process_engines.ProcessKindEnum.TAGGER">
+<span class="sig-name descname"><span class="pre">TAGGER</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;class</span> <span class="pre">'hairpin2.infrastructure.process_engines.ReadTaggerEngine'&gt;</span></em><a class="headerlink" href="#hairpin2.infrastructure.process_engines.ProcessKindEnum.TAGGER" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.process_engines.ProcessKindEnum.FLAGGER">
+<span class="sig-name descname"><span class="pre">FLAGGER</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;class</span> <span class="pre">'hairpin2.infrastructure.process_engines.VariantFlaggerEngine'&gt;</span></em><a class="headerlink" href="#hairpin2.infrastructure.process_engines.ProcessKindEnum.FLAGGER" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="hairpin2.infrastructure.process.html" class="btn btn-neutral float-left" title="process module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="hairpin2.infrastructure.process_params.html" class="btn btn-neutral float-right" title="process_params module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Alex Byrne.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,424 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>structures module &mdash; hairpin2 3.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=be469e84" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=acc74ff5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="process_wrappers package" href="hairpin2.process_wrappers.html" />
+    <link rel="prev" title="rascheduler module" href="hairpin2.infrastructure.rascheduler.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            hairpin2
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#usage">Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#command-line-interface">Command Line Interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#hp2-utils">hp2-utils</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="quickstart.html#explain-var">explain-var</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quickstart.html#get-params">get-params</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="guide.html">Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="guide.html#processes-and-parameters">Processes and Parameters</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="guide.html#process-relationships-reference">Process Relationships Reference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="guide.html#read-taggers">Read Taggers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#mark-support">mark-support</a></li>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#mark-overlap">mark-overlap</a></li>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#mark-low-qual">mark-low-qual</a></li>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#mark-duplicates">mark-duplicates</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="guide.html#variant-flaggers">Variant Flaggers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#lqf">LQF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#dvf">DVF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#alf">ALF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#adf">ADF</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="guide.html#writing-a-config">Writing a Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide.html#understanding-decisions">Understanding Decisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide.html#reproducibility-parameter-distribution">Reproducibility &amp; Parameter Distribution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide.html#assumptions-limitations">Assumptions &amp; Limitations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide.html#further-development">Further Development</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="hairpin2.html">hairpin2 package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="hairpin2.html#scientific-modules">Scientific Modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="hairpin2.const.html">const module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.ValidNucleotides"><code class="docutils literal notranslate"><span class="pre">ValidNucleotides</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.Strand"><code class="docutils literal notranslate"><span class="pre">Strand</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.MutTypes"><code class="docutils literal notranslate"><span class="pre">MutTypes</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.Tags"><code class="docutils literal notranslate"><span class="pre">Tags</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.TaggerNamespaces"><code class="docutils literal notranslate"><span class="pre">TaggerNamespaces</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.FlaggerNamespaces"><code class="docutils literal notranslate"><span class="pre">FlaggerNamespaces</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="hairpin2.sci_funcs.html">sci_funcs module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagSupportingReads"><code class="docutils literal notranslate"><span class="pre">TagSupportingReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagLowQualReads"><code class="docutils literal notranslate"><span class="pre">TagLowQualReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagFragmentReads"><code class="docutils literal notranslate"><span class="pre">TagFragmentReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagStutterDuplicateReads"><code class="docutils literal notranslate"><span class="pre">TagStutterDuplicateReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.sci_funcs.html#hairpin2.sci_funcs.AlignmentScoreTest"><code class="docutils literal notranslate"><span class="pre">AlignmentScoreTest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.sci_funcs.html#hairpin2.sci_funcs.AnomalousDistributionTest"><code class="docutils literal notranslate"><span class="pre">AnomalousDistributionTest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.sci_funcs.html#hairpin2.sci_funcs.ProportionBasedTest"><code class="docutils literal notranslate"><span class="pre">ProportionBasedTest</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="hairpin2.main.html">main module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.main.html#hairpin2.main.hairpin2"><code class="docutils literal notranslate"><span class="pre">hairpin2()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="reference internal" href="hairpin2.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="hairpin2.infrastructure.html">infrastructure package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="hairpin2.infrastructure.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="hairpin2.process_wrappers.html">process_wrappers package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.process_wrappers.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="dev.html">Developer Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">hairpin2</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="hairpin2.html">hairpin2 package</a></li>
+          <li class="breadcrumb-item"><a href="hairpin2.infrastructure.html">infrastructure package</a></li>
+      <li class="breadcrumb-item active">structures module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/hairpin2.infrastructure.structures.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-hairpin2.infrastructure.structures">
+<span id="structures-module"></span><h1>structures module<a class="headerlink" href="#module-hairpin2.infrastructure.structures" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.DataExtensionBase">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">DataExtensionBase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wrap_obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">wrap_T</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/infrastructure/structures.html#DataExtensionBase"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.infrastructure.structures.DataExtensionBase" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">wrap_T</span></code>]</p>
+<p>Wrapper adding metadata handling to the object and forwarding other methods to the wrapped object.</p>
+<p>pysam objects which we expect to operate on are C extensions. This means no monkey patching.
+One could store associated metadata in a separate object, but the ergonomics of doing so clash with the
+intention of this library. Hence, this approach - a wrapper that uses method forwarding to the wrapped object
+and adds non-clashing methods of its own to store per-object level data. Note that the wrapper is intentionally
+non-transparent, i.e. it will not pass an isinstance check against the type of the wrapped object.</p>
+<p>Note: the instance methods are all private as the opinion of the package is that one should define free
+functions specific to any extended subclass one creates, encouraging greater flexibility with regard
+to the properties of the wrapped object</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.DataExtensionBase.unwrapped">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">unwrapped</span></span><a class="headerlink" href="#hairpin2.infrastructure.structures.DataExtensionBase.unwrapped" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.record_operation">
+<span class="sig-name descname"><span class="pre">record_operation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ext_obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#hairpin2.infrastructure.structures.DataExtensionBase" title="hairpin2.infrastructure.structures.DataExtensionBase"><span class="pre">DataExtensionBase</span></a><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">op</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/infrastructure/structures.html#record_operation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.infrastructure.structures.record_operation" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.mark_ext_obj">
+<span class="sig-name descname"><span class="pre">mark_ext_obj</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ext_obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#hairpin2.infrastructure.structures.DataExtensionBase" title="hairpin2.infrastructure.structures.DataExtensionBase"><span class="pre">DataExtensionBase</span></a><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mark</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/hairpin2/infrastructure/structures.html#mark_ext_obj"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.infrastructure.structures.mark_ext_obj" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.ext_obj_has_mark">
+<span class="sig-name descname"><span class="pre">ext_obj_has_mark</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ext_obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#hairpin2.infrastructure.structures.DataExtensionBase" title="hairpin2.infrastructure.structures.DataExtensionBase"><span class="pre">DataExtensionBase</span></a><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mark</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/infrastructure/structures.html#ext_obj_has_mark"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.infrastructure.structures.ext_obj_has_mark" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.ExtendedRead">
+<em class="property"><span class="k"><span class="pre">final</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ExtendedRead</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wrap_obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">wrap_T</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/infrastructure/structures.html#ExtendedRead"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.infrastructure.structures.ExtendedRead" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#hairpin2.infrastructure.structures.DataExtensionBase" title="hairpin2.infrastructure.structures.DataExtensionBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataExtensionBase</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">AlignedSegment</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.make_extended_read">
+<span class="sig-name descname"><span class="pre">make_extended_read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">read</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AlignedSegment</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#hairpin2.infrastructure.structures.ExtendedRead" title="hairpin2.infrastructure.structures.ExtendedRead"><span class="pre">ExtendedRead</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#hairpin2.infrastructure.structures.ExtendedRead" title="hairpin2.infrastructure.structures.ExtendedRead"><span class="pre">ExtendedRead</span></a></span></span><a class="reference internal" href="_modules/hairpin2/infrastructure/structures.html#make_extended_read"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.infrastructure.structures.make_extended_read" title="Link to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Free func and functional style to minimise pain points:</dt><dd><ul class="simple">
+<li><p>ease of converting from AlignedSegment to ExtendedRead, no-op if already extended</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.mark_read">
+<span class="sig-name descname"><span class="pre">mark_read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">read</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#hairpin2.infrastructure.structures.ExtendedRead" title="hairpin2.infrastructure.structures.ExtendedRead"><span class="pre">ExtendedRead</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mark</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/hairpin2/infrastructure/structures.html#mark_read"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.infrastructure.structures.mark_read" title="Link to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Free func and functional style so as to minimise pain points:</dt><dd><ul class="simple">
+<li><p>since ExtendedRead uses method forwarding, a type checker is unhelpful when using .method() style</p></li>
+<li><p>can add behaviour on receiving unwrapped AlignedSegment rather than extended read</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.read_has_mark">
+<span class="sig-name descname"><span class="pre">read_has_mark</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">read</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#hairpin2.infrastructure.structures.ExtendedRead" title="hairpin2.infrastructure.structures.ExtendedRead"><span class="pre">ExtendedRead</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mark</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/hairpin2/infrastructure/structures.html#read_has_mark"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.infrastructure.structures.read_has_mark" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.ExtendedVariant">
+<em class="property"><span class="k"><span class="pre">final</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ExtendedVariant</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wrap_obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">wrap_T</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/infrastructure/structures.html#ExtendedVariant"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.infrastructure.structures.ExtendedVariant" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#hairpin2.infrastructure.structures.DataExtensionBase" title="hairpin2.infrastructure.structures.DataExtensionBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataExtensionBase</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">VariantRecord</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.ReadView">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ReadView</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Read_T</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/infrastructure/structures.html#ReadView"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.infrastructure.structures.ReadView" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">Any</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">Read_T</span></code>, …]]</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.ReadView.keys">
+<span class="sig-name descname"><span class="pre">keys</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">a</span> <span class="pre">set-like</span> <span class="pre">object</span> <span class="pre">providing</span> <span class="pre">a</span> <span class="pre">view</span> <span class="pre">on</span> <span class="pre">D's</span> <span class="pre">keys</span></span></span><a class="reference internal" href="_modules/hairpin2/infrastructure/structures.html#ReadView.keys"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.infrastructure.structures.ReadView.keys" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.ReadView.values">
+<span class="sig-name descname"><span class="pre">values</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">an</span> <span class="pre">object</span> <span class="pre">providing</span> <span class="pre">a</span> <span class="pre">view</span> <span class="pre">on</span> <span class="pre">D's</span> <span class="pre">values</span></span></span><a class="reference internal" href="_modules/hairpin2/infrastructure/structures.html#ReadView.values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.infrastructure.structures.ReadView.values" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.ReadView.items">
+<span class="sig-name descname"><span class="pre">items</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">a</span> <span class="pre">set-like</span> <span class="pre">object</span> <span class="pre">providing</span> <span class="pre">a</span> <span class="pre">view</span> <span class="pre">on</span> <span class="pre">D's</span> <span class="pre">items</span></span></span><a class="reference internal" href="_modules/hairpin2/infrastructure/structures.html#ReadView.items"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.infrastructure.structures.ReadView.items" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.ReadView.all">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">all</span></span><a class="headerlink" href="#hairpin2.infrastructure.structures.ReadView.all" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.ReadView.validate_read_map">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">validate_read_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">read_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">AlignedSegment</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/infrastructure/structures.html#ReadView.validate_read_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.infrastructure.structures.ReadView.validate_read_map" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.ReadView.convert_pysam_to_extread">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">convert_pysam_to_extread</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">read_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">AlignedSegment</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/infrastructure/structures.html#ReadView.convert_pysam_to_extread"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.infrastructure.structures.ReadView.convert_pysam_to_extread" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.TestOutcomes">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">TestOutcomes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/infrastructure/structures.html#TestOutcomes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.infrastructure.structures.TestOutcomes" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">StrEnum</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.TestOutcomes.VARIANT_PASS">
+<span class="sig-name descname"><span class="pre">VARIANT_PASS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'PASS'</span></em><a class="headerlink" href="#hairpin2.infrastructure.structures.TestOutcomes.VARIANT_PASS" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.TestOutcomes.VARIANT_FAIL">
+<span class="sig-name descname"><span class="pre">VARIANT_FAIL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'FAIL'</span></em><a class="headerlink" href="#hairpin2.infrastructure.structures.TestOutcomes.VARIANT_FAIL" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.TestOutcomes.NA">
+<span class="sig-name descname"><span class="pre">NA</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'NA'</span></em><a class="headerlink" href="#hairpin2.infrastructure.structures.TestOutcomes.NA" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.FlagResult">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">FlagResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variant_flagged</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#hairpin2.infrastructure.structures.TestOutcomes" title="hairpin2.infrastructure.structures.TestOutcomes"><span class="pre">TestOutcomes</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">info_flag</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Flag</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reads_seen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/infrastructure/structures.html#FlagResult"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.infrastructure.structures.FlagResult" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
+<p>Parent ABC/pydantic BaseModel defining the implementation that must be followed by result subclasses - subclasses to hold results of running
+the <cite>test()</cite> method of a specific subclass of FilterTester on a variant (e.g. for <cite>FooFilter.test()</cite>, the return value should include an instance of <cite>FooResult</cite>).</p>
+<p>All filters should use subclasses that inherit from this class to hold their results, as enforced by the FilterTester ABC.
+Defines and guarantees basic properties that must be shared by all filter results:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>a ‘getinfo’ method for returning a string to report to the INFO field of the VCF record - a basic default is provided, but
+subclasses probably want to override this.</p></li>
+<li><dl class="simple">
+<dt>A basic set of instance variables, which may be extended in a subclass as necessary:</dt><dd><ul>
+<li><p>name, a string id for the filter to be used in the VCF FILTER field.</p></li>
+<li><p>a flag, a boolean indicating if the filter is True/False, or None if untested.</p></li>
+<li><p>a code, an integer code from a set of possibilities, indicating the basis on which the test has returned True/False, or None if untested.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+<p>Note: FlagResult is the part of the abstractflaggers model about which I am most sceptical
+since it uses init_subclass over a decorator, making it different
+and because it requires the user to override an abstract method.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.FlagResult.FlagName">
+<span class="sig-name descname"><span class="pre">FlagName</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#hairpin2.infrastructure.structures.FlagResult.FlagName" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.FlagResult.InfoFlags">
+<span class="sig-name descname"><span class="pre">InfoFlags</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">type</span><span class="p"><span class="pre">[</span></span><span class="pre">Flag</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#hairpin2.infrastructure.structures.FlagResult.InfoFlags" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.FlagResult.InfoFlagsAllSet">
+<span class="sig-name descname"><span class="pre">InfoFlagsAllSet</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Flag</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#hairpin2.infrastructure.structures.FlagResult.InfoFlagsAllSet" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.FlagResult.variant_flagged">
+<span class="sig-name descname"><span class="pre">variant_flagged</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#hairpin2.infrastructure.structures.TestOutcomes" title="hairpin2.infrastructure.structures.TestOutcomes"><span class="pre">TestOutcomes</span></a></em><a class="headerlink" href="#hairpin2.infrastructure.structures.FlagResult.variant_flagged" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.FlagResult.info_flag">
+<span class="sig-name descname"><span class="pre">info_flag</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Flag</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#hairpin2.infrastructure.structures.FlagResult.info_flag" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.FlagResult.reads_seen">
+<span class="sig-name descname"><span class="pre">reads_seen</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#hairpin2.infrastructure.structures.FlagResult.reads_seen" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.FlagResult.getinfo">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">getinfo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/hairpin2/infrastructure/structures.html#FlagResult.getinfo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.infrastructure.structures.FlagResult.getinfo" title="Link to this definition"></a></dt>
+<dd><p>Return basic filter info in a string formatted for use in the VCF INFO field - “&lt;flag&gt;|&lt;code&gt;”.</p>
+<p>Each filter must return INFO as it should be formatted for the VCF INFO field, or None if not applicable.
+Subclasses must override this method to return more specific info.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.ResultPackProtocol">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ResultPackProtocol</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/infrastructure/structures.html#ResultPackProtocol"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.infrastructure.structures.ResultPackProtocol" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Protocol</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.ResultPackProtocol.Info">
+<span class="sig-name descname"><span class="pre">Info</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">type</span><span class="p"><span class="pre">[</span></span><span class="pre">T</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#hairpin2.infrastructure.structures.ResultPackProtocol.Info" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.ResultPackProtocol.outcome">
+<span class="sig-name descname"><span class="pre">outcome</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#hairpin2.infrastructure.structures.TestOutcomes" title="hairpin2.infrastructure.structures.TestOutcomes"><span class="pre">TestOutcomes</span></a></em><a class="headerlink" href="#hairpin2.infrastructure.structures.ResultPackProtocol.outcome" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.ResultPackProtocol.reason">
+<span class="sig-name descname"><span class="pre">reason</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">T</span></em><a class="headerlink" href="#hairpin2.infrastructure.structures.ResultPackProtocol.reason" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.VariantTestProtocol">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">VariantTestProtocol</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/infrastructure/structures.html#VariantTestProtocol"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.infrastructure.structures.VariantTestProtocol" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Protocol</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.VariantTestProtocol.ResultPack">
+<span class="sig-name descname"><span class="pre">ResultPack</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">type</span><span class="p"><span class="pre">[</span></span><span class="pre">T</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#hairpin2.infrastructure.structures.VariantTestProtocol.ResultPack" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hairpin2.infrastructure.structures.VariantTestProtocol.test_variant_reads">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">test_variant_reads</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">T</span></span></span><a class="reference internal" href="_modules/hairpin2/infrastructure/structures.html#VariantTestProtocol.test_variant_reads"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.infrastructure.structures.VariantTestProtocol.test_variant_reads" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="hairpin2.infrastructure.rascheduler.html" class="btn btn-neutral float-left" title="rascheduler module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="hairpin2.process_wrappers.html" class="btn btn-neutral float-right" title="process_wrappers package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Alex Byrne.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

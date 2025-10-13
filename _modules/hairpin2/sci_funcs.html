@@ -1,0 +1,950 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>hairpin2.sci_funcs &mdash; hairpin2 3.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=be469e84" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=acc74ff5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            hairpin2
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../quickstart.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../quickstart.html#usage">Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../quickstart.html#command-line-interface">Command Line Interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../quickstart.html#hp2-utils">hp2-utils</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../quickstart.html#explain-var">explain-var</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../quickstart.html#get-params">get-params</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../guide.html">Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../guide.html#processes-and-parameters">Processes and Parameters</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../guide.html#process-relationships-reference">Process Relationships Reference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../guide.html#read-taggers">Read Taggers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../guide.html#mark-support">mark-support</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../guide.html#mark-overlap">mark-overlap</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../guide.html#mark-low-qual">mark-low-qual</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../guide.html#mark-duplicates">mark-duplicates</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../guide.html#variant-flaggers">Variant Flaggers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../guide.html#lqf">LQF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../guide.html#dvf">DVF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../guide.html#alf">ALF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../guide.html#adf">ADF</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../guide.html#writing-a-config">Writing a Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../guide.html#understanding-decisions">Understanding Decisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../guide.html#reproducibility-parameter-distribution">Reproducibility &amp; Parameter Distribution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../guide.html#assumptions-limitations">Assumptions &amp; Limitations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../guide.html#further-development">Further Development</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../hairpin2.html">hairpin2 package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../hairpin2.html#scientific-modules">Scientific Modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../hairpin2.const.html">const module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.const.html#hairpin2.const.ValidNucleotides"><code class="docutils literal notranslate"><span class="pre">ValidNucleotides</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.const.html#hairpin2.const.Strand"><code class="docutils literal notranslate"><span class="pre">Strand</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.const.html#hairpin2.const.MutTypes"><code class="docutils literal notranslate"><span class="pre">MutTypes</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.const.html#hairpin2.const.Tags"><code class="docutils literal notranslate"><span class="pre">Tags</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.const.html#hairpin2.const.TaggerNamespaces"><code class="docutils literal notranslate"><span class="pre">TaggerNamespaces</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.const.html#hairpin2.const.FlaggerNamespaces"><code class="docutils literal notranslate"><span class="pre">FlaggerNamespaces</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../hairpin2.sci_funcs.html">sci_funcs module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagSupportingReads"><code class="docutils literal notranslate"><span class="pre">TagSupportingReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagLowQualReads"><code class="docutils literal notranslate"><span class="pre">TagLowQualReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagFragmentReads"><code class="docutils literal notranslate"><span class="pre">TagFragmentReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagStutterDuplicateReads"><code class="docutils literal notranslate"><span class="pre">TagStutterDuplicateReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.AlignmentScoreTest"><code class="docutils literal notranslate"><span class="pre">AlignmentScoreTest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.AnomalousDistributionTest"><code class="docutils literal notranslate"><span class="pre">AnomalousDistributionTest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.ProportionBasedTest"><code class="docutils literal notranslate"><span class="pre">ProportionBasedTest</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../hairpin2.main.html">main module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.main.html#hairpin2.main.hairpin2"><code class="docutils literal notranslate"><span class="pre">hairpin2()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../hairpin2.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../hairpin2.infrastructure.html">infrastructure package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.infrastructure.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../hairpin2.process_wrappers.html">process_wrappers package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../hairpin2.process_wrappers.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../dev.html">Developer Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">hairpin2</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">hairpin2.sci_funcs</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for hairpin2.sci_funcs</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">array</span><span class="w"> </span><span class="kn">import</span> <span class="n">array</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Flag</span><span class="p">,</span> <span class="n">auto</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">statistics</span><span class="w"> </span><span class="kn">import</span> <span class="n">mean</span><span class="p">,</span> <span class="n">median</span><span class="p">,</span> <span class="n">stdev</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">cast</span><span class="p">,</span> <span class="n">final</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pysam</span><span class="w"> </span><span class="kn">import</span> <span class="n">AlignedSegment</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">hairpin2.const</span><span class="w"> </span><span class="kn">import</span> <span class="n">MutTypes</span><span class="p">,</span> <span class="n">Strand</span><span class="p">,</span> <span class="n">TaggerNamespaces</span><span class="p">,</span> <span class="n">Tags</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hairpin2.infrastructure.structures</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ExtendedRead</span><span class="p">,</span>
+    <span class="n">TestOutcomes</span><span class="p">,</span>
+    <span class="n">mark_read</span><span class="p">,</span>
+    <span class="n">read_has_mark</span><span class="p">,</span>
+    <span class="n">record_operation</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hairpin2.utils.ref2seq</span><span class="w"> </span><span class="kn">import</span> <span class="n">CigarError</span><span class="p">,</span> <span class="n">ref2querypos</span><span class="p">,</span> <span class="n">ref_end_via_cigar</span>
+
+<span class="c1"># DEV: pysam has issues with its type hints, so:</span>
+<span class="c1"># pyright: reportUnknownVariableType = false</span>
+<span class="c1"># pyright: reportUnknownMemberType = false</span>
+<span class="c1"># pyright: reportUnknownArgumentType = false</span>
+<span class="c1"># TODO (DEV):</span>
+<span class="c1"># define a protocol for taggers</span>
+
+
+<span class="c1"># TODO:</span>
+<span class="c1"># Make a global filter for those properties which all other processes need validated to function, excluding reads without those properties</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Classes and functions for additive read tagging processes that apply various tags to reads for subsequent filtering and analysis.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_sort_reads_by_qual</span><span class="p">[</span><span class="n">T</span><span class="p">:</span> <span class="n">ExtendedRead</span> <span class="o">|</span> <span class="n">AlignedSegment</span><span class="p">](</span><span class="n">reads</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">T</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">T</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Internal function for use when needing to select the best read of a pool (2 or more reads), to ensure this is always done in the same way.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">reads</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">mean</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">query_qualities</span><span class="p">))</span>  <span class="c1"># pyright: ignore[reportArgumentType]</span>
+
+
+<div class="viewcode-block" id="TagSupportingReads">
+<a class="viewcode-back" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagSupportingReads">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TagSupportingReads</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    pc8&#39;s Support Assessor</span>
+
+<span class="sd">    Confirm whether a read supports a variant and optionally mark supporting reads.</span>
+
+<span class="sd">    Used to tag reads as supporting a variant. This tag can then be used by other processes</span>
+<span class="sd">    to include/exclude reads with that tag from their analysis.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TagSupportingReads.SupportFlags">
+<a class="viewcode-back" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagSupportingReads.SupportFlags">[docs]</a>
+    <span class="k">class</span><span class="w"> </span><span class="nc">SupportFlags</span><span class="p">(</span><span class="n">Flag</span><span class="p">):</span>
+        <span class="n">CLEAR</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">SAMFLAG</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+        <span class="n">FIELDS_MISSING</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+        <span class="n">NOT_ALIGNED</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+        <span class="n">NOT_ALT</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+        <span class="n">SHORT</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+        <span class="n">BAD_OP</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="TagSupportingReads.check_read_supporting">
+<a class="viewcode-back" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagSupportingReads.check_read_supporting">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">check_read_supporting</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">read</span><span class="p">:</span> <span class="n">ExtendedRead</span><span class="p">,</span>
+        <span class="n">mut_type</span><span class="p">:</span> <span class="n">MutTypes</span><span class="p">,</span>
+        <span class="n">alt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">vcf_start</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">vcf_stop</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">mark</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">mut_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">MutTypes</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Unsupported mutation type </span><span class="si">{</span><span class="n">mut_type</span><span class="si">}</span><span class="s2"> provided to mut_type argument - supports </span><span class="si">{</span><span class="n">MutTypes</span><span class="si">}</span><span class="s2"> only&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">support_flag</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">SupportFlags</span><span class="o">.</span><span class="n">CLEAR</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">mate_cig</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">read</span><span class="o">.</span><span class="n">get_tag</span><span class="p">(</span><span class="s2">&quot;MC&quot;</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="n">mate_cig</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="ow">not</span> <span class="n">mate_cig</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span>
+                <span class="ow">or</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">((</span><span class="n">c</span><span class="o">.</span><span class="n">isalnum</span><span class="p">()</span> <span class="ow">or</span> <span class="n">c</span> <span class="o">==</span> <span class="s2">&quot;=&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">mate_cig</span><span class="p">)</span>
+                <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">mate_cig</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span>
+            <span class="p">):</span>
+                <span class="n">mate_cig</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span>
+            <span class="n">flg</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="k">for</span> <span class="n">flg</span> <span class="ow">in</span> <span class="p">[</span>
+                <span class="n">read</span><span class="o">.</span><span class="n">reference_end</span><span class="p">,</span>
+                <span class="n">read</span><span class="o">.</span><span class="n">query_sequence</span><span class="p">,</span>
+                <span class="n">read</span><span class="o">.</span><span class="n">query_qualities</span><span class="p">,</span>
+                <span class="n">read</span><span class="o">.</span><span class="n">query_alignment_qualities</span><span class="p">,</span>
+                <span class="n">read</span><span class="o">.</span><span class="n">cigarstring</span><span class="p">,</span>
+                <span class="n">read</span><span class="o">.</span><span class="n">cigartuples</span><span class="p">,</span>
+                <span class="n">mate_cig</span><span class="p">,</span>
+            <span class="p">]</span>
+        <span class="p">):</span>
+            <span class="n">support_flag</span> <span class="o">|=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">SupportFlags</span><span class="o">.</span><span class="n">FIELDS_MISSING</span>
+        <span class="k">elif</span> <span class="n">mut_type</span> <span class="ow">in</span> <span class="p">[</span><span class="n">MutTypes</span><span class="o">.</span><span class="n">SUB</span><span class="p">,</span> <span class="n">MutTypes</span><span class="o">.</span><span class="n">INS</span><span class="p">]:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">mut_pos</span> <span class="o">=</span> <span class="n">ref2querypos</span><span class="p">(</span><span class="n">read</span><span class="p">,</span> <span class="n">vcf_start</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="n">support_flag</span> <span class="o">|=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">SupportFlags</span><span class="o">.</span><span class="n">NOT_ALIGNED</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">mut_type</span> <span class="o">==</span> <span class="n">MutTypes</span><span class="o">.</span><span class="n">SUB</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">read</span><span class="o">.</span><span class="n">query_sequence</span><span class="p">)[</span><span class="n">mut_pos</span> <span class="p">:</span> <span class="n">mut_pos</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">alt</span><span class="p">)]</span> <span class="o">!=</span> <span class="n">alt</span><span class="p">:</span>
+                        <span class="n">support_flag</span> <span class="o">|=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">SupportFlags</span><span class="o">.</span><span class="n">NOT_ALT</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="n">mut_type</span> <span class="o">==</span> <span class="n">MutTypes</span><span class="o">.</span><span class="n">INS</span>
+                <span class="p">):</span>  <span class="c1"># INS - mut_pos is position immediately before insertion</span>
+                    <span class="k">if</span> <span class="n">mut_pos</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">alt</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">read</span><span class="o">.</span><span class="n">query_length</span><span class="p">:</span>
+                        <span class="n">support_flag</span> <span class="o">|=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">SupportFlags</span><span class="o">.</span><span class="n">SHORT</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">mut_alns</span> <span class="o">=</span> <span class="p">[</span>
+                            <span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span>
+                            <span class="k">for</span> <span class="n">q</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">read</span><span class="o">.</span><span class="n">get_aligned_pairs</span><span class="p">()</span>
+                            <span class="k">if</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mut_pos</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">mut_pos</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">alt</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                        <span class="p">]</span>
+                        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">r</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">mut_alns</span><span class="p">):</span>
+                            <span class="n">support_flag</span> <span class="o">|=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">SupportFlags</span><span class="o">.</span><span class="n">BAD_OP</span>
+                        <span class="k">if</span> <span class="p">(</span>
+                            <span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">read</span><span class="o">.</span><span class="n">query_sequence</span><span class="p">)[</span><span class="n">mut_pos</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:</span> <span class="n">mut_pos</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">alt</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+                            <span class="o">!=</span> <span class="n">alt</span>
+                        <span class="p">):</span>
+                            <span class="n">support_flag</span> <span class="o">|=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">SupportFlags</span><span class="o">.</span><span class="n">NOT_ALT</span>
+        <span class="k">elif</span> <span class="n">mut_type</span> <span class="o">==</span> <span class="n">MutTypes</span><span class="o">.</span><span class="n">DEL</span><span class="p">:</span>
+            <span class="n">rng</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">vcf_start</span><span class="p">,</span> <span class="n">vcf_stop</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="n">mut_alns</span> <span class="o">=</span> <span class="p">[</span><span class="n">q</span> <span class="k">for</span> <span class="n">q</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">read</span><span class="o">.</span><span class="n">get_aligned_pairs</span><span class="p">()</span> <span class="k">if</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rng</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mut_alns</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">rng</span><span class="p">):</span>
+                <span class="n">support_flag</span> <span class="o">|=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">SupportFlags</span><span class="o">.</span><span class="n">SHORT</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">mut_alns</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="ow">or</span> <span class="nb">any</span><span class="p">(</span>
+                <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">[</span><span class="n">mut_alns</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">mut_alns</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+            <span class="p">):</span>
+                <span class="n">support_flag</span> <span class="o">|=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">SupportFlags</span><span class="o">.</span><span class="n">BAD_OP</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">read</span><span class="o">.</span><span class="n">flag</span> <span class="o">&amp;</span> <span class="mh">0x2</span><span class="p">)</span> <span class="ow">or</span> <span class="n">read</span><span class="o">.</span><span class="n">flag</span> <span class="o">&amp;</span> <span class="mh">0xE00</span><span class="p">:</span>
+            <span class="n">support_flag</span> <span class="o">|=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">SupportFlags</span><span class="o">.</span><span class="n">SAMFLAG</span>
+
+        <span class="c1"># ValidatorFlag not returned but kept in case useful in the future</span>
+        <span class="k">if</span> <span class="n">support_flag</span> <span class="o">==</span> <span class="bp">cls</span><span class="o">.</span><span class="n">SupportFlags</span><span class="o">.</span><span class="n">CLEAR</span><span class="p">:</span>
+            <span class="n">support</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">if</span> <span class="n">mark</span><span class="p">:</span>
+                <span class="n">mark_read</span><span class="p">(</span><span class="n">read</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">SUPPORT_TAG</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">support</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="n">record_operation</span><span class="p">(</span><span class="n">read</span><span class="p">,</span> <span class="n">TaggerNamespaces</span><span class="o">.</span><span class="n">MARK_SUPPORT</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">support</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="TagLowQualReads">
+<a class="viewcode-back" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagLowQualReads">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TagLowQualReads</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    pc8&#39;s Quality Assessor</span>
+
+<span class="sd">    Determine if a read is of low quality and optionally mark low-quality reads.</span>
+
+<span class="sd">    The result of this process is used to mark reads as low quality. This tag can then be used by other processes</span>
+<span class="sd">    to include/exclude reads with that tag from their analysis. The fraction of reads tagged as low quality,</span>
+<span class="sd">    or as duplicates by the duplicate marking function below, is used to call the LQF flag on variants</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TagLowQualReads.QualFlags">
+<a class="viewcode-back" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagLowQualReads.QualFlags">[docs]</a>
+    <span class="k">class</span><span class="w"> </span><span class="nc">QualFlags</span><span class="p">(</span><span class="n">Flag</span><span class="p">):</span>
+        <span class="n">CLEAR</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">MAPQUAL</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+        <span class="n">CLIPQUAL</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+        <span class="n">BASEQUAL</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="TagLowQualReads.check_low_qual_read">
+<a class="viewcode-back" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagLowQualReads.check_low_qual_read">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">check_low_qual_read</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">read</span><span class="p">:</span> <span class="n">ExtendedRead</span><span class="p">,</span>
+        <span class="n">vcf_start</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">alt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">mut_type</span><span class="p">:</span> <span class="n">MutTypes</span><span class="p">,</span>
+        <span class="n">min_basequal</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">min_mapqual</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">min_clipqual</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">mark</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="n">qual_flag</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">QualFlags</span><span class="o">.</span><span class="n">CLEAR</span>  <span class="c1"># 0 - evaluates false</span>
+
+        <span class="k">if</span> <span class="n">read</span><span class="o">.</span><span class="n">mapping_quality</span> <span class="o">&lt;</span> <span class="n">min_mapqual</span><span class="p">:</span>
+            <span class="n">qual_flag</span> <span class="o">|=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">QualFlags</span><span class="o">.</span><span class="n">MAPQUAL</span>
+
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="s2">&quot;S&quot;</span> <span class="ow">in</span> <span class="n">read</span><span class="o">.</span><span class="n">cigarstring</span>  <span class="c1"># pyright: ignore[reportOperatorIssue]</span>
+            <span class="ow">and</span> <span class="n">mean</span><span class="p">(</span><span class="n">read</span><span class="o">.</span><span class="n">query_alignment_qualities</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">min_clipqual</span>  <span class="c1"># pyright: ignore[reportArgumentType]</span>
+        <span class="p">):</span>
+            <span class="n">qual_flag</span> <span class="o">|=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">QualFlags</span><span class="o">.</span><span class="n">CLIPQUAL</span>
+
+        <span class="k">if</span> <span class="n">mut_type</span> <span class="o">==</span> <span class="n">MutTypes</span><span class="o">.</span><span class="n">SUB</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">mut_pos</span> <span class="o">=</span> <span class="n">ref2querypos</span><span class="p">(</span><span class="n">read</span><span class="p">,</span> <span class="n">vcf_start</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;read: </span><span class="si">{</span><span class="n">read</span><span class="o">.</span><span class="n">query_name</span><span class="si">}</span><span class="s2"> appears not to cover variant at </span><span class="si">{</span><span class="n">vcf_start</span><span class="si">}</span><span class="s2"> - this function should only be run on reads confirmed to be supporting the variant&quot;</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">any</span><span class="p">(</span>
+                    <span class="n">bq</span> <span class="o">&lt;</span> <span class="n">min_basequal</span>
+                    <span class="k">for</span> <span class="n">bq</span> <span class="ow">in</span> <span class="n">cast</span><span class="p">(</span><span class="n">array</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">read</span><span class="o">.</span><span class="n">query_qualities</span><span class="p">)[</span><span class="n">mut_pos</span> <span class="p">:</span> <span class="n">mut_pos</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">alt</span><span class="p">)]</span>
+                <span class="p">):</span>
+                    <span class="n">qual_flag</span> <span class="o">|=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">QualFlags</span><span class="o">.</span><span class="n">BASEQUAL</span>
+
+        <span class="k">if</span> <span class="n">qual_flag</span> <span class="o">==</span> <span class="bp">cls</span><span class="o">.</span><span class="n">QualFlags</span><span class="o">.</span><span class="n">CLEAR</span><span class="p">:</span>
+            <span class="n">low_qual</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">low_qual</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">if</span> <span class="n">mark</span><span class="p">:</span>
+                <span class="n">mark_read</span><span class="p">(</span><span class="n">read</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">LOW_QUAL_TAG</span><span class="p">)</span>
+
+        <span class="n">record_operation</span><span class="p">(</span><span class="n">read</span><span class="p">,</span> <span class="n">TaggerNamespaces</span><span class="o">.</span><span class="n">MARK_LOW_QUAL</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">low_qual</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="TagFragmentReads">
+<a class="viewcode-back" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagFragmentReads">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TagFragmentReads</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    ab63 Overlap Assessor</span>
+
+<span class="sd">    Mark one read from a fragment pair if both members of the fragment pair are present in the input reads.</span>
+
+<span class="sd">    Used to tag reads as an overlapping mate. This tag can then be used by other processes to</span>
+<span class="sd">    include/exclude reads with that tag from their analysis</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TagFragmentReads.check_for_mates">
+<a class="viewcode-back" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagFragmentReads.check_for_mates">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">check_for_mates</span><span class="p">(</span><span class="n">reads</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">ExtendedRead</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Mark lower mean qual member of a read pair as overlapping</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">seen_qnames</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ExtendedRead</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">read</span> <span class="ow">in</span> <span class="n">reads</span><span class="p">:</span>
+            <span class="n">qn</span> <span class="o">=</span> <span class="n">read</span><span class="o">.</span><span class="n">query_name</span>
+            <span class="n">rq</span> <span class="o">=</span> <span class="n">read</span><span class="o">.</span><span class="n">query_qualities</span>
+            <span class="k">if</span> <span class="n">qn</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">rq</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">qn</span> <span class="ow">in</span> <span class="n">seen_qnames</span><span class="p">:</span>
+                <span class="n">sorted_reads</span> <span class="o">=</span> <span class="n">_sort_reads_by_qual</span><span class="p">([</span><span class="n">read</span><span class="p">,</span> <span class="n">seen_qnames</span><span class="p">[</span><span class="n">qn</span><span class="p">]])</span>
+                <span class="n">mark_read</span><span class="p">(</span><span class="n">sorted_reads</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">Tags</span><span class="o">.</span><span class="n">OVERLAP_TAG</span><span class="p">)</span>  <span class="c1"># mark lower qual</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">seen_qnames</span><span class="p">[</span><span class="n">qn</span><span class="p">]</span> <span class="o">=</span> <span class="n">read</span>
+
+            <span class="n">record_operation</span><span class="p">(</span><span class="n">read</span><span class="p">,</span> <span class="n">TaggerNamespaces</span><span class="o">.</span><span class="n">MARK_OVERLAP</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="TagStutterDuplicateReads">
+<a class="viewcode-back" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagStutterDuplicateReads">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TagStutterDuplicateReads</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    pc8&#39;s Stutter Duplicates Assessor</span>
+
+<span class="sd">    Tag hidden duplicate reads which have shifted endpoints due to PCR stutter (hence evading normal dupmarking).</span>
+
+<span class="sd">    The result of this process is used to mark reads as duplicates. This tag can then be used by other processes</span>
+<span class="sd">    to include/exclude reads with that tag from their analysis. The fraction of reads tagged as duplicates</span>
+<span class="sd">    by this process is used to assess a variant for the DVF flag and, partly (with the low-quality tag), the LQF flag</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TagStutterDuplicateReads.FragmentEndpoints">
+<a class="viewcode-back" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagStutterDuplicateReads.FragmentEndpoints">[docs]</a>
+    <span class="nd">@dataclass</span>
+    <span class="k">class</span><span class="w"> </span><span class="nc">FragmentEndpoints</span><span class="p">:</span>
+        <span class="n">read</span><span class="p">:</span> <span class="n">ExtendedRead</span>
+        <span class="n">endpoints</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="TagStutterDuplicateReads.check_stutter_duplicates">
+<a class="viewcode-back" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagStutterDuplicateReads.check_stutter_duplicates">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">check_stutter_duplicates</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">reads</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">ExtendedRead</span><span class="p">],</span> <span class="n">duplication_window_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">6</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">reads</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="c1"># prep data</span>
+        <span class="n">endpointsl</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">read</span> <span class="ow">in</span> <span class="n">reads</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">mate_cig</span> <span class="o">=</span> <span class="n">read</span><span class="o">.</span><span class="n">get_tag</span><span class="p">(</span><span class="s2">&quot;MC&quot;</span><span class="p">)</span>
+                <span class="n">next_ref_end</span> <span class="o">=</span> <span class="n">ref_end_via_cigar</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">mate_cig</span><span class="p">),</span> <span class="n">read</span><span class="o">.</span><span class="n">next_reference_start</span><span class="p">)</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="n">CigarError</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">read</span><span class="o">.</span><span class="n">reference_end</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">read</span><span class="o">.</span><span class="n">query_qualities</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">pair_endpoints</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span>
+                <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+                <span class="nb">tuple</span><span class="p">(</span>
+                    <span class="nb">sorted</span><span class="p">(</span>
+                        <span class="p">[</span>
+                            <span class="n">read</span><span class="o">.</span><span class="n">reference_start</span><span class="p">,</span>
+                            <span class="n">read</span><span class="o">.</span><span class="n">reference_end</span><span class="p">,</span>
+                            <span class="n">read</span><span class="o">.</span><span class="n">next_reference_start</span><span class="p">,</span>
+                            <span class="n">next_ref_end</span><span class="p">,</span>
+                        <span class="p">]</span>
+                    <span class="p">)</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+            <span class="n">endpointsl</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">FragmentEndpoints</span><span class="p">(</span><span class="n">read</span><span class="p">,</span> <span class="n">pair_endpoints</span><span class="p">))</span>
+        <span class="c1"># sort by starting endpoint</span>
+        <span class="n">endpointsl</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">endpointsl</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">endpoints</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="c1"># test data</span>
+        <span class="c1"># NOTE: do you want to only look at supporting reads for this dupmarking? Discuss</span>
+        <span class="c1"># setup test</span>
+        <span class="n">init_case</span> <span class="o">=</span> <span class="n">endpointsl</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">dup_endpoint_comparison_pool</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">dup_endpoint_comparison_pool</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">init_case</span><span class="o">.</span><span class="n">endpoints</span><span class="p">)</span>
+        <span class="n">dup_read_pool</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">ExtendedRead</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">init_case</span><span class="o">.</span><span class="n">read</span><span class="p">]</span>
+        <span class="n">record_operation</span><span class="p">(</span><span class="n">init_case</span><span class="o">.</span><span class="n">read</span><span class="p">,</span> <span class="n">TaggerNamespaces</span><span class="o">.</span><span class="n">MARK_STUTTER_DUP</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">endpointsl</span><span class="p">)):</span>
+            <span class="n">read</span> <span class="o">=</span> <span class="n">endpointsl</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">read</span>
+            <span class="n">testing_endpoints</span> <span class="o">=</span> <span class="n">endpointsl</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">endpoints</span>
+
+            <span class="n">max_diff_per_comparison</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">comparison_endpoints</span> <span class="ow">in</span> <span class="n">dup_endpoint_comparison_pool</span><span class="p">:</span>
+                <span class="n">endpoint_diffs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="nb">abs</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">comparison_endpoints</span><span class="p">,</span> <span class="n">testing_endpoints</span><span class="p">)</span>
+                <span class="p">]</span>
+                <span class="c1"># assert len(endpoint_diffs) == 4  # sanity check - commented out but left in as a hint</span>
+                <span class="n">max_diff_per_comparison</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">endpoint_diffs</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span> <span class="o">&lt;=</span> <span class="n">duplication_window_size</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">max_diff_per_comparison</span><span class="p">):</span>
+                <span class="c1"># then the read pair being examined is a duplicate of the others in the pool</span>
+                <span class="n">dup_endpoint_comparison_pool</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">testing_endpoints</span>
+                <span class="p">)</span>  <span class="c1"># add the endpoints to the comparison pool</span>
+                <span class="n">dup_read_pool</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">read</span><span class="p">)</span>  <span class="c1"># add the read to the dup list</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">dup_endpoint_comparison_pool</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">dup_read_pool</span><span class="p">)</span>
+
+                <span class="c1"># read at i is not dup of reads in dup_endpoint_test_pool</span>
+                <span class="c1"># since reads are sorted by endpoints, no more dups incoming</span>
+                <span class="c1"># so finalise the current dup pool</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dup_read_pool</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">sorted_dups</span> <span class="o">=</span> <span class="n">_sort_reads_by_qual</span><span class="p">(</span><span class="n">dup_read_pool</span><span class="p">)</span>
+                    <span class="n">_</span> <span class="o">=</span> <span class="n">sorted_dups</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>  <span class="c1"># pop the highest quality</span>
+                    <span class="k">for</span> <span class="n">read</span> <span class="ow">in</span> <span class="n">sorted_dups</span><span class="p">:</span>
+                        <span class="n">mark_read</span><span class="p">(</span><span class="n">read</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">STUTTER_DUP_TAG</span><span class="p">)</span>  <span class="c1"># mark the others</span>
+
+                <span class="c1"># start again, test the read at i against reads subsequent from i in ends_sorted</span>
+                <span class="c1"># reset the pools</span>
+                <span class="n">dup_read_pool</span> <span class="o">=</span> <span class="p">[</span><span class="n">read</span><span class="p">]</span>
+                <span class="n">dup_endpoint_comparison_pool</span> <span class="o">=</span> <span class="p">[</span><span class="n">testing_endpoints</span><span class="p">]</span>
+            <span class="n">record_operation</span><span class="p">(</span><span class="n">read</span><span class="p">,</span> <span class="n">TaggerNamespaces</span><span class="o">.</span><span class="n">MARK_STUTTER_DUP</span><span class="p">)</span></div>
+</div>
+
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Classes and functions for read-aware variant flagging tests.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="AlignmentScoreTest">
+<a class="viewcode-back" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.AlignmentScoreTest">[docs]</a>
+<span class="nd">@final</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AlignmentScoreTest</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Pass/Fail a variant on the average alignment score of supporting reads.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="AlignmentScoreTest.ResultPack">
+<a class="viewcode-back" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.AlignmentScoreTest.ResultPack">[docs]</a>
+    <span class="nd">@dataclass</span>
+    <span class="k">class</span><span class="w"> </span><span class="nc">ResultPack</span><span class="p">:</span>
+<div class="viewcode-block" id="AlignmentScoreTest.ResultPack.Info">
+<a class="viewcode-back" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.AlignmentScoreTest.ResultPack.Info">[docs]</a>
+        <span class="k">class</span><span class="w"> </span><span class="nc">Info</span><span class="p">(</span><span class="n">Flag</span><span class="p">):</span>
+            <span class="n">NODATA</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">NO_READS</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">INSUFFICIENT_AS_TAGS</span> <span class="o">=</span> <span class="mi">2</span>
+            <span class="n">ON_THRESHOLD</span> <span class="o">=</span> <span class="mi">4</span></div>
+
+
+        <span class="n">outcome</span><span class="p">:</span> <span class="n">TestOutcomes</span>
+        <span class="n">avg_as</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span>
+        <span class="n">reason</span><span class="p">:</span> <span class="n">Info</span></div>
+
+
+    <span class="c1"># Alignment Score Test -- ALF flag</span>
+    <span class="c1"># flags must be powers of 2</span>
+
+<div class="viewcode-block" id="AlignmentScoreTest.test_variant_reads">
+<a class="viewcode-back" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.AlignmentScoreTest.test_variant_reads">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_variant_reads</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">reads</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">ExtendedRead</span><span class="p">],</span> <span class="n">avg_AS_threshold</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ResultPack</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        pc8&#39;s Alignment Score Assessor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">reads</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="p">(</span><span class="n">TestOutcomes</span><span class="o">.</span><span class="n">NA</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">NO_READS</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">aln_scores</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="k">for</span> <span class="n">read</span> <span class="ow">in</span> <span class="n">reads</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">aln_scores</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">read</span><span class="o">.</span><span class="n">get_tag</span><span class="p">(</span><span class="s2">&quot;AS&quot;</span><span class="p">))</span> <span class="o">/</span> <span class="n">read</span><span class="o">.</span><span class="n">query_length</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                    <span class="k">pass</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">aln_scores</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">avg_as</span> <span class="o">=</span> <span class="n">median</span><span class="p">(</span><span class="n">aln_scores</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">avg_as</span> <span class="o">&lt;=</span> <span class="n">avg_AS_threshold</span><span class="p">:</span>
+                    <span class="n">outcome</span> <span class="o">=</span> <span class="n">TestOutcomes</span><span class="o">.</span><span class="n">VARIANT_FAIL</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">outcome</span> <span class="o">=</span> <span class="n">TestOutcomes</span><span class="o">.</span><span class="n">VARIANT_PASS</span>
+
+                <span class="n">result</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="p">(</span><span class="n">outcome</span><span class="p">,</span> <span class="n">avg_as</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">ON_THRESHOLD</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="p">(</span>
+                    <span class="n">TestOutcomes</span><span class="o">.</span><span class="n">NA</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">INSUFFICIENT_AS_TAGS</span>
+                <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">result</span></div>
+</div>
+
+
+
+<span class="c1"># Anomalous Distribution Test -- ADF flag</span>
+<div class="viewcode-block" id="AnomalousDistributionTest">
+<a class="viewcode-back" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.AnomalousDistributionTest">[docs]</a>
+<span class="nd">@final</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AnomalousDistributionTest</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Pass/Fail a variant on the distribution of the mutant base position on the supporting reads</span>
+
+<span class="sd">    Uses the conditions given by Ellis et al. in `doi.org/10.1038/s41596-020-00437-6 &lt;https://doi.org/10.1038/s41596-020-00437-6&gt;`_,</span>
+<span class="sd">    and one additional condition devised by al35</span>
+
+<span class="sd">    The full text of the conditional is reproduced below, with editorials in []. There is a point of ambiguity in the original conditional.</span>
+<span class="sd">    The interpretation that this tool has opted for is indicated by [] and is expanded upon subsequently.</span>
+
+<span class="sd">    ---------------------------------------------------------</span>
+
+<span class="sd">    For each variant, if the number of variant-supporting reads determined [IN PRIOR STEPS] is low (i.e. 0–1</span>
+<span class="sd">    reads) for one strand, follow Option A. For each variant, if both strands have sufficient variant-supported reads</span>
+<span class="sd">    (i.e. ≥2 reads), follow Option B.</span>
+
+<span class="sd">    A) Low number of variant-supporting reads on one strand</span>
+<span class="sd">        (i) For each variant, if one strand had too few variant-supporting reads, the other strand must</span>
+<span class="sd">        conform to:</span>
+<span class="sd">            - Fewer than 90% of variant-supporting reads [ON THE STRAND] have the variant located within the first 15% of the read measured from the alignment start position.</span>
+<span class="sd">            - MAD &gt;0 and s.d. &gt;4 for that strand.</span>
+
+<span class="sd">    B) Sufficient variant-supporting reads on both strands</span>
+<span class="sd">        (i) For each variant, if both strands have sufficient variant-supporting reads (i.e., ≥2 reads),</span>
+<span class="sd">        then one of the following must be true:</span>
+<span class="sd">            - Fewer than 90% of variant-supporting reads should have the variant located within the first 15% of the read measured from the alignment start position.</span>
+<span class="sd">            - MAD &gt;2 and s.d. &gt;2 for both strands.</span>
+<span class="sd">            - MAD &gt;1 and s.d. &gt;10 for one strand (i.e., strong evidence of high variability in variant position in variant-supporting reads).</span>
+<span class="sd">    ---------------------------------------------------------</span>
+
+<span class="sd">    The point of ambiguity is whether, on path A, to include the single read from the strand which does not sufficiently</span>
+<span class="sd">    support the variant in the test of positional distribution across the supporting reads.</span>
+<span class="sd">    The present interpretation is that the test should be applied only to the reads on the &quot;other strand&quot;,</span>
+<span class="sd">    since the phrasing &quot;the other strand must conform to&quot; implies the exclusion of the single read on the low-support</span>
+<span class="sd">    strand.</span>
+
+<span class="sd">    The additional condition to be checked is simply whether at least N supporting reads express away from the read</span>
+<span class="sd">    edge. This condition is experimental at this time and can be disabled by setting min_non_edge_reads to 0</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="AnomalousDistributionTest.ResultPack">
+<a class="viewcode-back" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack">[docs]</a>
+    <span class="nd">@dataclass</span>
+    <span class="k">class</span><span class="w"> </span><span class="nc">ResultPack</span><span class="p">:</span>
+<div class="viewcode-block" id="AnomalousDistributionTest.ResultPack.Info">
+<a class="viewcode-back" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack.Info">[docs]</a>
+        <span class="k">class</span><span class="w"> </span><span class="nc">Info</span><span class="p">(</span><span class="n">Flag</span><span class="p">):</span>
+            <span class="n">NODATA</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">NO_READS</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">INSUFFICIENT_READS</span> <span class="o">=</span> <span class="mi">2</span>
+            <span class="n">EDGE_CLUSTERING</span> <span class="o">=</span> <span class="mi">4</span>
+            <span class="n">ONE_STRAND_DISTRIB</span> <span class="o">=</span> <span class="mi">8</span>
+            <span class="n">BOTH_STRAND_DISTRIB_BOTH</span> <span class="o">=</span> <span class="mi">16</span>
+            <span class="n">BOTH_STRAND_DISTRIB_ONE</span> <span class="o">=</span> <span class="mi">32</span>
+            <span class="n">MIN_NON_EDGE</span> <span class="o">=</span> <span class="mi">64</span></div>
+
+
+        <span class="n">outcome</span><span class="p">:</span> <span class="n">TestOutcomes</span>
+        <span class="n">strand</span><span class="p">:</span> <span class="n">Strand</span>
+        <span class="n">reason</span><span class="p">:</span> <span class="n">Info</span></div>
+
+
+    <span class="c1"># NOTE:</span>
+    <span class="c1"># per paper, can set hairpin for mutations distant from alignment start</span>
+    <span class="c1"># in the case where both strands have sufficient supporting reads</span>
+<div class="viewcode-block" id="AnomalousDistributionTest.test_variant_reads">
+<a class="viewcode-back" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.AnomalousDistributionTest.test_variant_reads">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_variant_reads</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">reads</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">ExtendedRead</span><span class="p">],</span>
+        <span class="n">record_start</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>  <span class="c1"># VCF record start</span>
+        <span class="n">edge_definition</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>  <span class="c1"># relative proportion, by percentage, of a read to be considered &#39;the edge&#39;</span>
+        <span class="n">edge_clustering_threshold</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>  <span class="c1"># percentage threshold</span>
+        <span class="n">min_MAD_one_strand</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>  <span class="c1"># exclusive (and subsequent params)</span>
+        <span class="n">min_sd_one_strand</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">min_MAD_both_strand_weak</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">min_sd_both_strand_weak</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">min_MAD_both_strand_strong</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">min_sd_both_strand_strong</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">low_n_supporting_reads_boundary</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>  <span class="c1"># inclusive</span>
+        <span class="n">min_non_edge_reads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ResultPack</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">reads</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="p">(</span>
+                <span class="n">TestOutcomes</span><span class="o">.</span><span class="n">NA</span><span class="p">,</span>
+                <span class="n">Strand</span><span class="o">.</span><span class="n">BOTH</span><span class="p">,</span>
+                <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">NO_READS</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># *l*engths of *a*lignment starts *to* *m*utant query positions</span>
+            <span class="n">la2ms_f</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">la2ms_r</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">near_start_f</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">near_start_r</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="k">for</span> <span class="n">read</span> <span class="ow">in</span> <span class="n">reads</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">mut_qpos</span> <span class="o">=</span> <span class="n">ref2querypos</span><span class="p">(</span>
+                        <span class="n">read</span><span class="p">,</span> <span class="n">record_start</span>
+                    <span class="p">)</span>  <span class="c1"># TODO: this is additive processing and should be eventually separated as such</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;read </span><span class="si">{</span><span class="n">read</span><span class="o">.</span><span class="n">query_name</span><span class="si">}</span><span class="s2"> does not cover variant&quot;</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">read</span><span class="o">.</span><span class="n">flag</span> <span class="o">&amp;</span> <span class="mh">0x10</span><span class="p">:</span>
+                    <span class="c1"># +1 to include the last base in length</span>
+                    <span class="n">la2m</span> <span class="o">=</span> <span class="n">read</span><span class="o">.</span><span class="n">query_alignment_end</span> <span class="o">-</span> <span class="n">mut_qpos</span> <span class="o">+</span> <span class="mi">1</span>
+                    <span class="n">near_start_r</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">la2m</span> <span class="o">/</span> <span class="n">read</span><span class="o">.</span><span class="n">query_alignment_length</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">edge_definition</span><span class="p">)</span>
+                    <span class="n">la2ms_r</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">la2m</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">la2m</span> <span class="o">=</span> <span class="n">mut_qpos</span> <span class="o">-</span> <span class="n">read</span><span class="o">.</span><span class="n">query_alignment_start</span> <span class="o">+</span> <span class="mi">1</span>
+                    <span class="n">near_start_f</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">la2m</span> <span class="o">/</span> <span class="n">read</span><span class="o">.</span><span class="n">query_alignment_length</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">edge_definition</span><span class="p">)</span>
+                    <span class="n">la2ms_f</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">la2m</span><span class="p">)</span>
+
+            <span class="c1"># hairpin conditions from Ellis et al. 2020, Nature Protocols</span>
+            <span class="c1"># sometimes reported as 2021</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="nb">len</span><span class="p">(</span><span class="n">la2ms_f</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">low_n_supporting_reads_boundary</span>
+                <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">la2ms_r</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">low_n_supporting_reads_boundary</span>
+            <span class="p">):</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="p">(</span>
+                    <span class="n">TestOutcomes</span><span class="o">.</span><span class="n">NA</span><span class="p">,</span> <span class="n">Strand</span><span class="o">.</span><span class="n">BOTH</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">INSUFFICIENT_READS</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">strand</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">outcome</span> <span class="o">=</span> <span class="n">TestOutcomes</span><span class="o">.</span><span class="n">VARIANT_PASS</span>
+                <span class="n">info_bits</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">NODATA</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">la2ms_f</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">low_n_supporting_reads_boundary</span><span class="p">:</span>  <span class="c1"># if true, calculate stats</span>
+                    <span class="n">med_f</span> <span class="o">=</span> <span class="n">median</span><span class="p">(</span>
+                        <span class="n">la2ms_f</span>
+                    <span class="p">)</span>  <span class="c1"># range calculation replaced with true MAD calc (for r strand also)</span>
+                    <span class="n">mad_f</span> <span class="o">=</span> <span class="n">median</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">val</span> <span class="o">-</span> <span class="n">med_f</span><span class="p">)</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">la2ms_f</span><span class="p">)</span>
+                    <span class="n">sd_f</span> <span class="o">=</span> <span class="n">stdev</span><span class="p">(</span><span class="n">la2ms_f</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="p">(</span>
+                        <span class="nb">len</span><span class="p">(</span><span class="n">la2ms_r</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">low_n_supporting_reads_boundary</span>
+                    <span class="p">):</span>  <span class="c1"># if also this, test on this path</span>
+                        <span class="n">strand</span> <span class="o">=</span> <span class="n">Strand</span><span class="o">.</span><span class="n">F</span>
+                        <span class="n">cond_edge_clustering</span> <span class="o">=</span> <span class="p">(</span>
+                            <span class="nb">sum</span><span class="p">(</span><span class="n">near_start_f</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">near_start_f</span><span class="p">)</span>
+                        <span class="p">)</span> <span class="o">&lt;</span> <span class="n">edge_clustering_threshold</span>
+                        <span class="n">cond_one_strand_mad</span> <span class="o">=</span> <span class="n">mad_f</span> <span class="o">&gt;</span> <span class="n">min_MAD_one_strand</span>
+                        <span class="n">cond_one_strand_sd</span> <span class="o">=</span> <span class="n">sd_f</span> <span class="o">&gt;</span> <span class="n">min_sd_one_strand</span>
+
+                        <span class="c1"># this could be more concise, but I think this is the most readable approach I&#39;ve found</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">cond_edge_clustering</span><span class="p">:</span>
+                            <span class="n">info_bits</span> <span class="o">|=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">EDGE_CLUSTERING</span>
+                            <span class="n">outcome</span> <span class="o">=</span> <span class="n">TestOutcomes</span><span class="o">.</span><span class="n">VARIANT_FAIL</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">cond_one_strand_mad</span> <span class="ow">and</span> <span class="n">cond_one_strand_sd</span><span class="p">):</span>
+                            <span class="n">info_bits</span> <span class="o">|=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">ONE_STRAND_DISTRIB</span>
+                            <span class="n">outcome</span> <span class="o">=</span> <span class="n">TestOutcomes</span><span class="o">.</span><span class="n">VARIANT_FAIL</span>
+
+                        <span class="k">if</span> <span class="n">outcome</span> <span class="o">==</span> <span class="n">TestOutcomes</span><span class="o">.</span><span class="n">VARIANT_PASS</span><span class="p">:</span>
+                            <span class="n">info_bits</span> <span class="o">=</span> <span class="p">(</span>
+                                <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">ONE_STRAND_DISTRIB</span>
+                                <span class="o">|</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">EDGE_CLUSTERING</span>
+                            <span class="p">)</span>
+                <span class="c1"># the nested if statement here makes the combined condition mutually exclusive with the above</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">la2ms_r</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">low_n_supporting_reads_boundary</span><span class="p">:</span>
+                    <span class="n">med_r</span> <span class="o">=</span> <span class="n">median</span><span class="p">(</span><span class="n">la2ms_r</span><span class="p">)</span>
+                    <span class="n">mad_r</span> <span class="o">=</span> <span class="n">median</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">val</span> <span class="o">-</span> <span class="n">med_r</span><span class="p">)</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">la2ms_r</span><span class="p">)</span>
+                    <span class="n">sd_r</span> <span class="o">=</span> <span class="n">stdev</span><span class="p">(</span><span class="n">la2ms_r</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">la2ms_f</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">low_n_supporting_reads_boundary</span><span class="p">:</span>
+                        <span class="n">strand</span> <span class="o">=</span> <span class="n">Strand</span><span class="o">.</span><span class="n">R</span>
+                        <span class="n">outcome</span> <span class="o">=</span> <span class="n">TestOutcomes</span><span class="o">.</span><span class="n">VARIANT_PASS</span>
+                        <span class="n">info_bits</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">NODATA</span>
+                        <span class="n">cond_edge_clustering</span> <span class="o">=</span> <span class="p">(</span>
+                            <span class="nb">sum</span><span class="p">(</span><span class="n">near_start_r</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">near_start_r</span><span class="p">)</span>
+                        <span class="p">)</span> <span class="o">&lt;</span> <span class="n">edge_clustering_threshold</span>
+                        <span class="n">cond_one_strand_mad</span> <span class="o">=</span> <span class="n">mad_r</span> <span class="o">&gt;</span> <span class="n">min_MAD_one_strand</span>
+                        <span class="n">cond_one_strand_sd</span> <span class="o">=</span> <span class="n">sd_r</span> <span class="o">&gt;</span> <span class="n">min_sd_one_strand</span>
+
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">cond_edge_clustering</span><span class="p">:</span>
+                            <span class="n">info_bits</span> <span class="o">|=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">EDGE_CLUSTERING</span>
+                            <span class="n">outcome</span> <span class="o">=</span> <span class="n">TestOutcomes</span><span class="o">.</span><span class="n">VARIANT_FAIL</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">cond_one_strand_mad</span> <span class="ow">and</span> <span class="n">cond_one_strand_sd</span><span class="p">):</span>
+                            <span class="n">info_bits</span> <span class="o">|=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">ONE_STRAND_DISTRIB</span>
+                            <span class="n">outcome</span> <span class="o">=</span> <span class="n">TestOutcomes</span><span class="o">.</span><span class="n">VARIANT_FAIL</span>
+
+                        <span class="k">if</span> <span class="n">outcome</span> <span class="o">==</span> <span class="n">TestOutcomes</span><span class="o">.</span><span class="n">VARIANT_PASS</span><span class="p">:</span>
+                            <span class="n">info_bits</span> <span class="o">=</span> <span class="p">(</span>
+                                <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">ONE_STRAND_DISTRIB</span>
+                                <span class="o">|</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">EDGE_CLUSTERING</span>
+                            <span class="p">)</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="n">la2ms_f</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">low_n_supporting_reads_boundary</span>
+                    <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">la2ms_r</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">low_n_supporting_reads_boundary</span>
+                <span class="p">):</span>
+                    <span class="n">strand</span> <span class="o">=</span> <span class="n">Strand</span><span class="o">.</span><span class="n">BOTH</span>
+                    <span class="n">outcome</span> <span class="o">=</span> <span class="n">TestOutcomes</span><span class="o">.</span><span class="n">VARIANT_PASS</span>
+                    <span class="n">info_bits</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">NODATA</span>
+                    <span class="n">frac_lt_thresh</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">near_start_f</span> <span class="o">+</span> <span class="n">near_start_r</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span>
+                        <span class="nb">len</span><span class="p">(</span><span class="n">near_start_f</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">near_start_r</span><span class="p">)</span>
+                    <span class="p">)</span>
+
+                    <span class="n">cond_edge_clustering</span> <span class="o">=</span> <span class="n">frac_lt_thresh</span> <span class="o">&lt;</span> <span class="n">edge_clustering_threshold</span>
+                    <span class="n">cond_both_strand_distrib_both</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">mad_f</span> <span class="o">&gt;</span> <span class="n">min_MAD_both_strand_weak</span>  <span class="c1"># pyright: ignore[reportPossiblyUnboundVariable]</span>
+                        <span class="ow">and</span> <span class="n">mad_r</span> <span class="o">&gt;</span> <span class="n">min_MAD_both_strand_weak</span>  <span class="c1"># pyright: ignore[reportPossiblyUnboundVariable]</span>
+                        <span class="ow">and</span> <span class="n">sd_f</span> <span class="o">&gt;</span> <span class="n">min_sd_both_strand_weak</span>  <span class="c1"># pyright: ignore[reportPossiblyUnboundVariable]</span>
+                        <span class="ow">and</span> <span class="n">sd_r</span> <span class="o">&gt;</span> <span class="n">min_sd_both_strand_weak</span>  <span class="c1"># pyright: ignore[reportPossiblyUnboundVariable]</span>
+                    <span class="p">)</span>
+                    <span class="n">cond_both_strand_distrib_one</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="p">(</span><span class="n">mad_f</span> <span class="o">&gt;</span> <span class="n">min_MAD_both_strand_strong</span> <span class="ow">and</span> <span class="n">sd_f</span> <span class="o">&gt;</span> <span class="n">min_sd_both_strand_strong</span><span class="p">)</span>  <span class="c1"># pyright: ignore[reportPossiblyUnboundVariable]</span>
+                        <span class="ow">or</span> <span class="p">(</span><span class="n">mad_r</span> <span class="o">&gt;</span> <span class="n">min_MAD_both_strand_strong</span> <span class="ow">and</span> <span class="n">sd_r</span> <span class="o">&gt;</span> <span class="n">min_sd_both_strand_strong</span><span class="p">)</span>  <span class="c1"># pyright: ignore[reportPossiblyUnboundVariable]</span>
+                    <span class="p">)</span>
+
+                    <span class="k">if</span> <span class="n">cond_edge_clustering</span><span class="p">:</span>  <span class="c1"># if satisfied, add cond</span>
+                        <span class="n">info_bits</span> <span class="o">|=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">EDGE_CLUSTERING</span>
+                    <span class="k">if</span> <span class="n">cond_both_strand_distrib_both</span><span class="p">:</span>
+                        <span class="n">info_bits</span> <span class="o">|=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">BOTH_STRAND_DISTRIB_BOTH</span>
+                    <span class="k">if</span> <span class="n">cond_both_strand_distrib_one</span><span class="p">:</span>
+                        <span class="n">info_bits</span> <span class="o">|=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">BOTH_STRAND_DISTRIB_ONE</span>
+
+                    <span class="c1"># if no pass conditions are satisfied</span>
+                    <span class="k">if</span> <span class="n">info_bits</span> <span class="o">==</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">NODATA</span><span class="p">:</span>
+                        <span class="n">outcome</span> <span class="o">=</span> <span class="n">TestOutcomes</span><span class="o">.</span><span class="n">VARIANT_FAIL</span>
+                        <span class="n">info_bits</span> <span class="o">|=</span> <span class="p">(</span>
+                            <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">EDGE_CLUSTERING</span>
+                            <span class="o">|</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">BOTH_STRAND_DISTRIB_BOTH</span>
+                            <span class="o">|</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">BOTH_STRAND_DISTRIB_ONE</span>
+                        <span class="p">)</span>
+
+                <span class="n">reads_not_near_edge</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">near_start_f</span><span class="p">)</span> <span class="o">-</span> <span class="nb">sum</span><span class="p">(</span><span class="n">near_start_f</span><span class="p">))</span> <span class="o">+</span> <span class="p">(</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="n">near_start_r</span><span class="p">)</span> <span class="o">-</span> <span class="nb">sum</span><span class="p">(</span><span class="n">near_start_r</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">reads_not_near_edge</span> <span class="o">&gt;</span> <span class="n">min_non_edge_reads</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">outcome</span> <span class="o">==</span> <span class="n">TestOutcomes</span><span class="o">.</span><span class="n">VARIANT_PASS</span><span class="p">:</span>
+                        <span class="n">outcome</span> <span class="o">=</span> <span class="n">TestOutcomes</span><span class="o">.</span><span class="n">VARIANT_FAIL</span>
+                        <span class="n">info_bits</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">MIN_NON_EDGE</span>  <span class="c1"># we failed here</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">info_bits</span> <span class="o">|=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">MIN_NON_EDGE</span>  <span class="c1"># add to other failures</span>
+
+                <span class="c1"># add implied passes if total success</span>
+                <span class="k">if</span> <span class="n">outcome</span> <span class="o">==</span> <span class="n">TestOutcomes</span><span class="o">.</span><span class="n">VARIANT_PASS</span><span class="p">:</span>
+                    <span class="n">info_bits</span> <span class="o">|=</span> <span class="p">(</span>
+                        <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">MIN_NON_EDGE</span>
+                        <span class="o">|</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">INSUFFICIENT_READS</span>
+                        <span class="o">|</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">NO_READS</span>
+                    <span class="p">)</span>
+
+                <span class="k">assert</span> <span class="n">strand</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>  <span class="c1"># appease a type checker</span>
+
+                <span class="n">result</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="p">(</span><span class="n">outcome</span><span class="p">,</span> <span class="n">strand</span><span class="p">,</span> <span class="n">info_bits</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">result</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ProportionBasedTest">
+<a class="viewcode-back" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.ProportionBasedTest">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ProportionBasedTest</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Pass/Fail a variant on a proportion of supporting reads with/without a given property.</span>
+
+<span class="sd">    Used by the LQF flag test to test a proportion of stutter duplicate and low-quality supporting reads.</span>
+<span class="sd">    Used by the DVF flag test to test a proportion of stutter duplicate reads.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ProportionBasedTest.ResultPack">
+<a class="viewcode-back" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.ProportionBasedTest.ResultPack">[docs]</a>
+    <span class="nd">@dataclass</span>
+    <span class="k">class</span><span class="w"> </span><span class="nc">ResultPack</span><span class="p">:</span>
+<div class="viewcode-block" id="ProportionBasedTest.ResultPack.Info">
+<a class="viewcode-back" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.ProportionBasedTest.ResultPack.Info">[docs]</a>
+        <span class="k">class</span><span class="w"> </span><span class="nc">Info</span><span class="p">(</span><span class="n">Flag</span><span class="p">):</span>
+            <span class="n">NODATA</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">NO_READS</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">THRESHOLD</span> <span class="o">=</span> <span class="mi">2</span>
+            <span class="n">MIN_PASS</span> <span class="o">=</span> <span class="mi">4</span></div>
+
+
+        <span class="n">outcome</span><span class="p">:</span> <span class="n">TestOutcomes</span>
+        <span class="n">reason</span><span class="p">:</span> <span class="n">Info</span>
+        <span class="n">prop_loss</span><span class="p">:</span> <span class="nb">float</span></div>
+
+
+<div class="viewcode-block" id="ProportionBasedTest.test_variant_reads">
+<a class="viewcode-back" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.ProportionBasedTest.test_variant_reads">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_variant_reads</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">reads</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">ExtendedRead</span><span class="p">],</span>
+        <span class="n">tags_to_check</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Tags</span><span class="p">],</span>
+        <span class="n">read_loss_threshold</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">min_without</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ResultPack</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">reads</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="p">(</span><span class="n">TestOutcomes</span><span class="o">.</span><span class="n">NA</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">NO_READS</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">info_bits</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">NODATA</span>
+            <span class="n">outcome</span> <span class="o">=</span> <span class="n">TestOutcomes</span><span class="o">.</span><span class="n">VARIANT_PASS</span>
+            <span class="n">ntotal</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">reads</span><span class="p">)</span>
+
+            <span class="n">nwith</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">read</span> <span class="ow">in</span> <span class="n">reads</span><span class="p">:</span>
+                <span class="n">nwith</span> <span class="o">+=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">bool</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">read_has_mark</span><span class="p">(</span><span class="n">read</span><span class="p">,</span> <span class="n">tag</span><span class="p">)</span> <span class="k">for</span> <span class="n">tag</span> <span class="ow">in</span> <span class="n">tags_to_check</span><span class="p">)))</span>
+            <span class="n">nwithout</span> <span class="o">=</span> <span class="n">ntotal</span> <span class="o">-</span> <span class="n">nwith</span>
+            <span class="n">loss_ratio</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">nwith</span> <span class="o">/</span> <span class="n">ntotal</span>
+            <span class="p">)</span>  <span class="c1"># you could alternately formulate this as nwith / nwithout...</span>
+            <span class="k">if</span> <span class="n">loss_ratio</span> <span class="o">&gt;</span> <span class="n">read_loss_threshold</span><span class="p">:</span>
+                <span class="n">info_bits</span> <span class="o">|=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">THRESHOLD</span>
+                <span class="n">outcome</span> <span class="o">=</span> <span class="n">TestOutcomes</span><span class="o">.</span><span class="n">VARIANT_FAIL</span>
+            <span class="k">if</span> <span class="n">nwithout</span> <span class="o">&lt;</span> <span class="n">min_without</span><span class="p">:</span>
+                <span class="n">info_bits</span> <span class="o">|=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="o">.</span><span class="n">MIN_PASS</span>
+                <span class="n">outcome</span> <span class="o">=</span> <span class="n">TestOutcomes</span><span class="o">.</span><span class="n">VARIANT_FAIL</span>
+
+            <span class="k">if</span> <span class="n">outcome</span> <span class="o">==</span> <span class="n">TestOutcomes</span><span class="o">.</span><span class="n">VARIANT_PASS</span><span class="p">:</span>
+                <span class="n">info_bits</span> <span class="o">=</span> <span class="o">~</span><span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="o">.</span><span class="n">Info</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># satisfied all conditions</span>
+
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ResultPack</span><span class="p">(</span><span class="n">outcome</span><span class="p">,</span> <span class="n">info_bits</span><span class="p">,</span> <span class="n">loss_ratio</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">result</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Alex Byrne.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

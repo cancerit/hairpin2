@@ -1,0 +1,499 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>hairpin2.infrastructure.rascheduler &mdash; hairpin2 3.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=be469e84" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=acc74ff5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            hairpin2
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#usage">Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#command-line-interface">Command Line Interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#hp2-utils">hp2-utils</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../quickstart.html#explain-var">explain-var</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../quickstart.html#get-params">get-params</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../guide.html">Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../guide.html#processes-and-parameters">Processes and Parameters</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../guide.html#process-relationships-reference">Process Relationships Reference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../guide.html#read-taggers">Read Taggers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#mark-support">mark-support</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#mark-overlap">mark-overlap</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#mark-low-qual">mark-low-qual</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#mark-duplicates">mark-duplicates</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../guide.html#variant-flaggers">Variant Flaggers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#lqf">LQF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#dvf">DVF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#alf">ALF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#adf">ADF</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../guide.html#writing-a-config">Writing a Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../guide.html#understanding-decisions">Understanding Decisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../guide.html#reproducibility-parameter-distribution">Reproducibility &amp; Parameter Distribution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../guide.html#assumptions-limitations">Assumptions &amp; Limitations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../guide.html#further-development">Further Development</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hairpin2.html">hairpin2 package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../hairpin2.html#scientific-modules">Scientific Modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../hairpin2.const.html">const module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.const.html#hairpin2.const.ValidNucleotides"><code class="docutils literal notranslate"><span class="pre">ValidNucleotides</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.const.html#hairpin2.const.Strand"><code class="docutils literal notranslate"><span class="pre">Strand</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.const.html#hairpin2.const.MutTypes"><code class="docutils literal notranslate"><span class="pre">MutTypes</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.const.html#hairpin2.const.Tags"><code class="docutils literal notranslate"><span class="pre">Tags</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.const.html#hairpin2.const.TaggerNamespaces"><code class="docutils literal notranslate"><span class="pre">TaggerNamespaces</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.const.html#hairpin2.const.FlaggerNamespaces"><code class="docutils literal notranslate"><span class="pre">FlaggerNamespaces</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../hairpin2.sci_funcs.html">sci_funcs module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagSupportingReads"><code class="docutils literal notranslate"><span class="pre">TagSupportingReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagLowQualReads"><code class="docutils literal notranslate"><span class="pre">TagLowQualReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagFragmentReads"><code class="docutils literal notranslate"><span class="pre">TagFragmentReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagStutterDuplicateReads"><code class="docutils literal notranslate"><span class="pre">TagStutterDuplicateReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.AlignmentScoreTest"><code class="docutils literal notranslate"><span class="pre">AlignmentScoreTest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.AnomalousDistributionTest"><code class="docutils literal notranslate"><span class="pre">AnomalousDistributionTest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.ProportionBasedTest"><code class="docutils literal notranslate"><span class="pre">ProportionBasedTest</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../hairpin2.main.html">main module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.main.html#hairpin2.main.hairpin2"><code class="docutils literal notranslate"><span class="pre">hairpin2()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../hairpin2.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../hairpin2.infrastructure.html">infrastructure package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.infrastructure.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../hairpin2.process_wrappers.html">process_wrappers package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.process_wrappers.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dev.html">Developer Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">hairpin2</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">hairpin2.infrastructure.rascheduler</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for hairpin2.infrastructure.rascheduler</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Mapping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Self</span><span class="p">,</span> <span class="n">cast</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">ValidationError</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">hairpin2.infrastructure.process</span><span class="w"> </span><span class="kn">import</span> <span class="n">ReadAwareProcess</span><span class="p">,</span> <span class="n">ReadAwareProcessProtocol</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hairpin2.infrastructure.process_engines</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProcessKindEnum</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hairpin2.infrastructure.process_params</span><span class="w"> </span><span class="kn">import</span> <span class="n">FixedParams</span><span class="p">,</span> <span class="n">RunParams</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hairpin2.infrastructure.structures</span><span class="w"> </span><span class="kn">import</span> <span class="n">FlagResult</span>
+
+
+<div class="viewcode-block" id="ConfigError">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.rascheduler.html#hairpin2.infrastructure.rascheduler.ConfigError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ConfigError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+
+
+<div class="viewcode-block" id="ExecutorError">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.rascheduler.html#hairpin2.infrastructure.rascheduler.ExecutorError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ExecutorError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+
+
+<div class="viewcode-block" id="ProcessError">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.rascheduler.html#hairpin2.infrastructure.rascheduler.ProcessError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ProcessError</span><span class="p">(</span><span class="ne">TypeError</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+
+
+<div class="viewcode-block" id="RAExec">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.rascheduler.html#hairpin2.infrastructure.rascheduler.RAExec">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">RAExec</span><span class="p">:</span>
+    <span class="n">_mandate_excludes</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">_taggers</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">ReadAwareProcessProtocol</span><span class="p">[</span><span class="n">RunParams</span><span class="p">,</span> <span class="n">FixedParams</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">_flaggers</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">ReadAwareProcessProtocol</span><span class="p">[</span><span class="n">RunParams</span><span class="p">,</span> <span class="n">FixedParams</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">FlagResult</span><span class="p">],</span> <span class="o">...</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">taggers_in_order</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">ReadAwareProcessProtocol</span><span class="p">[</span><span class="n">RunParams</span><span class="p">,</span> <span class="n">FixedParams</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]],</span>
+        <span class="n">flaggers_in_order</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span>
+            <span class="n">ReadAwareProcessProtocol</span><span class="p">[</span><span class="n">RunParams</span><span class="p">,</span> <span class="n">FixedParams</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">FlagResult</span><span class="p">]</span>
+        <span class="p">],</span>
+        <span class="n">mandate_excludes</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mandate_excludes</span> <span class="o">=</span> <span class="n">mandate_excludes</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">tags_added</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">validate_tagger_order</span><span class="p">(</span>
+            <span class="n">taggers_in_order</span><span class="p">,</span> <span class="n">mandate_excludes</span><span class="p">,</span> <span class="n">raise_on_fail</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">validate_flagger_exec</span><span class="p">(</span>
+            <span class="n">flaggers_in_order</span><span class="p">,</span> <span class="n">tags_added</span><span class="p">,</span> <span class="n">mandate_excludes</span><span class="p">,</span> <span class="n">raise_on_fail</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_taggers</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">taggers_in_order</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_flaggers</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">flaggers_in_order</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">mandate_excludes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mandate_excludes</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">taggers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_taggers</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">flaggers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_flaggers</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_partition_processes</span><span class="p">(</span>
+        <span class="n">processes</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">ReadAwareProcessProtocol</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">raise_on_fail</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span>
+        <span class="nb">bool</span><span class="p">,</span>
+        <span class="nb">tuple</span><span class="p">[</span>
+            <span class="nb">tuple</span><span class="p">[</span><span class="n">ReadAwareProcessProtocol</span><span class="p">[</span><span class="n">RunParams</span><span class="p">,</span> <span class="n">FixedParams</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="o">...</span><span class="p">],</span>
+            <span class="nb">tuple</span><span class="p">[</span><span class="n">ReadAwareProcessProtocol</span><span class="p">[</span><span class="n">RunParams</span><span class="p">,</span> <span class="n">FixedParams</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">FlagResult</span><span class="p">],</span> <span class="o">...</span><span class="p">],</span>
+        <span class="p">],</span>
+    <span class="p">]:</span>
+        <span class="n">taggerl</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">ReadAwareProcessProtocol</span><span class="p">[</span><span class="n">RunParams</span><span class="p">,</span> <span class="n">FixedParams</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">flaggerl</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">ReadAwareProcessProtocol</span><span class="p">[</span><span class="n">RunParams</span><span class="p">,</span> <span class="n">FixedParams</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">FlagResult</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">taggers_all_registered</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">valid</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">for</span> <span class="n">proc</span> <span class="ow">in</span> <span class="n">processes</span><span class="p">:</span>
+            <span class="k">match</span> <span class="n">proc</span><span class="o">.</span><span class="n">ProcessType</span><span class="p">:</span>
+                <span class="c1"># TODO: this should use a runtime check rather than a cast</span>
+                <span class="k">case</span> <span class="n">ProcessKindEnum</span><span class="o">.</span><span class="n">TAGGER</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">taggers_all_registered</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">raise_on_fail</span><span class="p">:</span>
+                            <span class="k">raise</span> <span class="n">ExecutorError</span><span class="p">(</span><span class="s2">&quot;tagger appeared in execution order after flagger&quot;</span><span class="p">)</span>
+                        <span class="n">valid</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="n">taggerl</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="n">cast</span><span class="p">(</span><span class="n">ReadAwareProcessProtocol</span><span class="p">[</span><span class="n">RunParams</span><span class="p">,</span> <span class="n">FixedParams</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">proc</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="k">case</span> <span class="n">ProcessKindEnum</span><span class="o">.</span><span class="n">FLAGGER</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">taggers_all_registered</span><span class="p">:</span>
+                        <span class="n">taggers_all_registered</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="n">flaggerl</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="n">cast</span><span class="p">(</span><span class="n">ReadAwareProcessProtocol</span><span class="p">[</span><span class="n">RunParams</span><span class="p">,</span> <span class="n">FixedParams</span><span class="p">,</span> <span class="n">FlagResult</span><span class="p">],</span> <span class="n">proc</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="k">case</span><span class="w"> </span><span class="k">_</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">ProcessError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Unrecognised process type found on process </span><span class="si">{</span><span class="n">proc</span><span class="o">.</span><span class="n">ProcessNamespace</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+        <span class="k">return</span> <span class="n">valid</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">taggerl</span><span class="p">),</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">flaggerl</span><span class="p">))</span>
+
+<div class="viewcode-block" id="RAExec.check_namespacing_clashfree">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.rascheduler.html#hairpin2.infrastructure.rascheduler.RAExec.check_namespacing_clashfree">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">check_namespacing_clashfree</span><span class="p">(</span><span class="n">processes</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">ReadAwareProcessProtocol</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]):</span>
+        <span class="n">nsl</span> <span class="o">=</span> <span class="p">[</span><span class="n">proc</span><span class="o">.</span><span class="n">ProcessNamespace</span> <span class="k">for</span> <span class="n">proc</span> <span class="ow">in</span> <span class="n">processes</span><span class="p">]</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">nsl</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">nsl</span><span class="p">))</span>  <span class="c1"># clashes if false</span></div>
+
+
+<div class="viewcode-block" id="RAExec.validate_exec">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.rascheduler.html#hairpin2.infrastructure.rascheduler.RAExec.validate_exec">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_exec</span><span class="p">(</span>
+        <span class="n">processes</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">ReadAwareProcessProtocol</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+        <span class="n">mandate_excludes</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+        <span class="n">raise_on_fail</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span>
+        <span class="nb">bool</span><span class="p">,</span>
+        <span class="nb">tuple</span><span class="p">[</span>
+            <span class="nb">tuple</span><span class="p">[</span><span class="n">ReadAwareProcessProtocol</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="o">...</span><span class="p">],</span>
+            <span class="nb">tuple</span><span class="p">[</span><span class="n">ReadAwareProcessProtocol</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">FlagResult</span><span class="p">],</span> <span class="o">...</span><span class="p">],</span>
+        <span class="p">],</span>
+    <span class="p">]:</span>
+        <span class="n">valid</span><span class="p">,</span> <span class="n">part_procs</span> <span class="o">=</span> <span class="n">RAExec</span><span class="o">.</span><span class="n">_partition_processes</span><span class="p">(</span><span class="n">processes</span><span class="p">,</span> <span class="n">raise_on_fail</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">valid</span><span class="p">:</span>
+            <span class="n">valid</span><span class="p">,</span> <span class="n">tags_added</span> <span class="o">=</span> <span class="n">RAExec</span><span class="o">.</span><span class="n">validate_tagger_order</span><span class="p">(</span>
+                <span class="n">part_procs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">mandate_excludes</span><span class="p">,</span> <span class="n">raise_on_fail</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">valid</span><span class="p">:</span>
+                <span class="n">valid</span> <span class="o">=</span> <span class="n">RAExec</span><span class="o">.</span><span class="n">validate_flagger_exec</span><span class="p">(</span>
+                    <span class="n">part_procs</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">tags_added</span><span class="p">,</span> <span class="n">mandate_excludes</span><span class="p">,</span> <span class="n">raise_on_fail</span>
+                <span class="p">)</span>
+        <span class="k">return</span> <span class="n">valid</span><span class="p">,</span> <span class="n">part_procs</span></div>
+
+
+    <span class="c1"># make wrapped read register itself as marked in its parent readview if there is one</span>
+<div class="viewcode-block" id="RAExec.validate_tagger_order">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.rascheduler.html#hairpin2.infrastructure.rascheduler.RAExec.validate_tagger_order">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_tagger_order</span><span class="p">(</span>
+        <span class="n">processes</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">ReadAwareProcessProtocol</span><span class="p">[</span><span class="n">RunParams</span><span class="p">,</span> <span class="n">FixedParams</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]],</span>
+        <span class="n">mandate_excludes</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+        <span class="n">raise_on_fail</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Validate that the order of tagger processes as provided in the processes iterable can be run without error.</span>
+<span class="sd">        In practice this means checking that at a minimum, all marks/tags listed in a given process as required (i.e.</span>
+<span class="sd">        in require_marks) have been checked and applied by processes occurring prior in the run order.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            processes (Iterable): Iterable of processes, the order of which defines the run order</span>
+<span class="sd">            mandate_excludes (bool): if true, then for each process, all marks listed as exclude_marks must have been applied by tagger processes coming prior in the run order, in addition to require_marks</span>
+<span class="sd">            raise_on_fail (bool): whether to throw an error on receiving an illegal order, or just return a bool</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">tags_set</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">valid</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">for</span> <span class="n">proc</span> <span class="ow">in</span> <span class="n">processes</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">proc</span><span class="o">.</span><span class="n">AddsMarks</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="n">reqs_fulfilled</span> <span class="o">=</span> <span class="n">proc</span><span class="o">.</span><span class="n">require_marks</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">tags_set</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">mandate_excludes</span><span class="p">:</span>
+                <span class="n">reqs_fulfilled</span> <span class="o">=</span> <span class="n">reqs_fulfilled</span> <span class="ow">and</span> <span class="n">proc</span><span class="o">.</span><span class="n">exclude_marks</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">tags_set</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">reqs_fulfilled</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">raise_on_fail</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">ExecutorError</span><span class="p">(</span><span class="s2">&quot;Invalid tagger execution order&quot;</span><span class="p">)</span>
+                <span class="n">valid</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">break</span>
+            <span class="k">if</span> <span class="n">tags_set</span> <span class="o">&amp;</span> <span class="n">proc</span><span class="o">.</span><span class="n">AddsMarks</span><span class="p">:</span>  <span class="c1"># if overlap</span>
+                <span class="k">if</span> <span class="n">raise_on_fail</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">ExecutorError</span><span class="p">(</span><span class="s2">&quot;taggers appear to add same tag. This is not supported&quot;</span><span class="p">)</span>
+                <span class="n">valid</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">break</span>
+            <span class="n">tags_set</span> <span class="o">=</span> <span class="n">tags_set</span> <span class="o">|</span> <span class="n">proc</span><span class="o">.</span><span class="n">AddsMarks</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">valid</span><span class="p">,</span> <span class="n">tags_set</span><span class="p">)</span> <span class="k">if</span> <span class="n">valid</span> <span class="k">else</span> <span class="p">(</span><span class="n">valid</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="RAExec.validate_flagger_exec">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.rascheduler.html#hairpin2.infrastructure.rascheduler.RAExec.validate_flagger_exec">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_flagger_exec</span><span class="p">(</span>
+        <span class="n">processes</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">ReadAwareProcessProtocol</span><span class="p">[</span><span class="n">RunParams</span><span class="p">,</span> <span class="n">FixedParams</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">FlagResult</span><span class="p">]],</span>
+        <span class="n">tags_set</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="n">mandate_excludes</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+        <span class="n">raise_on_fail</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">valid</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">for</span> <span class="n">proc</span> <span class="ow">in</span> <span class="n">processes</span><span class="p">:</span>
+            <span class="n">reqs_fulfilled</span> <span class="o">=</span> <span class="n">proc</span><span class="o">.</span><span class="n">require_marks</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">tags_set</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">mandate_excludes</span><span class="p">:</span>
+                <span class="n">reqs_fulfilled</span> <span class="o">=</span> <span class="n">reqs_fulfilled</span> <span class="ow">and</span> <span class="n">proc</span><span class="o">.</span><span class="n">exclude_marks</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">tags_set</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">reqs_fulfilled</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">raise_on_fail</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">ExecutorError</span><span class="p">(</span><span class="s2">&quot;Invalid tagger execution order&quot;</span><span class="p">)</span>
+                <span class="n">valid</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">break</span>
+        <span class="k">return</span> <span class="n">valid</span></div>
+
+
+<div class="viewcode-block" id="RAExec.from_config">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.rascheduler.html#hairpin2.infrastructure.rascheduler.RAExec.from_config">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_config</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">configd</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+        <span class="n">proc_pool</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span>
+            <span class="nb">type</span><span class="p">[</span><span class="n">ReadAwareProcessProtocol</span><span class="p">[</span><span class="n">RunParams</span><span class="p">,</span> <span class="n">FixedParams</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">FlagResult</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]]</span>
+        <span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialise read-aware executor from config dict.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            configd (dict[str, Any]): Dictionary describing how processes should execute.</span>
+<span class="sd">            proc_pool (Iterable[type[ReadAwareProcess]]): Iterable of process definitions which may be instatiated for a given run.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">proc</span> <span class="ow">in</span> <span class="n">proc_pool</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">proc</span><span class="p">,</span> <span class="n">ReadAwareProcess</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">ProcessError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Process </span><span class="si">{</span><span class="n">proc</span><span class="si">}</span><span class="s2"> is not a concrete implementation (subclass) of abstract base class ReadAwareProcess&quot;</span>
+                <span class="p">)</span>
+
+        <span class="n">const_config_keys</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;params&quot;</span><span class="p">,</span> <span class="s2">&quot;exec&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">set</span><span class="p">(</span><span class="n">const_config_keys</span><span class="p">)</span> <span class="o">==</span> <span class="n">configd</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="n">ConfigError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Config does not have correct top-level keys, expected </span><span class="si">{</span><span class="n">const_config_keys</span><span class="si">}</span><span class="s2">, received </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">configd</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">excludes_opt</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">configd</span><span class="p">[</span><span class="s2">&quot;exec&quot;</span><span class="p">][</span><span class="s2">&quot;opts&quot;</span><span class="p">][</span><span class="s2">&quot;mandate-excludes&quot;</span><span class="p">])</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ConfigError</span><span class="p">(</span><span class="s2">&quot;Config missing &#39;mandate-excludes&#39; key from &#39;opts&#39; section&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">excludes_opt</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">ConfigError</span><span class="p">(</span>
+                <span class="s2">&quot;Could not interpret &#39;mandate-excludes&#39; key from &#39;opts&#39; section as bool&quot;</span>
+            <span class="p">)</span>
+        <span class="n">paramd</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">configd</span><span class="p">[</span><span class="s2">&quot;params&quot;</span><span class="p">])</span>
+        <span class="n">execd</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">configd</span><span class="p">[</span><span class="s2">&quot;exec&quot;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">execd</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">ConfigError</span><span class="p">(</span><span class="s2">&quot;Could not interpret &#39;exec&#39; section - not a Mapping&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">paramd</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">ConfigError</span><span class="p">(</span><span class="s2">&quot;Could not interpret &#39;params&#39; value - not a Mapping&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">cls</span><span class="o">.</span><span class="n">check_namespacing_clashfree</span><span class="p">(</span><span class="n">proc_pool</span><span class="p">):</span>  <span class="c1"># pyright: ignore[reportArgumentType]</span>
+            <span class="k">raise</span> <span class="n">ProcessError</span><span class="p">(</span><span class="s2">&quot;Process pool with clashing namespaces&quot;</span><span class="p">)</span>
+
+        <span class="n">proc_nsd</span> <span class="o">=</span> <span class="p">{</span><span class="n">proc_type</span><span class="o">.</span><span class="n">ProcessNamespace</span><span class="p">:</span> <span class="n">proc_type</span> <span class="k">for</span> <span class="n">proc_type</span> <span class="ow">in</span> <span class="n">proc_pool</span><span class="p">}</span>
+
+        <span class="n">param_ns_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">paramd</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="n">exec_ns_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">execd</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">unknown_proc_names</span> <span class="o">:=</span> <span class="n">param_ns_set</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">proc_nsd</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="k">raise</span> <span class="n">ConfigError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Params config requesting unknown processes: </span><span class="si">{</span><span class="n">unknown_proc_names</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">param_ns_set</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">exec_ns_set</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">ConfigError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Param config keys are not a subset of exec config keys. Param only: </span><span class="si">{</span><span class="n">param_ns_set</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">exec_ns_set</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">ordered_proc_inst</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">ReadAwareProcessProtocol</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">FlagResult</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">proc_name</span> <span class="ow">in</span> <span class="n">execd</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">proc_name</span> <span class="o">==</span> <span class="s2">&quot;opts&quot;</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">execd</span><span class="p">[</span><span class="n">proc_name</span><span class="p">][</span><span class="s2">&quot;enable&quot;</span><span class="p">]:</span>
+                <span class="k">continue</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">req_marks</span> <span class="o">=</span> <span class="n">execd</span><span class="p">[</span><span class="n">proc_name</span><span class="p">][</span><span class="s2">&quot;require-marks&quot;</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ConfigError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Config missing key &#39;require-marks&#39; for process </span><span class="si">{</span><span class="n">proc_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">exc_marks</span> <span class="o">=</span> <span class="n">execd</span><span class="p">[</span><span class="n">proc_name</span><span class="p">][</span><span class="s2">&quot;exclude-marks&quot;</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ConfigError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Config missing key &#39;exclude-marks&#39; for process </span><span class="si">{</span><span class="n">proc_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="n">proc_class</span> <span class="o">=</span> <span class="n">proc_nsd</span><span class="p">[</span><span class="n">proc_name</span><span class="p">]</span>
+            <span class="n">proc_fixed_param_class</span> <span class="o">=</span> <span class="n">proc_class</span><span class="o">.</span><span class="n">FixedParamClass</span>
+            <span class="n">proc_config_params</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">paramd</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">proc_name</span><span class="p">,</span> <span class="p">{}))</span>  <span class="c1"># TODO: isinstance</span>
+
+            <span class="k">if</span> <span class="n">proc_fixed_param_class</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">proc_fixed_params</span> <span class="o">=</span> <span class="n">proc_fixed_param_class</span><span class="p">(</span><span class="o">**</span><span class="n">proc_config_params</span><span class="p">)</span>
+                <span class="k">except</span> <span class="n">ValidationError</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+                    <span class="n">errl</span> <span class="o">=</span> <span class="n">ex</span><span class="o">.</span><span class="n">errors</span><span class="p">()</span>
+                    <span class="n">msg_nerr</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">errl</span><span class="p">)</span><span class="si">}</span><span class="s2"> errors in params config for process </span><span class="si">{</span><span class="n">proc_name</span><span class="si">!r}</span><span class="s2">:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="n">msg_locl</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+                    <span class="k">for</span> <span class="n">errd</span> <span class="ow">in</span> <span class="n">errl</span><span class="p">:</span>
+                        <span class="n">submsg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">errd</span><span class="p">[</span><span class="s1">&#39;loc&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="si">!r}</span><span class="s2"> - </span><span class="si">{</span><span class="n">errd</span><span class="p">[</span><span class="s1">&#39;msg&#39;</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                        <span class="n">msg_locl</span> <span class="o">+=</span> <span class="n">submsg</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="n">msg_nerr</span> <span class="o">+</span> <span class="n">msg_locl</span>
+                    <span class="k">raise</span> <span class="n">ConfigError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">proc_fixed_params</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="n">ordered_proc_inst</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">proc_class</span><span class="p">(</span><span class="n">proc_fixed_params</span><span class="p">,</span> <span class="n">req_marks</span><span class="p">,</span> <span class="n">exc_marks</span><span class="p">))</span>
+
+        <span class="n">_</span><span class="p">,</span> <span class="p">(</span><span class="n">taggers</span><span class="p">,</span> <span class="n">flaggers</span><span class="p">)</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">validate_exec</span><span class="p">(</span>
+            <span class="n">ordered_proc_inst</span><span class="p">,</span> <span class="n">excludes_opt</span><span class="p">,</span> <span class="n">raise_on_fail</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+
+        <span class="n">ra_ex</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">taggers</span><span class="p">,</span> <span class="n">flaggers</span><span class="p">,</span> <span class="n">excludes_opt</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ra_ex</span></div>
+
+
+<div class="viewcode-block" id="RAExec.run">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.rascheduler.html#hairpin2.infrastructure.rascheduler.RAExec.run">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">run_data</span><span class="p">:</span> <span class="n">RunParams</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">FlagResult</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+        <span class="c1"># TODO: register a run params type at init and isinstance it</span>
+        <span class="k">for</span> <span class="n">proc</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">taggers</span><span class="p">:</span>
+            <span class="n">proc</span><span class="p">(</span><span class="n">run_data</span><span class="p">)</span>
+            <span class="n">proc</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+
+        <span class="n">res</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">FlagResult</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">proc</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">flaggers</span><span class="p">:</span>
+            <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">proc</span><span class="p">(</span><span class="n">run_data</span><span class="p">))</span>
+            <span class="n">proc</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">res</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Alex Byrne.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

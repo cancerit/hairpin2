@@ -1,0 +1,577 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>sci_funcs module &mdash; hairpin2 3.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=be469e84" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=acc74ff5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="main module" href="hairpin2.main.html" />
+    <link rel="prev" title="const module" href="hairpin2.const.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            hairpin2
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#usage">Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#command-line-interface">Command Line Interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#hp2-utils">hp2-utils</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="quickstart.html#explain-var">explain-var</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quickstart.html#get-params">get-params</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="guide.html">Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="guide.html#processes-and-parameters">Processes and Parameters</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="guide.html#process-relationships-reference">Process Relationships Reference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="guide.html#read-taggers">Read Taggers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#mark-support">mark-support</a></li>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#mark-overlap">mark-overlap</a></li>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#mark-low-qual">mark-low-qual</a></li>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#mark-duplicates">mark-duplicates</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="guide.html#variant-flaggers">Variant Flaggers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#lqf">LQF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#dvf">DVF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#alf">ALF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#adf">ADF</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="guide.html#writing-a-config">Writing a Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide.html#understanding-decisions">Understanding Decisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide.html#reproducibility-parameter-distribution">Reproducibility &amp; Parameter Distribution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide.html#assumptions-limitations">Assumptions &amp; Limitations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide.html#further-development">Further Development</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="hairpin2.html">hairpin2 package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="hairpin2.html#scientific-modules">Scientific Modules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="hairpin2.const.html">const module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.ValidNucleotides"><code class="docutils literal notranslate"><span class="pre">ValidNucleotides</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.Strand"><code class="docutils literal notranslate"><span class="pre">Strand</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.MutTypes"><code class="docutils literal notranslate"><span class="pre">MutTypes</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.Tags"><code class="docutils literal notranslate"><span class="pre">Tags</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.TaggerNamespaces"><code class="docutils literal notranslate"><span class="pre">TaggerNamespaces</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.FlaggerNamespaces"><code class="docutils literal notranslate"><span class="pre">FlaggerNamespaces</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">sci_funcs module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#hairpin2.sci_funcs.TagSupportingReads"><code class="docutils literal notranslate"><span class="pre">TagSupportingReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hairpin2.sci_funcs.TagLowQualReads"><code class="docutils literal notranslate"><span class="pre">TagLowQualReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hairpin2.sci_funcs.TagFragmentReads"><code class="docutils literal notranslate"><span class="pre">TagFragmentReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hairpin2.sci_funcs.TagStutterDuplicateReads"><code class="docutils literal notranslate"><span class="pre">TagStutterDuplicateReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hairpin2.sci_funcs.AlignmentScoreTest"><code class="docutils literal notranslate"><span class="pre">AlignmentScoreTest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hairpin2.sci_funcs.AnomalousDistributionTest"><code class="docutils literal notranslate"><span class="pre">AnomalousDistributionTest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hairpin2.sci_funcs.ProportionBasedTest"><code class="docutils literal notranslate"><span class="pre">ProportionBasedTest</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="hairpin2.main.html">main module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.main.html#hairpin2.main.hairpin2"><code class="docutils literal notranslate"><span class="pre">hairpin2()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="hairpin2.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="hairpin2.infrastructure.html">infrastructure package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.infrastructure.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="hairpin2.process_wrappers.html">process_wrappers package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.process_wrappers.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="dev.html">Developer Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">hairpin2</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="hairpin2.html">hairpin2 package</a></li>
+      <li class="breadcrumb-item active">sci_funcs module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/hairpin2.sci_funcs.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-hairpin2.sci_funcs">
+<span id="sci-funcs-module"></span><h1>sci_funcs module<a class="headerlink" href="#module-hairpin2.sci_funcs" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.TagSupportingReads">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">TagSupportingReads</span></span><a class="reference internal" href="_modules/hairpin2/sci_funcs.html#TagSupportingReads"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.sci_funcs.TagSupportingReads" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>pc8’s Support Assessor</p>
+<p>Confirm whether a read supports a variant and optionally mark supporting reads.</p>
+<p>Used to tag reads as supporting a variant. This tag can then be used by other processes
+to include/exclude reads with that tag from their analysis.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.TagSupportingReads.SupportFlags">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">SupportFlags</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/sci_funcs.html#TagSupportingReads.SupportFlags"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.sci_funcs.TagSupportingReads.SupportFlags" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Flag</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.TagSupportingReads.SupportFlags.CLEAR">
+<span class="sig-name descname"><span class="pre">CLEAR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#hairpin2.sci_funcs.TagSupportingReads.SupportFlags.CLEAR" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.TagSupportingReads.SupportFlags.SAMFLAG">
+<span class="sig-name descname"><span class="pre">SAMFLAG</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#hairpin2.sci_funcs.TagSupportingReads.SupportFlags.SAMFLAG" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.TagSupportingReads.SupportFlags.FIELDS_MISSING">
+<span class="sig-name descname"><span class="pre">FIELDS_MISSING</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#hairpin2.sci_funcs.TagSupportingReads.SupportFlags.FIELDS_MISSING" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.TagSupportingReads.SupportFlags.NOT_ALIGNED">
+<span class="sig-name descname"><span class="pre">NOT_ALIGNED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#hairpin2.sci_funcs.TagSupportingReads.SupportFlags.NOT_ALIGNED" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.TagSupportingReads.SupportFlags.NOT_ALT">
+<span class="sig-name descname"><span class="pre">NOT_ALT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">8</span></em><a class="headerlink" href="#hairpin2.sci_funcs.TagSupportingReads.SupportFlags.NOT_ALT" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.TagSupportingReads.SupportFlags.SHORT">
+<span class="sig-name descname"><span class="pre">SHORT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16</span></em><a class="headerlink" href="#hairpin2.sci_funcs.TagSupportingReads.SupportFlags.SHORT" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.TagSupportingReads.SupportFlags.BAD_OP">
+<span class="sig-name descname"><span class="pre">BAD_OP</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">32</span></em><a class="headerlink" href="#hairpin2.sci_funcs.TagSupportingReads.SupportFlags.BAD_OP" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.TagSupportingReads.check_read_supporting">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">check_read_supporting</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">read</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.ExtendedRead" title="hairpin2.infrastructure.structures.ExtendedRead"><span class="pre">ExtendedRead</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mut_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.MutTypes" title="hairpin2.const.MutTypes"><span class="pre">MutTypes</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">alt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vcf_start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vcf_stop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mark</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/hairpin2/sci_funcs.html#TagSupportingReads.check_read_supporting"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.sci_funcs.TagSupportingReads.check_read_supporting" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.TagLowQualReads">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">TagLowQualReads</span></span><a class="reference internal" href="_modules/hairpin2/sci_funcs.html#TagLowQualReads"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.sci_funcs.TagLowQualReads" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>pc8’s Quality Assessor</p>
+<p>Determine if a read is of low quality and optionally mark low-quality reads.</p>
+<p>The result of this process is used to mark reads as low quality. This tag can then be used by other processes
+to include/exclude reads with that tag from their analysis. The fraction of reads tagged as low quality,
+or as duplicates by the duplicate marking function below, is used to call the LQF flag on variants</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.TagLowQualReads.QualFlags">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">QualFlags</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/sci_funcs.html#TagLowQualReads.QualFlags"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.sci_funcs.TagLowQualReads.QualFlags" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Flag</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.TagLowQualReads.QualFlags.CLEAR">
+<span class="sig-name descname"><span class="pre">CLEAR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#hairpin2.sci_funcs.TagLowQualReads.QualFlags.CLEAR" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.TagLowQualReads.QualFlags.MAPQUAL">
+<span class="sig-name descname"><span class="pre">MAPQUAL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#hairpin2.sci_funcs.TagLowQualReads.QualFlags.MAPQUAL" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.TagLowQualReads.QualFlags.CLIPQUAL">
+<span class="sig-name descname"><span class="pre">CLIPQUAL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#hairpin2.sci_funcs.TagLowQualReads.QualFlags.CLIPQUAL" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.TagLowQualReads.QualFlags.BASEQUAL">
+<span class="sig-name descname"><span class="pre">BASEQUAL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#hairpin2.sci_funcs.TagLowQualReads.QualFlags.BASEQUAL" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.TagLowQualReads.check_low_qual_read">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">check_low_qual_read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">read</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.ExtendedRead" title="hairpin2.infrastructure.structures.ExtendedRead"><span class="pre">ExtendedRead</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">vcf_start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mut_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.MutTypes" title="hairpin2.const.MutTypes"><span class="pre">MutTypes</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_basequal</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_mapqual</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_clipqual</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mark</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/hairpin2/sci_funcs.html#TagLowQualReads.check_low_qual_read"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.sci_funcs.TagLowQualReads.check_low_qual_read" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.TagFragmentReads">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">TagFragmentReads</span></span><a class="reference internal" href="_modules/hairpin2/sci_funcs.html#TagFragmentReads"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.sci_funcs.TagFragmentReads" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>ab63 Overlap Assessor</p>
+<p>Mark one read from a fragment pair if both members of the fragment pair are present in the input reads.</p>
+<p>Used to tag reads as an overlapping mate. This tag can then be used by other processes to
+include/exclude reads with that tag from their analysis</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.TagFragmentReads.check_for_mates">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">check_for_mates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reads</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.ExtendedRead" title="hairpin2.infrastructure.structures.ExtendedRead"><span class="pre">ExtendedRead</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/sci_funcs.html#TagFragmentReads.check_for_mates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.sci_funcs.TagFragmentReads.check_for_mates" title="Link to this definition"></a></dt>
+<dd><p>Mark lower mean qual member of a read pair as overlapping</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.TagStutterDuplicateReads">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">TagStutterDuplicateReads</span></span><a class="reference internal" href="_modules/hairpin2/sci_funcs.html#TagStutterDuplicateReads"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.sci_funcs.TagStutterDuplicateReads" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>pc8’s Stutter Duplicates Assessor</p>
+<p>Tag hidden duplicate reads which have shifted endpoints due to PCR stutter (hence evading normal dupmarking).</p>
+<p>The result of this process is used to mark reads as duplicates. This tag can then be used by other processes
+to include/exclude reads with that tag from their analysis. The fraction of reads tagged as duplicates
+by this process is used to assess a variant for the DVF flag and, partly (with the low-quality tag), the LQF flag</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.TagStutterDuplicateReads.FragmentEndpoints">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">FragmentEndpoints</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">read</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.ExtendedRead" title="hairpin2.infrastructure.structures.ExtendedRead"><span class="pre">ExtendedRead</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">endpoints</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/sci_funcs.html#TagStutterDuplicateReads.FragmentEndpoints"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.sci_funcs.TagStutterDuplicateReads.FragmentEndpoints" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.TagStutterDuplicateReads.FragmentEndpoints.read">
+<span class="sig-name descname"><span class="pre">read</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.ExtendedRead" title="hairpin2.infrastructure.structures.ExtendedRead"><span class="pre">ExtendedRead</span></a></em><a class="headerlink" href="#hairpin2.sci_funcs.TagStutterDuplicateReads.FragmentEndpoints.read" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.TagStutterDuplicateReads.FragmentEndpoints.endpoints">
+<span class="sig-name descname"><span class="pre">endpoints</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#hairpin2.sci_funcs.TagStutterDuplicateReads.FragmentEndpoints.endpoints" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.TagStutterDuplicateReads.check_stutter_duplicates">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">check_stutter_duplicates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reads</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.ExtendedRead" title="hairpin2.infrastructure.structures.ExtendedRead"><span class="pre">ExtendedRead</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duplication_window_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">6</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/sci_funcs.html#TagStutterDuplicateReads.check_stutter_duplicates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.sci_funcs.TagStutterDuplicateReads.check_stutter_duplicates" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.AlignmentScoreTest">
+<em class="property"><span class="k"><span class="pre">final</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">AlignmentScoreTest</span></span><a class="reference internal" href="_modules/hairpin2/sci_funcs.html#AlignmentScoreTest"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.sci_funcs.AlignmentScoreTest" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Pass/Fail a variant on the average alignment score of supporting reads.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.AlignmentScoreTest.ResultPack">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ResultPack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">outcome</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.TestOutcomes" title="hairpin2.infrastructure.structures.TestOutcomes"><span class="pre">TestOutcomes</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">avg_as</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reason</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#hairpin2.sci_funcs.AlignmentScoreTest.ResultPack.Info" title="hairpin2.sci_funcs.AlignmentScoreTest.ResultPack.Info"><span class="pre">Info</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/sci_funcs.html#AlignmentScoreTest.ResultPack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.sci_funcs.AlignmentScoreTest.ResultPack" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.AlignmentScoreTest.ResultPack.Info">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/sci_funcs.html#AlignmentScoreTest.ResultPack.Info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.sci_funcs.AlignmentScoreTest.ResultPack.Info" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Flag</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.AlignmentScoreTest.ResultPack.Info.NODATA">
+<span class="sig-name descname"><span class="pre">NODATA</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#hairpin2.sci_funcs.AlignmentScoreTest.ResultPack.Info.NODATA" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.AlignmentScoreTest.ResultPack.Info.NO_READS">
+<span class="sig-name descname"><span class="pre">NO_READS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#hairpin2.sci_funcs.AlignmentScoreTest.ResultPack.Info.NO_READS" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.AlignmentScoreTest.ResultPack.Info.INSUFFICIENT_AS_TAGS">
+<span class="sig-name descname"><span class="pre">INSUFFICIENT_AS_TAGS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#hairpin2.sci_funcs.AlignmentScoreTest.ResultPack.Info.INSUFFICIENT_AS_TAGS" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.AlignmentScoreTest.ResultPack.Info.ON_THRESHOLD">
+<span class="sig-name descname"><span class="pre">ON_THRESHOLD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#hairpin2.sci_funcs.AlignmentScoreTest.ResultPack.Info.ON_THRESHOLD" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.AlignmentScoreTest.ResultPack.outcome">
+<span class="sig-name descname"><span class="pre">outcome</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.TestOutcomes" title="hairpin2.infrastructure.structures.TestOutcomes"><span class="pre">TestOutcomes</span></a></em><a class="headerlink" href="#hairpin2.sci_funcs.AlignmentScoreTest.ResultPack.outcome" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.AlignmentScoreTest.ResultPack.avg_as">
+<span class="sig-name descname"><span class="pre">avg_as</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#hairpin2.sci_funcs.AlignmentScoreTest.ResultPack.avg_as" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.AlignmentScoreTest.ResultPack.reason">
+<span class="sig-name descname"><span class="pre">reason</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#hairpin2.sci_funcs.AlignmentScoreTest.ResultPack.Info" title="hairpin2.sci_funcs.AlignmentScoreTest.ResultPack.Info"><span class="pre">Info</span></a></em><a class="headerlink" href="#hairpin2.sci_funcs.AlignmentScoreTest.ResultPack.reason" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.AlignmentScoreTest.test_variant_reads">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">test_variant_reads</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reads</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.ExtendedRead" title="hairpin2.infrastructure.structures.ExtendedRead"><span class="pre">ExtendedRead</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">avg_AS_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#hairpin2.sci_funcs.AlignmentScoreTest.ResultPack" title="hairpin2.sci_funcs.AlignmentScoreTest.ResultPack"><span class="pre">ResultPack</span></a></span></span><a class="reference internal" href="_modules/hairpin2/sci_funcs.html#AlignmentScoreTest.test_variant_reads"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.sci_funcs.AlignmentScoreTest.test_variant_reads" title="Link to this definition"></a></dt>
+<dd><p>pc8’s Alignment Score Assessor</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.AnomalousDistributionTest">
+<em class="property"><span class="k"><span class="pre">final</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">AnomalousDistributionTest</span></span><a class="reference internal" href="_modules/hairpin2/sci_funcs.html#AnomalousDistributionTest"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.sci_funcs.AnomalousDistributionTest" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Pass/Fail a variant on the distribution of the mutant base position on the supporting reads</p>
+<p>Uses the conditions given by Ellis et al. in <a class="reference external" href="https://doi.org/10.1038/s41596-020-00437-6">doi.org/10.1038/s41596-020-00437-6</a>,
+and one additional condition devised by al35</p>
+<p>The full text of the conditional is reproduced below, with editorials in []. There is a point of ambiguity in the original conditional.
+The interpretation that this tool has opted for is indicated by [] and is expanded upon subsequently.</p>
+<hr class="docutils" />
+<p>For each variant, if the number of variant-supporting reads determined [IN PRIOR STEPS] is low (i.e. 0–1
+reads) for one strand, follow Option A. For each variant, if both strands have sufficient variant-supported reads
+(i.e. ≥2 reads), follow Option B.</p>
+<ol class="upperalpha">
+<li><dl>
+<dt>Low number of variant-supporting reads on one strand</dt><dd><p>(i) For each variant, if one strand had too few variant-supporting reads, the other strand must
+conform to:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Fewer than 90% of variant-supporting reads [ON THE STRAND] have the variant located within the first 15% of the read measured from the alignment start position.</p></li>
+<li><p>MAD &gt;0 and s.d. &gt;4 for that strand.</p></li>
+</ul>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>Sufficient variant-supporting reads on both strands</dt><dd><p>(i) For each variant, if both strands have sufficient variant-supporting reads (i.e., ≥2 reads),
+then one of the following must be true:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Fewer than 90% of variant-supporting reads should have the variant located within the first 15% of the read measured from the alignment start position.</p></li>
+<li><p>MAD &gt;2 and s.d. &gt;2 for both strands.</p></li>
+<li><p>MAD &gt;1 and s.d. &gt;10 for one strand (i.e., strong evidence of high variability in variant position in variant-supporting reads).</p></li>
+</ul>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+</ol>
+<hr class="docutils" />
+<p>The point of ambiguity is whether, on path A, to include the single read from the strand which does not sufficiently
+support the variant in the test of positional distribution across the supporting reads.
+The present interpretation is that the test should be applied only to the reads on the “other strand”,
+since the phrasing “the other strand must conform to” implies the exclusion of the single read on the low-support
+strand.</p>
+<p>The additional condition to be checked is simply whether at least N supporting reads express away from the read
+edge. This condition is experimental at this time and can be disabled by setting min_non_edge_reads to 0</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ResultPack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">outcome</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.TestOutcomes" title="hairpin2.infrastructure.structures.TestOutcomes"><span class="pre">TestOutcomes</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">strand</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.Strand" title="hairpin2.const.Strand"><span class="pre">Strand</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">reason</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack.Info" title="hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack.Info"><span class="pre">Info</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/sci_funcs.html#AnomalousDistributionTest.ResultPack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack.Info">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/sci_funcs.html#AnomalousDistributionTest.ResultPack.Info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack.Info" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Flag</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack.Info.NODATA">
+<span class="sig-name descname"><span class="pre">NODATA</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack.Info.NODATA" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack.Info.NO_READS">
+<span class="sig-name descname"><span class="pre">NO_READS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack.Info.NO_READS" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack.Info.INSUFFICIENT_READS">
+<span class="sig-name descname"><span class="pre">INSUFFICIENT_READS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack.Info.INSUFFICIENT_READS" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack.Info.EDGE_CLUSTERING">
+<span class="sig-name descname"><span class="pre">EDGE_CLUSTERING</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack.Info.EDGE_CLUSTERING" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack.Info.ONE_STRAND_DISTRIB">
+<span class="sig-name descname"><span class="pre">ONE_STRAND_DISTRIB</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">8</span></em><a class="headerlink" href="#hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack.Info.ONE_STRAND_DISTRIB" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack.Info.BOTH_STRAND_DISTRIB_BOTH">
+<span class="sig-name descname"><span class="pre">BOTH_STRAND_DISTRIB_BOTH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16</span></em><a class="headerlink" href="#hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack.Info.BOTH_STRAND_DISTRIB_BOTH" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack.Info.BOTH_STRAND_DISTRIB_ONE">
+<span class="sig-name descname"><span class="pre">BOTH_STRAND_DISTRIB_ONE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">32</span></em><a class="headerlink" href="#hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack.Info.BOTH_STRAND_DISTRIB_ONE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack.Info.MIN_NON_EDGE">
+<span class="sig-name descname"><span class="pre">MIN_NON_EDGE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">64</span></em><a class="headerlink" href="#hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack.Info.MIN_NON_EDGE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack.outcome">
+<span class="sig-name descname"><span class="pre">outcome</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.TestOutcomes" title="hairpin2.infrastructure.structures.TestOutcomes"><span class="pre">TestOutcomes</span></a></em><a class="headerlink" href="#hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack.outcome" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack.strand">
+<span class="sig-name descname"><span class="pre">strand</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="hairpin2.const.html#hairpin2.const.Strand" title="hairpin2.const.Strand"><span class="pre">Strand</span></a></em><a class="headerlink" href="#hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack.strand" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack.reason">
+<span class="sig-name descname"><span class="pre">reason</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack.Info" title="hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack.Info"><span class="pre">Info</span></a></em><a class="headerlink" href="#hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack.reason" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.AnomalousDistributionTest.test_variant_reads">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">test_variant_reads</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reads</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.ExtendedRead" title="hairpin2.infrastructure.structures.ExtendedRead"><span class="pre">ExtendedRead</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">record_start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edge_definition</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edge_clustering_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_MAD_one_strand</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_sd_one_strand</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_MAD_both_strand_weak</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_sd_both_strand_weak</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_MAD_both_strand_strong</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_sd_both_strand_strong</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">low_n_supporting_reads_boundary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_non_edge_reads</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack" title="hairpin2.sci_funcs.AnomalousDistributionTest.ResultPack"><span class="pre">ResultPack</span></a></span></span><a class="reference internal" href="_modules/hairpin2/sci_funcs.html#AnomalousDistributionTest.test_variant_reads"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.sci_funcs.AnomalousDistributionTest.test_variant_reads" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.ProportionBasedTest">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ProportionBasedTest</span></span><a class="reference internal" href="_modules/hairpin2/sci_funcs.html#ProportionBasedTest"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.sci_funcs.ProportionBasedTest" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Pass/Fail a variant on a proportion of supporting reads with/without a given property.</p>
+<p>Used by the LQF flag test to test a proportion of stutter duplicate and low-quality supporting reads.
+Used by the DVF flag test to test a proportion of stutter duplicate reads.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.ProportionBasedTest.ResultPack">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ResultPack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">outcome</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.TestOutcomes" title="hairpin2.infrastructure.structures.TestOutcomes"><span class="pre">TestOutcomes</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">reason</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#hairpin2.sci_funcs.ProportionBasedTest.ResultPack.Info" title="hairpin2.sci_funcs.ProportionBasedTest.ResultPack.Info"><span class="pre">Info</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">prop_loss</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/sci_funcs.html#ProportionBasedTest.ResultPack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.sci_funcs.ProportionBasedTest.ResultPack" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.ProportionBasedTest.ResultPack.Info">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/sci_funcs.html#ProportionBasedTest.ResultPack.Info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.sci_funcs.ProportionBasedTest.ResultPack.Info" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Flag</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.ProportionBasedTest.ResultPack.Info.NODATA">
+<span class="sig-name descname"><span class="pre">NODATA</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#hairpin2.sci_funcs.ProportionBasedTest.ResultPack.Info.NODATA" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.ProportionBasedTest.ResultPack.Info.NO_READS">
+<span class="sig-name descname"><span class="pre">NO_READS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#hairpin2.sci_funcs.ProportionBasedTest.ResultPack.Info.NO_READS" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.ProportionBasedTest.ResultPack.Info.THRESHOLD">
+<span class="sig-name descname"><span class="pre">THRESHOLD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#hairpin2.sci_funcs.ProportionBasedTest.ResultPack.Info.THRESHOLD" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.ProportionBasedTest.ResultPack.Info.MIN_PASS">
+<span class="sig-name descname"><span class="pre">MIN_PASS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#hairpin2.sci_funcs.ProportionBasedTest.ResultPack.Info.MIN_PASS" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.ProportionBasedTest.ResultPack.outcome">
+<span class="sig-name descname"><span class="pre">outcome</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.TestOutcomes" title="hairpin2.infrastructure.structures.TestOutcomes"><span class="pre">TestOutcomes</span></a></em><a class="headerlink" href="#hairpin2.sci_funcs.ProportionBasedTest.ResultPack.outcome" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.ProportionBasedTest.ResultPack.reason">
+<span class="sig-name descname"><span class="pre">reason</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#hairpin2.sci_funcs.ProportionBasedTest.ResultPack.Info" title="hairpin2.sci_funcs.ProportionBasedTest.ResultPack.Info"><span class="pre">Info</span></a></em><a class="headerlink" href="#hairpin2.sci_funcs.ProportionBasedTest.ResultPack.reason" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.ProportionBasedTest.ResultPack.prop_loss">
+<span class="sig-name descname"><span class="pre">prop_loss</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#hairpin2.sci_funcs.ProportionBasedTest.ResultPack.prop_loss" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hairpin2.sci_funcs.ProportionBasedTest.test_variant_reads">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">test_variant_reads</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reads</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.ExtendedRead" title="hairpin2.infrastructure.structures.ExtendedRead"><span class="pre">ExtendedRead</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tags_to_check</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="hairpin2.const.html#hairpin2.const.Tags" title="hairpin2.const.Tags"><span class="pre">Tags</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_loss_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_without</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#hairpin2.sci_funcs.ProportionBasedTest.ResultPack" title="hairpin2.sci_funcs.ProportionBasedTest.ResultPack"><span class="pre">ResultPack</span></a></span></span><a class="reference internal" href="_modules/hairpin2/sci_funcs.html#ProportionBasedTest.test_variant_reads"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.sci_funcs.ProportionBasedTest.test_variant_reads" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="hairpin2.const.html" class="btn btn-neutral float-left" title="const module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="hairpin2.main.html" class="btn btn-neutral float-right" title="main module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Alex Byrne.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

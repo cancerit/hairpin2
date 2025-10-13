@@ -1,0 +1,700 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>hairpin2.infrastructure.cli &mdash; hairpin2 3.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=be469e84" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=acc74ff5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            hairpin2
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#usage">Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#command-line-interface">Command Line Interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#hp2-utils">hp2-utils</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../quickstart.html#explain-var">explain-var</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../quickstart.html#get-params">get-params</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../guide.html">Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../guide.html#processes-and-parameters">Processes and Parameters</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../guide.html#process-relationships-reference">Process Relationships Reference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../guide.html#read-taggers">Read Taggers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#mark-support">mark-support</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#mark-overlap">mark-overlap</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#mark-low-qual">mark-low-qual</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#mark-duplicates">mark-duplicates</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../guide.html#variant-flaggers">Variant Flaggers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#lqf">LQF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#dvf">DVF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#alf">ALF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#adf">ADF</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../guide.html#writing-a-config">Writing a Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../guide.html#understanding-decisions">Understanding Decisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../guide.html#reproducibility-parameter-distribution">Reproducibility &amp; Parameter Distribution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../guide.html#assumptions-limitations">Assumptions &amp; Limitations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../guide.html#further-development">Further Development</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hairpin2.html">hairpin2 package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../hairpin2.html#scientific-modules">Scientific Modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../hairpin2.const.html">const module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.const.html#hairpin2.const.ValidNucleotides"><code class="docutils literal notranslate"><span class="pre">ValidNucleotides</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.const.html#hairpin2.const.Strand"><code class="docutils literal notranslate"><span class="pre">Strand</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.const.html#hairpin2.const.MutTypes"><code class="docutils literal notranslate"><span class="pre">MutTypes</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.const.html#hairpin2.const.Tags"><code class="docutils literal notranslate"><span class="pre">Tags</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.const.html#hairpin2.const.TaggerNamespaces"><code class="docutils literal notranslate"><span class="pre">TaggerNamespaces</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.const.html#hairpin2.const.FlaggerNamespaces"><code class="docutils literal notranslate"><span class="pre">FlaggerNamespaces</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../hairpin2.sci_funcs.html">sci_funcs module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagSupportingReads"><code class="docutils literal notranslate"><span class="pre">TagSupportingReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagLowQualReads"><code class="docutils literal notranslate"><span class="pre">TagLowQualReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagFragmentReads"><code class="docutils literal notranslate"><span class="pre">TagFragmentReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagStutterDuplicateReads"><code class="docutils literal notranslate"><span class="pre">TagStutterDuplicateReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.AlignmentScoreTest"><code class="docutils literal notranslate"><span class="pre">AlignmentScoreTest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.AnomalousDistributionTest"><code class="docutils literal notranslate"><span class="pre">AnomalousDistributionTest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.ProportionBasedTest"><code class="docutils literal notranslate"><span class="pre">ProportionBasedTest</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../hairpin2.main.html">main module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.main.html#hairpin2.main.hairpin2"><code class="docutils literal notranslate"><span class="pre">hairpin2()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../hairpin2.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../hairpin2.infrastructure.html">infrastructure package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.infrastructure.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../hairpin2.process_wrappers.html">process_wrappers package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.process_wrappers.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dev.html">Developer Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">hairpin2</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">hairpin2.infrastructure.cli</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for hairpin2.infrastructure.cli</h1><div class="highlight"><pre>
+<span></span><span class="c1"># hairpin2</span>
+<span class="c1">#</span>
+<span class="c1"># Copyright (C) 2024, 2025 Genome Research Ltd.</span>
+<span class="c1">#</span>
+<span class="c1"># Author: Alex Byrne &lt;ab63@sanger.ac.uk&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># Permission is hereby granted, free of charge, to any person obtaining a copy</span>
+<span class="c1"># of this software and associated documentation files (the &quot;Software&quot;), to deal</span>
+<span class="c1"># in the Software without restriction, including without limitation the rights</span>
+<span class="c1"># to use, copy, modify, merge, publish, distribute, sublicense, and/or sell</span>
+<span class="c1"># copies of the Software, and to permit persons to whom the Software is</span>
+<span class="c1"># furnished to do so, subject to the following conditions:</span>
+<span class="c1">#</span>
+<span class="c1"># The above copyright notice and this permission notice shall be included in all</span>
+<span class="c1"># copies or substantial portions of the Software.</span>
+<span class="c1">#</span>
+<span class="c1"># THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR</span>
+<span class="c1"># IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,</span>
+<span class="c1"># FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE</span>
+<span class="c1"># AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER</span>
+<span class="c1"># LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,</span>
+<span class="c1"># OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE</span>
+<span class="c1"># SOFTWARE.</span>
+
+<span class="c1"># pyright: reportImplicitStringConcatenation=false</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tomllib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">zlib</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">cast</span><span class="p">,</span> <span class="n">override</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">click</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pysam</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">hairpin2.infrastructure.rascheduler</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigError</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hairpin2.main</span><span class="w"> </span><span class="kn">import</span> <span class="n">hairpin2</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hairpin2.process_wrappers.default_exec</span><span class="w"> </span><span class="kn">import</span> <span class="n">DEFAULT_EXEC_CONFIG</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hairpin2.VERSION</span><span class="w"> </span><span class="kn">import</span> <span class="n">VERSION</span>
+
+<span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span>
+    <span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%(asctime)s</span><span class="s2"> ¦ </span><span class="si">%(levelname)-8s</span><span class="s2"> ¦ </span><span class="si">%(message)s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">datefmt</span><span class="o">=</span><span class="s2">&quot;%I:%M:%S&quot;</span>
+<span class="p">)</span>
+
+
+<span class="n">EXIT_SUCCESS</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">EXIT_FAILURE</span> <span class="o">=</span> <span class="mi">1</span>
+
+
+<span class="n">existing_file_path</span> <span class="o">=</span> <span class="n">click</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span>
+    <span class="n">exists</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">file_okay</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">dir_okay</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">readable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">resolve_path</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">path_type</span><span class="o">=</span><span class="n">Path</span>
+<span class="p">)</span>
+
+<span class="n">writeable_file_path</span> <span class="o">=</span> <span class="n">click</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span>
+    <span class="n">dir_okay</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">writable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">resolve_path</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="JSONOrFile">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.cli.html#hairpin2.infrastructure.cli.JSONOrFile">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">JSONOrFile</span><span class="p">(</span><span class="n">click</span><span class="o">.</span><span class="n">ParamType</span><span class="p">):</span>
+<div class="viewcode-block" id="JSONOrFile.convert">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.cli.html#hairpin2.infrastructure.cli.JSONOrFile.convert">[docs]</a>
+    <span class="nd">@override</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">convert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">param</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span>
+        <span class="c1"># try to interpret as a path</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="n">Path</span><span class="p">,</span> <span class="n">existing_file_path</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">ctx</span><span class="p">))</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">click</span><span class="o">.</span><span class="n">BadParameter</span><span class="p">:</span>
+            <span class="k">pass</span>  <span class="c1"># not a valid file path, treat as raw JSON</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fail</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to parse JSON file &#39;</span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span>
+
+        <span class="c1"># try parsing as raw JSON string</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">json</span><span class="o">.</span><span class="n">JSONDecodeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fail</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid JSON input: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ConfigFile">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.cli.html#hairpin2.infrastructure.cli.ConfigFile">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ConfigFile</span><span class="p">(</span><span class="n">click</span><span class="o">.</span><span class="n">ParamType</span><span class="p">):</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;config-file&quot;</span>
+
+<div class="viewcode-block" id="ConfigFile.convert">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.cli.html#hairpin2.infrastructure.cli.ConfigFile.convert">[docs]</a>
+    <span class="nd">@override</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">convert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">param</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="n">Path</span><span class="p">,</span> <span class="n">existing_file_path</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">ctx</span><span class="p">))</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">read_bytes</span><span class="p">()</span>
+        <span class="n">ext</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">ext</span> <span class="o">==</span> <span class="s2">&quot;.toml&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">tomllib</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="n">ext</span> <span class="o">==</span> <span class="s2">&quot;.json&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">fail</span><span class="p">(</span><span class="s2">&quot;Expected .toml or .json&quot;</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fail</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to parse </span><span class="si">{</span><span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">ex</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span></div>
+</div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_coerce_value</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">raw</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">raw</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s1">&#39;--set </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s1">: could not interpet value &quot;</span><span class="si">{</span><span class="n">raw</span><span class="si">}</span><span class="s1">&quot; as JSON-format value, assuming string&#39;</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">s</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_set_dleaf</span><span class="p">(</span><span class="n">targetd</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Set obj[path] = value where path is &#39;a.b.c&#39; and only override existing leaf.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span> <span class="ow">or</span> <span class="s2">&quot;.&quot;</span> <span class="ow">in</span> <span class="p">(</span><span class="n">path</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">path</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]):</span>
+        <span class="k">raise</span> <span class="n">click</span><span class="o">.</span><span class="n">BadParameter</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid path for --set: </span><span class="si">{</span><span class="n">path</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">dot_segments</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">seg</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="k">for</span> <span class="n">seg</span> <span class="ow">in</span> <span class="n">dot_segments</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">click</span><span class="o">.</span><span class="n">BadParameter</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid path (empty segment) for --set: </span><span class="si">{</span><span class="n">path</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">d_recursor</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">targetd</span>
+
+    <span class="c1"># walk all but last key</span>
+    <span class="k">for</span> <span class="n">seg</span> <span class="ow">in</span> <span class="n">dot_segments</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d_recursor</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">click</span><span class="o">.</span><span class="n">BadParameter</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;--set </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">: &#39;</span><span class="si">{</span><span class="n">seg</span><span class="si">}</span><span class="s2">&#39; is not a mapping/dict in config&quot;</span><span class="p">)</span>  <span class="c1"># pyright: ignore[reportUnreachable]</span>
+        <span class="k">if</span> <span class="n">seg</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">d_recursor</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">click</span><span class="o">.</span><span class="n">BadParameter</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;--set </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">: missing key &#39;</span><span class="si">{</span><span class="n">seg</span><span class="si">}</span><span class="s2">&#39; in config&quot;</span><span class="p">)</span>
+        <span class="n">d_recursor</span> <span class="o">=</span> <span class="n">d_recursor</span><span class="p">[</span><span class="n">seg</span><span class="p">]</span>
+
+    <span class="n">terminal_key</span> <span class="o">=</span> <span class="n">dot_segments</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d_recursor</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">click</span><span class="o">.</span><span class="n">BadParameter</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;--set </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">: parent of &#39;</span><span class="si">{</span><span class="n">terminal_key</span><span class="si">}</span><span class="s2">&#39; is not a dict&quot;</span><span class="p">)</span>  <span class="c1"># pyright: ignore[reportUnreachable]</span>
+    <span class="k">if</span> <span class="n">terminal_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">d_recursor</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">click</span><span class="o">.</span><span class="n">BadParameter</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;--set </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">: missing key &#39;</span><span class="si">{</span><span class="n">terminal_key</span><span class="si">}</span><span class="s2">&#39; in config&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d_recursor</span><span class="p">[</span><span class="n">terminal_key</span><span class="p">],</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d_recursor</span><span class="p">[</span><span class="n">terminal_key</span><span class="p">],</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">click</span><span class="o">.</span><span class="n">BadParameter</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;--set </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">: final target is a mapping/dict or array/list; only leaf values may be overridden&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># override</span>
+    <span class="n">d_recursor</span><span class="p">[</span><span class="n">terminal_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_apply_overrides_callback</span><span class="p">(</span>
+    <span class="n">ctx</span><span class="p">:</span> <span class="n">click</span><span class="o">.</span><span class="n">Context</span><span class="p">,</span>
+    <span class="n">param</span><span class="p">:</span> <span class="n">click</span><span class="o">.</span><span class="n">Option</span><span class="p">,</span>  <span class="c1"># pyright: ignore[reportUnusedParameter]</span>
+    <span class="n">pairs</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="o">...</span><span class="p">],</span>
+<span class="p">):</span>
+    <span class="n">configd</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;configd&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">configd</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">click</span><span class="o">.</span><span class="n">BadParameter</span><span class="p">(</span><span class="s2">&quot;--set must occur after --config&quot;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">keypath</span><span class="p">,</span> <span class="n">raw</span> <span class="ow">in</span> <span class="n">pairs</span><span class="p">:</span>
+        <span class="n">_set_dleaf</span><span class="p">(</span><span class="n">configd</span><span class="p">,</span> <span class="n">keypath</span><span class="p">,</span> <span class="n">_coerce_value</span><span class="p">(</span><span class="n">keypath</span><span class="p">,</span> <span class="n">raw</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="kc">None</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_resolve_configd_callback</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">param</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]):</span>  <span class="c1"># pyright: ignore[reportUnusedParameter]</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Merge config files</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># handle substitutions, merge</span>
+    <span class="n">merged</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">for</span> <span class="n">configd</span> <span class="ow">in</span> <span class="n">values</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">configd</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">key</span> <span class="ow">in</span> <span class="n">merged</span>
+            <span class="p">):</span>  <span class="c1"># TODO: allow splitting params key only across files as long as no sub keys overlap</span>
+                <span class="k">raise</span> <span class="n">click</span><span class="o">.</span><span class="n">BadParameter</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;-c/--config: top-level key </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> appears in more than one config. Top-level keys may not be split across config files&quot;</span>
+                <span class="p">)</span>
+            <span class="n">merged</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">merged</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;exec&quot;</span><span class="p">):</span>
+        <span class="n">merged</span><span class="p">[</span><span class="s2">&quot;exec&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">DEFAULT_EXEC_CONFIG</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;execution flow configuration not provided; using defaults&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">merged</span>
+
+
+<span class="nd">@click</span><span class="o">.</span><span class="n">command</span><span class="p">(</span>
+    <span class="n">epilog</span><span class="o">=</span><span class="s2">&quot;see documentation at https://github.com/cancerit/hairpin2 or at tool install location for further information&quot;</span><span class="p">,</span>
+    <span class="n">options_metavar</span><span class="o">=</span><span class="s2">&quot;[-h, --help] [OPTIONS]&quot;</span><span class="p">,</span>
+    <span class="n">context_settings</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">help_option_names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;-h&quot;</span><span class="p">,</span> <span class="s2">&quot;--help&quot;</span><span class="p">]),</span>
+<span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">version_option</span><span class="p">(</span><span class="n">VERSION</span><span class="p">,</span> <span class="s2">&quot;-v&quot;</span><span class="p">,</span> <span class="s2">&quot;--version&quot;</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%(version)s</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">argument</span><span class="p">(</span><span class="s2">&quot;vcf&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">existing_file_path</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">argument</span><span class="p">(</span><span class="s2">&quot;alignments&quot;</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">existing_file_path</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="c1"># Procedural options</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
+    <span class="s2">&quot;-c&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;--config&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;configd&quot;</span><span class="p">,</span>
+    <span class="n">multiple</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;FILEPATH&quot;</span><span class="p">,</span>
+    <span class="nb">type</span><span class="o">=</span><span class="n">ConfigFile</span><span class="p">(),</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;path to config TOML/s or JSON/s from which processes and execution will be configured. May be provided multiple times; individual configs can be provided for each top level key (params, exec).&quot;</span><span class="p">,</span>
+    <span class="n">callback</span><span class="o">=</span><span class="n">_resolve_configd_callback</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
+    <span class="s2">&quot;-o&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;--output-config&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;output_config_path&quot;</span><span class="p">,</span>
+    <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;FILEPATH&quot;</span><span class="p">,</span>
+    <span class="nb">type</span><span class="o">=</span><span class="n">writeable_file_path</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;log run configuration back to a new JSON file.&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
+    <span class="s2">&quot;--set&quot;</span><span class="p">,</span>
+    <span class="n">nargs</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">multiple</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="nb">type</span><span class="o">=</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">click</span><span class="o">.</span><span class="n">UNPROCESSED</span><span class="p">),</span>
+    <span class="n">expose_value</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">callback</span><span class="o">=</span><span class="n">_apply_overrides_callback</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Override values in the supplied config. Uses dot paths for the key, and JSON format for the value, e.g., --set params.DVF.read_loss_threshold 0.6. Must be provided after --config. May be provided multiple times.&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
+    <span class="s2">&quot;-m&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;--name-mapping&quot;</span><span class="p">,</span>
+    <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;JSON_STRING | FILEPATH&quot;</span><span class="p">,</span>
+    <span class="nb">type</span><span class="o">=</span><span class="n">JSONOrFile</span><span class="p">(),</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;If sample names in VCF differ from SM tags in alignment files, provide a key here to map them. &quot;</span>
+    <span class="s2">&quot;Accepts a path to a JSON file, or JSON-formatted string of key-value pairs where keys are sample names in the VCF &quot;</span>
+    <span class="s2">&quot;and all values are either the SM tag or the filepath of the relevant alignment &quot;</span>
+    <span class="s1">&#39;- e.g. </span><span class="se">\&#39;</span><span class="s1">{&quot;sample0&quot;: &quot;PDxxA&quot;, &quot;sample1&quot;: &quot;PDxxB&quot;}</span><span class="se">\&#39;</span><span class="s1"> or </span><span class="se">\&#39;</span><span class="s1">{&quot;sample0&quot;: &quot;A.bam&quot;, ...}</span><span class="se">\&#39;</span><span class="s1">. &#39;</span>
+    <span class="s2">&quot;When only a single alignment is provided, also accepts a JSON-spec top-level array of possible sample of interest names &quot;</span>
+    <span class="s1">&#39;- e.g. </span><span class="se">\&#39;</span><span class="s1">[&quot;TUMOR&quot;,&quot;TUMOUR&quot;]</span><span class="se">\&#39;</span><span class="s1">. &#39;</span>
+    <span class="s2">&quot;Note that when providing a JSON-formatted string at the command line you must single quote the string, and use only double quotes internally.&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
+    <span class="s2">&quot;-r&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;--cram-reference&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;cram_reference_path&quot;</span><span class="p">,</span>
+    <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;FILEPATH&quot;</span><span class="p">,</span>
+    <span class="nb">type</span><span class="o">=</span><span class="n">existing_file_path</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;path to FASTA format CRAM reference, overrides $REF_PATH and UR tags for CRAM alignments.&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
+    <span class="s2">&quot;-q&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;--quiet&quot;</span><span class="p">,</span>
+    <span class="n">count</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;be quiet (-q to not log INFO level messages, -qq to additionally not log WARN).&quot;</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
+    <span class="s2">&quot;-p&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;--progress&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;progress_bar&quot;</span><span class="p">,</span>
+    <span class="n">is_flag</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;display progress bar on stderr during run.&quot;</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">hairpin2_cli</span><span class="p">(</span>
+    <span class="n">vcf</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">alignments</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">configd</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">output_config_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">name_mapping</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">cram_reference_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">quiet</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">progress_bar</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    read-aware artefactual variant flagging algorithms. Flag variants in VCF using statistics calculated from supporting reads found in ALIGNMENTS and emit the flagged VCF to stdout.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">vcf_in_handle</span> <span class="o">=</span> <span class="n">pysam</span><span class="o">.</span><span class="n">VariantFile</span><span class="p">(</span><span class="n">vcf</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">er</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;failed to open input VCF, reporting </span><span class="si">{</span><span class="n">er</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">)</span>
+    <span class="n">vcf_names</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">vcf_in_handle</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">samples</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">vcf_names</span><span class="p">))</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">vcf_names</span><span class="p">):</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;duplicate sample names in input VCF&quot;</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">)</span>
+
+    <span class="n">sm_to_aln_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pysam</span><span class="o">.</span><span class="n">AlignmentFile</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">filename_to_aln_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pysam</span><span class="o">.</span><span class="n">AlignmentFile</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">path_str</span> <span class="ow">in</span> <span class="n">alignments</span><span class="p">:</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path_str</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">match</span> <span class="n">path</span><span class="o">.</span><span class="n">suffix</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="k">case</span> <span class="s2">&quot;s&quot;</span> <span class="o">|</span> <span class="s2">&quot;S&quot;</span><span class="p">:</span>
+                    <span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;r&quot;</span>
+                <span class="k">case</span> <span class="s2">&quot;b&quot;</span> <span class="o">|</span> <span class="s2">&quot;B&quot;</span><span class="p">:</span>
+                    <span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;rb&quot;</span>
+                <span class="k">case</span> <span class="s2">&quot;c&quot;</span> <span class="o">|</span> <span class="s2">&quot;C&quot;</span><span class="p">:</span>
+                    <span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;rc&quot;</span>
+                <span class="k">case</span><span class="w"> </span><span class="k">_</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">IndexError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Could not infer alignment format from suffix </span><span class="si">{</span><span class="n">path</span><span class="o">.</span><span class="n">suffix</span><span class="si">!r}</span><span class="s2"> of file </span><span class="si">{</span><span class="n">path_str</span><span class="si">!r}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cram_reference_path</span> <span class="ow">and</span> <span class="n">mode</span> <span class="o">!=</span> <span class="s2">&quot;rc&quot;</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;CRAM reference provided, but alignment at </span><span class="si">{</span><span class="n">path_str</span><span class="si">!r}</span><span class="s2"> not inferred as cram from suffix </span><span class="si">{</span><span class="n">path</span><span class="o">.</span><span class="n">suffix</span><span class="si">!r}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">alignment</span> <span class="o">=</span> <span class="n">pysam</span><span class="o">.</span><span class="n">AlignmentFile</span><span class="p">(</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">),</span>
+                <span class="n">mode</span><span class="p">,</span>
+                <span class="n">reference_filename</span><span class="o">=</span><span class="p">(</span><span class="n">cram_reference_path</span> <span class="k">if</span> <span class="n">cram_reference_path</span> <span class="k">else</span> <span class="kc">None</span><span class="p">),</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">er</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;failed to read alignment file </span><span class="si">{</span><span class="n">path</span><span class="si">!r}</span><span class="s2">, reporting </span><span class="si">{</span><span class="n">er</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">)</span>
+        <span class="c1"># grab the sample name from the first SM field</span>
+        <span class="c1"># in header field RG</span>
+        <span class="n">aln_sm</span> <span class="o">=</span> <span class="n">alignment</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()[</span><span class="s2">&quot;RG&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;SM&quot;</span><span class="p">]</span>  <span class="c1"># pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]</span>
+        <span class="n">sm_to_aln_map</span><span class="p">[</span><span class="n">aln_sm</span><span class="p">]</span> <span class="o">=</span> <span class="n">alignment</span>
+        <span class="n">filename_to_aln_map</span><span class="p">[</span><span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">alignment</span>
+
+    <span class="n">vcf_sample_to_alignment_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pysam</span><span class="o">.</span><span class="n">AlignmentFile</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">match</span> <span class="n">name_mapping</span><span class="p">:</span>
+        <span class="k">case</span> <span class="nb">list</span><span class="p">():</span>
+            <span class="n">matches</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">name_mapping</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">vcf_names</span><span class="p">)]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">matches</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="n">msg</span><span class="o">=</span><span class="s2">&quot;More than one of the VCF sample names provided to name mapping </span><span class="si">{name_mapping}</span><span class="s2"> match any sample names in input VCF </span><span class="si">{vcf_names}</span><span class="s2">!&quot;</span>
+                <span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="ow">not</span> <span class="n">matches</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;None of VCF sample names provided to name mapping </span><span class="si">{</span><span class="n">name_mapping</span><span class="si">}</span><span class="s2"> match any sample name in input VCF </span><span class="si">{</span><span class="n">vcf_names</span><span class="si">}</span><span class="s2">!&quot;</span>
+                <span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">quiet</span><span class="p">:</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;matched alignment to sample </span><span class="si">{}</span><span class="s2"> in VCF&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">matches</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+                <span class="n">vcf_sample_to_alignment_map</span><span class="p">[</span><span class="n">matches</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">alignment</span>  <span class="c1"># pyright: ignore[reportPossiblyUnboundVariable] | since length of alignments == 1, can just reuse this variable</span>
+        <span class="k">case</span> <span class="nb">dict</span><span class="p">():</span>
+            <span class="n">vcf_map_keys</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">alignment_map_values</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">name_mapping</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">vcf_map_keys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+                <span class="n">alignment_map_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">vcf_map_keys</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">vcf_map_keys</span><span class="p">)):</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;duplicate keys (VCF sample names) provided to name mapping!&quot;</span><span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">set</span><span class="p">(</span><span class="n">vcf_map_keys</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="nb">set</span><span class="p">(</span><span class="n">vcf_names</span><span class="p">):</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;keys (VCF sample names) provided to name mapping </span><span class="si">{</span><span class="n">vcf_map_keys</span><span class="si">!r}</span><span class="s2"> are not equal to or a subset of VCF samples from input VCF </span><span class="si">{</span><span class="n">vcf_names</span><span class="si">!r}</span><span class="s2">!&quot;</span>
+                <span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">alignment_map_values</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">alignment_map_values</span><span class="p">)):</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="n">msg</span><span class="o">=</span><span class="s2">&quot;duplicate values (alignment SM tags/filenames) provided to name mapping!&quot;</span>
+                <span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">)</span>
+
+            <span class="n">match_sm</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">alignment_map_values</span><span class="p">)</span> <span class="o">==</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">sm_to_aln_map</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="n">match_fn</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">alignment_map_values</span><span class="p">)</span> <span class="o">==</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">filename_to_aln_map</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">match_sm</span><span class="p">:</span>
+                <span class="n">vcf_sample_to_alignment_map</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="n">vcf_map_keys</span><span class="p">[</span><span class="n">alignment_map_values</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">k</span><span class="p">)]:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">sm_to_aln_map</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="p">}</span>
+            <span class="k">elif</span> <span class="n">match_fn</span><span class="p">:</span>
+                <span class="n">vcf_sample_to_alignment_map</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="n">vcf_map_keys</span><span class="p">[</span><span class="n">alignment_map_values</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">k</span><span class="p">)]:</span> <span class="n">v</span>
+                    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">filename_to_aln_map</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="p">}</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;values provided to name mapping </span><span class="si">{</span><span class="n">alignment_map_values</span><span class="si">!r}</span><span class="s2"> are not equal to the either the SM tags or the filenames of the alignments provided&quot;</span>
+                <span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">match_sm</span> <span class="ow">and</span> <span class="n">match_fn</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;intention ambiguous - values provided to name mapping </span><span class="si">{</span><span class="n">alignment_map_values</span><span class="si">!r}</span><span class="s2"> are equal to both the SM tags and the filenames of alignments. Mapping against SM tags, not filenames&quot;</span>
+                <span class="p">)</span>
+        <span class="k">case</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">sm_to_aln_map</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="nb">set</span><span class="p">(</span><span class="n">vcf_names</span><span class="p">):</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="n">msg</span><span class="o">=</span><span class="s2">&quot;alignment SM tags </span><span class="si">{}</span><span class="s2"> are not equal to or a subset of VCF sample names </span><span class="si">{}</span><span class="s2"> - use a name mapping&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="nb">set</span><span class="p">(</span><span class="n">sm_to_aln_map</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="nb">set</span><span class="p">(</span><span class="n">vcf_names</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">)</span>
+            <span class="n">vcf_sample_to_alignment_map</span> <span class="o">=</span> <span class="n">sm_to_aln_map</span>
+        <span class="k">case</span><span class="w"> </span><span class="k">_</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;name mapping misformatted. Expected deserialised JSON, received </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">name_mapping</span><span class="p">)</span><span class="si">}</span><span class="s2">, containing </span><span class="si">{</span><span class="n">name_mapping</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>  <span class="c1"># pyright: ignore[reportUnreachable]</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">set</span><span class="p">(</span><span class="n">vcf_names</span><span class="p">)</span> <span class="o">!=</span> <span class="n">vcf_sample_to_alignment_map</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">quiet</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;alignments not provided for all VCF samples; </span><span class="si">{}</span><span class="s2"> will be ignored&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="nb">set</span><span class="p">(</span><span class="n">vcf_names</span><span class="p">)</span> <span class="o">-</span> <span class="n">vcf_sample_to_alignment_map</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="c1"># this should move</span>
+    <span class="c1"># init output  TODO: put these in filter modules as funcs</span>
+    <span class="c1"># TODO: placeholder variable accession, super fragile I know</span>
+    <span class="n">out_head</span> <span class="o">=</span> <span class="n">vcf_in_handle</span><span class="o">.</span><span class="n">header</span>
+    <span class="n">out_head</span><span class="o">.</span><span class="n">add_line</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s1">&#39;##FILTER=&lt;ID=ALF,Description=&quot;Median alignment score of reads reporting variant less than </span><span class="si">{</span><span class="n">configd</span><span class="p">[</span><span class="s2">&quot;params&quot;</span><span class="p">][</span><span class="s2">&quot;ALF&quot;</span><span class="p">][</span><span class="s2">&quot;avg_AS_threshold&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">&quot;&gt;&#39;</span>  <span class="c1"># TODO: move to result or flagger classes</span>
+    <span class="p">)</span>
+    <span class="n">out_head</span><span class="o">.</span><span class="n">add_line</span><span class="p">(</span>
+        <span class="s1">&#39;##FILTER=&lt;ID=ADF,Description=&quot;Variant shows anomalous distribution in supporting reads&quot;&gt;&#39;</span>
+    <span class="p">)</span>
+    <span class="n">out_head</span><span class="o">.</span><span class="n">add_line</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s1">&#39;##FILTER=&lt;ID=DVF,Description=&quot;More than </span><span class="si">{</span><span class="n">configd</span><span class="p">[</span><span class="s2">&quot;params&quot;</span><span class="p">][</span><span class="s2">&quot;DVF&quot;</span><span class="p">][</span><span class="s2">&quot;read_loss_threshold&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1"> of reads supporting this variant are considered PCR stutter duplicates&quot;&gt;&#39;</span>
+    <span class="p">)</span>
+    <span class="n">out_head</span><span class="o">.</span><span class="n">add_line</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s1">&#39;##FILTER=&lt;ID=LQF,Description=&quot;More than </span><span class="si">{</span><span class="n">configd</span><span class="p">[</span><span class="s2">&quot;params&quot;</span><span class="p">][</span><span class="s2">&quot;LQF&quot;</span><span class="p">][</span><span class="s2">&quot;read_loss_threshold&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1"> of reads supporting this variant are considered low quality&quot;&gt;&#39;</span>
+    <span class="p">)</span>
+    <span class="n">out_head</span><span class="o">.</span><span class="n">add_line</span><span class="p">(</span>
+        <span class="s1">&#39;##INFO=&lt;ID=ADF,Number=A,Type=String,Description=&quot;alt|outcome|flag|nreads|strand indicating decision reason for each alt&quot;&gt;&#39;</span>
+    <span class="p">)</span>
+    <span class="n">out_head</span><span class="o">.</span><span class="n">add_line</span><span class="p">(</span>
+        <span class="s1">&#39;##INFO=&lt;ID=ALF,Number=A,Type=String,Description=&quot;alt|outcome|flag|nreads|score indicating decision reason and average AS of supporting reads for each alt&quot;&gt;&#39;</span>
+    <span class="p">)</span>
+    <span class="n">out_head</span><span class="o">.</span><span class="n">add_line</span><span class="p">(</span>
+        <span class="s1">&#39;##INFO=&lt;ID=DVF,Number=A,Type=String,Description=&quot;alt|outcome|flag|nreads|loss indicating decision reason for each alt and ratio of supporting reads suspected to be duplicates&quot;&gt;&#39;</span>
+    <span class="p">)</span>
+    <span class="n">out_head</span><span class="o">.</span><span class="n">add_line</span><span class="p">(</span>
+        <span class="s1">&#39;##INFO=&lt;ID=LQF,Number=A,Type=String,Description=&quot;alt|outcome|flag|nreads|loss indicating decision reason for each alt and ratio of supporting reads suspected to be low quality&quot;&gt;&#39;</span>
+    <span class="p">)</span>
+    <span class="c1"># store complete description of hp2 run in header</span>
+    <span class="n">out_head</span><span class="o">.</span><span class="n">add_line</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;##hairpin2_version=</span><span class="si">{</span><span class="n">VERSION</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">out_head</span><span class="o">.</span><span class="n">add_line</span><span class="p">(</span>
+        <span class="s2">&quot;##hairpin2_params_info=The hairpin2_params key contains a reduced representation of the parameters used to run hairpin2 on this VCF. It is a JSON compressed with zlib and encoded with base85. You can retreive the JSON with hp2_utils get-params.&quot;</span>
+    <span class="p">)</span>
+    <span class="c1"># squeeze params into a tiny representation so we don&#39;t clog the output VCF</span>
+    <span class="n">confpack</span> <span class="o">=</span> <span class="n">zlib</span><span class="o">.</span><span class="n">compress</span><span class="p">(</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;params&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">configd</span><span class="p">[</span><span class="s2">&quot;params&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">configd</span><span class="p">[</span><span class="s2">&quot;exec&quot;</span><span class="p">][</span><span class="n">k</span><span class="p">][</span><span class="s2">&quot;enable&quot;</span><span class="p">]</span>
+                <span class="p">},</span>
+                <span class="s2">&quot;exec&quot;</span><span class="p">:</span> <span class="n">configd</span><span class="p">[</span><span class="s2">&quot;exec&quot;</span><span class="p">],</span>
+            <span class="p">},</span>
+            <span class="n">separators</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">,</span> <span class="s2">&quot;:&quot;</span><span class="p">),</span>  <span class="c1"># minify json</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">),</span>
+        <span class="n">level</span><span class="o">=</span><span class="mi">9</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">enc_confpack</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b85encode</span><span class="p">(</span>  <span class="c1"># encode bytes to ascii so we can store as valid string in VCF</span>
+        <span class="n">confpack</span>  <span class="c1"># NOTE: base91 even shorter, but not in stdlib</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">)</span>
+    <span class="n">out_head</span><span class="o">.</span><span class="n">add_line</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;##hairpin2_params=</span><span class="si">{</span><span class="n">enc_confpack</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">out_head</span><span class="o">.</span><span class="n">add_line</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;##hairpin2_samples=</span><span class="si">{</span><span class="nb">set</span><span class="p">(</span><span class="n">vcf_sample_to_alignment_map</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># test records</span>
+    <span class="n">prog_counter</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">flagged_record</span> <span class="ow">in</span> <span class="n">hairpin2</span><span class="p">(</span>
+            <span class="n">vcf_in_handle</span><span class="o">.</span><span class="n">fetch</span><span class="p">(),</span> <span class="n">vcf_sample_to_alignment_map</span><span class="p">,</span> <span class="n">configd</span><span class="p">,</span> <span class="n">quiet</span>
+        <span class="p">):</span>
+            <span class="k">if</span> <span class="n">prog_counter</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># a little awkward, but error before dumping out the vcf header</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">vcf_out_handle</span> <span class="o">=</span> <span class="n">pysam</span><span class="o">.</span><span class="n">VariantFile</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="n">out_head</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;failed to open VCF output, reporting: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+                    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">_</span> <span class="o">=</span> <span class="n">vcf_out_handle</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">flagged_record</span><span class="p">)</span>  <span class="c1"># pyright: ignore[reportPossiblyUnboundVariable]</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;failed to write to vcf, reporting: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">progress_bar</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">prog_counter</span> <span class="o">%</span> <span class="mi">100</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\r</span><span class="s2">chr: </span><span class="si">{</span><span class="n">flagged_record</span><span class="o">.</span><span class="n">chrom</span><span class="si">}</span><span class="s2">, pos: </span><span class="si">{</span><span class="n">flagged_record</span><span class="o">.</span><span class="n">pos</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                        <span class="n">end</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+                        <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                        <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
+                    <span class="p">)</span>
+            <span class="n">prog_counter</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># after exhausting records, print a line break</span>
+            <span class="k">if</span> <span class="n">progress_bar</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">ConfigError</span> <span class="k">as</span> <span class="n">er</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;failed to start hairpin2 executor from config/s, reporting: </span><span class="si">{</span><span class="n">er</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">output_config_path</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_config_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">output_json</span><span class="p">:</span>
+                <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">configd</span><span class="p">,</span> <span class="n">output_json</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="s2">&quot;  &quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;failed to write output JSON, reporting: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">quiet</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;hairpin complete&quot;</span><span class="p">)</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">EXIT_SUCCESS</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">hairpin2_cli</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Alex Byrne.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,371 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>hairpin2.infrastructure.configure_funcs &mdash; hairpin2 3.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=be469e84" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=acc74ff5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            hairpin2
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#usage">Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#command-line-interface">Command Line Interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#hp2-utils">hp2-utils</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../quickstart.html#explain-var">explain-var</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../quickstart.html#get-params">get-params</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../guide.html">Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../guide.html#processes-and-parameters">Processes and Parameters</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../guide.html#process-relationships-reference">Process Relationships Reference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../guide.html#read-taggers">Read Taggers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#mark-support">mark-support</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#mark-overlap">mark-overlap</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#mark-low-qual">mark-low-qual</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#mark-duplicates">mark-duplicates</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../guide.html#variant-flaggers">Variant Flaggers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#lqf">LQF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#dvf">DVF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#alf">ALF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#adf">ADF</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../guide.html#writing-a-config">Writing a Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../guide.html#understanding-decisions">Understanding Decisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../guide.html#reproducibility-parameter-distribution">Reproducibility &amp; Parameter Distribution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../guide.html#assumptions-limitations">Assumptions &amp; Limitations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../guide.html#further-development">Further Development</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hairpin2.html">hairpin2 package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../hairpin2.html#scientific-modules">Scientific Modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../hairpin2.const.html">const module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.const.html#hairpin2.const.ValidNucleotides"><code class="docutils literal notranslate"><span class="pre">ValidNucleotides</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.const.html#hairpin2.const.Strand"><code class="docutils literal notranslate"><span class="pre">Strand</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.const.html#hairpin2.const.MutTypes"><code class="docutils literal notranslate"><span class="pre">MutTypes</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.const.html#hairpin2.const.Tags"><code class="docutils literal notranslate"><span class="pre">Tags</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.const.html#hairpin2.const.TaggerNamespaces"><code class="docutils literal notranslate"><span class="pre">TaggerNamespaces</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.const.html#hairpin2.const.FlaggerNamespaces"><code class="docutils literal notranslate"><span class="pre">FlaggerNamespaces</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../hairpin2.sci_funcs.html">sci_funcs module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagSupportingReads"><code class="docutils literal notranslate"><span class="pre">TagSupportingReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagLowQualReads"><code class="docutils literal notranslate"><span class="pre">TagLowQualReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagFragmentReads"><code class="docutils literal notranslate"><span class="pre">TagFragmentReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagStutterDuplicateReads"><code class="docutils literal notranslate"><span class="pre">TagStutterDuplicateReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.AlignmentScoreTest"><code class="docutils literal notranslate"><span class="pre">AlignmentScoreTest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.AnomalousDistributionTest"><code class="docutils literal notranslate"><span class="pre">AnomalousDistributionTest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.ProportionBasedTest"><code class="docutils literal notranslate"><span class="pre">ProportionBasedTest</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../hairpin2.main.html">main module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.main.html#hairpin2.main.hairpin2"><code class="docutils literal notranslate"><span class="pre">hairpin2()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../hairpin2.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../hairpin2.infrastructure.html">infrastructure package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.infrastructure.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../hairpin2.process_wrappers.html">process_wrappers package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.process_wrappers.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dev.html">Developer Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">hairpin2</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">hairpin2.infrastructure.configure_funcs</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for hairpin2.infrastructure.configure_funcs</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">overload</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">hairpin2.infrastructure.process</span><span class="w"> </span><span class="kn">import</span> <span class="n">ReadAwareProcess</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hairpin2.infrastructure.process_engines</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">EngineResult_T</span><span class="p">,</span>
+    <span class="n">FixedParams_T</span><span class="p">,</span>
+    <span class="n">ProcessEngineProtocol</span><span class="p">,</span>
+    <span class="n">ProcessKindEnum</span><span class="p">,</span>
+    <span class="n">ReadTaggerEngine</span><span class="p">,</span>
+    <span class="n">RunParams_T</span><span class="p">,</span>
+    <span class="n">VariantFlaggerEngine</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hairpin2.infrastructure.process_params</span><span class="w"> </span><span class="kn">import</span> <span class="n">FixedParams</span><span class="p">,</span> <span class="n">RunParams</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hairpin2.infrastructure.structures</span><span class="w"> </span><span class="kn">import</span> <span class="n">FlagResult</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_create_generic_configure_deco</span><span class="p">(</span>
+    <span class="n">process_namespace</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">factory_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">FixedParams_T</span><span class="p">],</span> <span class="n">ProcessEngineProtocol</span><span class="p">[</span><span class="n">RunParams_T</span><span class="p">,</span> <span class="n">FlagResult</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]]</span>
+    <span class="o">|</span> <span class="n">Callable</span><span class="p">[[</span><span class="kc">None</span><span class="p">],</span> <span class="n">ProcessEngineProtocol</span><span class="p">[</span><span class="n">RunParams_T</span><span class="p">,</span> <span class="n">FlagResult</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]],</span>
+    <span class="n">process_type</span><span class="p">:</span> <span class="n">ProcessKindEnum</span><span class="p">,</span>
+    <span class="n">fixed_param_class</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">FixedParams</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">adds_marks</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">type</span><span class="p">[</span><span class="n">ReadAwareProcess</span><span class="p">]],</span> <span class="nb">type</span><span class="p">[</span><span class="n">ReadAwareProcess</span><span class="p">]]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">deco</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">ReadAwareProcess</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">type</span><span class="p">[</span><span class="n">ReadAwareProcess</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ReadAwareProcess</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Class does not appear to inherit from ReadAwareProcess&quot;</span><span class="p">)</span>  <span class="c1"># pyright: ignore[reportUnreachable]</span>
+
+        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">EngineFactory</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">&quot;Class already appears to be manually configured as EngineFactory is present - do not combine manual configuration with decorator&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ProcessType</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">&quot;Class already appears to be manually configured as ProcessType is present - do not combine manual configuration with decorator&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">AddsMarks</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">&quot;Class already appears to be manually configured as AddsMarks is present - do not combine manual configuration with decorator&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">cls_proc_ns</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># hack to stop the type checker getting bizarrely upset on rebinding of process_namespace</span>
+        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ProcessNamespace</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">process_namespace</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;namespace not set in decorated class, nor provided to configuration decorator. One of these options must be used&quot;</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">process_namespace</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;namespace set in decorated class, and provided to configuration decorator. Only one of these options may be used!&quot;</span>
+                <span class="p">)</span>
+            <span class="n">cls_proc_ns</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ProcessNamespace</span>
+
+        <span class="bp">cls</span><span class="o">.</span><span class="n">ProcessNamespace</span> <span class="o">=</span> <span class="n">process_namespace</span> <span class="k">if</span> <span class="n">cls_proc_ns</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">cls_proc_ns</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">EngineFactory</span> <span class="o">=</span> <span class="n">factory_func</span>  <span class="c1"># pyright: ignore[reportAttributeAccessIssue]</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">ProcessType</span> <span class="o">=</span> <span class="n">process_type</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">FixedParamClass</span> <span class="o">=</span> <span class="n">fixed_param_class</span>  <span class="c1"># TODO: hacked on as an afterthought</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">AddsMarks</span> <span class="o">=</span> <span class="n">adds_marks</span>
+
+        <span class="c1"># subclass_kwds[&#39;process_param_namespace&#39;] = subclass_ns</span>
+        <span class="c1"># subclass_kwds[&#39;engine_factory&#39;] = factory_func</span>
+        <span class="c1"># subclass_kwds[&#39;process_type&#39;] = process_type</span>
+        <span class="c1"># subclass_kwds[&#39;adds_marks&#39;] = adds_marks # should probably cross-reference against type, but the AddsMarks class var is a stopgap solution anyway</span>
+
+        <span class="c1"># def body(ns: dict[str, Any]):</span>
+        <span class="c1">#     ns[&quot;__module__&quot;] = cls.__module__ # so user class comes from the same module</span>
+        <span class="c1">#     ns[&quot;__doc__&quot;] = getattr(cls, &quot;__doc__&quot;, None) # so doc is user doc (might actually want to use provided func doc)</span>
+        <span class="c1">#     ns[&quot;__qualname__&quot;] = getattr(cls, &quot;__qualname__&quot;, cls.__name__)</span>
+
+        <span class="c1"># new_cls = cast(type[ReadAwareProcess], new_class(cls.__name__, bases, subclass_kwds, body))</span>
+
+        <span class="k">return</span> <span class="bp">cls</span>
+
+    <span class="k">return</span> <span class="n">deco</span>
+
+
+<span class="nd">@overload</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">make_read_processor</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">tagger_param_class</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">read_modifier_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">RunParams_T</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="kc">None</span><span class="p">],</span>
+    <span class="n">adds_marks</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">process_namespace</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">type</span><span class="p">[</span><span class="n">ReadAwareProcess</span><span class="p">]],</span> <span class="nb">type</span><span class="p">[</span><span class="n">ReadAwareProcess</span><span class="p">]]:</span> <span class="o">...</span>
+<span class="nd">@overload</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">make_read_processor</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">tagger_param_class</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">FixedParams</span><span class="p">],</span>
+    <span class="n">read_modifier_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">RunParams_T</span><span class="p">,</span> <span class="n">FixedParams_T</span><span class="p">],</span> <span class="kc">None</span><span class="p">],</span>
+    <span class="n">adds_marks</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">process_namespace</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">type</span><span class="p">[</span><span class="n">ReadAwareProcess</span><span class="p">]],</span> <span class="nb">type</span><span class="p">[</span><span class="n">ReadAwareProcess</span><span class="p">]]:</span> <span class="o">...</span>
+
+
+<div class="viewcode-block" id="make_read_processor">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.configure_funcs.html#hairpin2.infrastructure.configure_funcs.make_read_processor">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">make_read_processor</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">tagger_param_class</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">FixedParams</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">read_modifier_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">RunParams_T</span><span class="p">,</span> <span class="n">FixedParams_T</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span>
+    <span class="o">|</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">RunParams_T</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="kc">None</span><span class="p">],</span>
+    <span class="n">adds_marks</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">process_namespace</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">type</span><span class="p">[</span><span class="n">ReadAwareProcess</span><span class="p">]],</span> <span class="nb">type</span><span class="p">[</span><span class="n">ReadAwareProcess</span><span class="p">]]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">init_engine</span><span class="p">(</span><span class="n">params</span><span class="p">:</span> <span class="n">FixedParams_T</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ProcessEngineProtocol</span><span class="p">[</span><span class="n">RunParams_T</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">ReadTaggerEngine</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">read_modifier_func</span><span class="p">,</span> <span class="n">adds_marks</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">_create_generic_configure_deco</span><span class="p">(</span>
+        <span class="n">process_namespace</span><span class="p">,</span> <span class="n">init_engine</span><span class="p">,</span> <span class="n">ProcessKindEnum</span><span class="o">.</span><span class="n">TAGGER</span><span class="p">,</span> <span class="n">tagger_param_class</span><span class="p">,</span> <span class="nb">set</span><span class="p">(</span><span class="n">adds_marks</span><span class="p">)</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="make_variant_flagger">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.configure_funcs.html#hairpin2.infrastructure.configure_funcs.make_variant_flagger">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">make_variant_flagger</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">flagger_param_class</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">FixedParams_T</span><span class="p">],</span>
+    <span class="n">flagger_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">RunParams_T</span><span class="p">,</span> <span class="n">FixedParams_T</span><span class="p">],</span> <span class="n">EngineResult_T</span><span class="p">],</span>
+    <span class="n">result_type</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">EngineResult_T</span><span class="p">],</span>
+    <span class="n">process_namespace</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">type</span><span class="p">[</span><span class="n">ReadAwareProcess</span><span class="p">]],</span> <span class="nb">type</span><span class="p">[</span><span class="n">ReadAwareProcess</span><span class="p">]]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">init_engine</span><span class="p">(</span><span class="n">params</span><span class="p">:</span> <span class="n">FixedParams_T</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ProcessEngineProtocol</span><span class="p">[</span><span class="n">RunParams</span><span class="p">,</span> <span class="n">FlagResult</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">VariantFlaggerEngine</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">flagger_func</span><span class="p">,</span> <span class="n">result_type</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">_create_generic_configure_deco</span><span class="p">(</span>
+        <span class="n">process_namespace</span><span class="p">,</span> <span class="n">init_engine</span><span class="p">,</span> <span class="n">ProcessKindEnum</span><span class="o">.</span><span class="n">FLAGGER</span><span class="p">,</span> <span class="n">flagger_param_class</span>
+    <span class="p">)</span></div>
+
+
+
+<span class="c1"># NOTE: given this will only ever be created dynamically, it would be insane to use a class (as now) rather than an instance</span>
+<span class="c1"># class DescribedFunc(ABC):</span>
+<span class="c1">#     ProcName: ClassVar[str]</span>
+<span class="c1">#     Func: ClassVar[Callable[..., Any]]</span>
+<span class="c1">#     FuncSig: ClassVar[Signature]</span>
+<span class="c1">#     _bound_args: BoundArguments | None = None</span>
+
+<span class="c1">#     def __init_subclass__(</span>
+<span class="c1">#         cls,</span>
+<span class="c1">#         proc_name: str,</span>
+<span class="c1">#         func: Callable[..., Any]</span>
+<span class="c1">#     ) -&gt; None:</span>
+<span class="c1">#         cls.ProcName = proc_name</span>
+<span class="c1">#         cls.Func = func</span>
+<span class="c1">#         cls.FuncSig = inspect_sig(func)  # TODO: fail on positional only args present</span>
+
+<span class="c1">#     @property</span>
+<span class="c1">#     def requests_args(</span>
+<span class="c1">#         self</span>
+<span class="c1">#     ):</span>
+<span class="c1">#         # TODO: that aren&#39;t alignedsegment/variantrecord or container of only - need to separate fixed params from runtime params</span>
+<span class="c1">#         # ahhhh that actually might need sig explosion in the decorator then</span>
+<span class="c1">#         # or some of these should be classmethods idk</span>
+<span class="c1">#         return set(self.FuncSig.parameters.keys())</span>
+
+<span class="c1">#     def load(</span>
+<span class="c1">#         self,</span>
+<span class="c1">#         params: Mapping[str, Any]</span>
+<span class="c1">#     ):</span>
+<span class="c1">#         kv = {k: v for k,v in params.items() if k in self.requests_args}</span>
+<span class="c1">#         # TODO: can&#39;t bind till we have runtime params also!!</span>
+<span class="c1">#         self._bound_args = self.FuncSig.bind(**kv)</span>
+
+
+<span class="c1"># NOTE: actually this needs to decorate a class def since the free func needs to remain free!</span>
+<span class="c1"># def wrap_func(func: Callable[..., Any], step_type: Literal[&#39;tagger&#39;, &#39;flagger&#39;], proc_name: str):</span>
+<span class="c1">#     sig = inspect_sig(func)</span>
+
+
+<span class="c1">#     match step_type:</span>
+<span class="c1">#         case &#39;tagger&#39;:</span>
+<span class="c1">#             polymorphic_arg = cast(OrderedDict[str, Parameter], sig.parameters.copy()).popitem(last=False)</span>
+<span class="c1">#             # check type is alignedsegment, list[alignedsegment] or mapping[Any, AlignedSegment], get appropriate mixin (or config) to inject based on that</span>
+
+<span class="c1">#         case &#39;flagger&#39;:</span>
+<span class="c1">#             # check for variant record, ReadView/Mapping/List arg - should only be one acceptable sig pattern, I think. N.B. fixed args can be mutable if you need stateful info across many variants.</span>
+<span class="c1">#             # Oh actually you could also provide a run params class to the decorator which we could look for args in first. Not important now.</span>
+<span class="c1">#             # NOTE: trying to be too generic now will kill this project</span>
+
+
+<span class="c1">#     bases = (DescribedFunc, )</span>
+
+<span class="c1">#     subclass_kwds = {</span>
+<span class="c1">#         &#39;proc_name&#39;: proc_name,</span>
+<span class="c1">#         &#39;func&#39;: func</span>
+<span class="c1">#     }</span>
+
+<span class="c1">#     new_cls = new_class(proc_name + &#39;_DescribedFunc&#39;, bases, subclass_kwds)</span>
+<span class="c1">#     return new_cls</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Alex Byrne.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

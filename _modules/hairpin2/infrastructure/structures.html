@@ -1,0 +1,621 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>hairpin2.infrastructure.structures &mdash; hairpin2 3.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=be469e84" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=acc74ff5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            hairpin2
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#usage">Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#command-line-interface">Command Line Interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quickstart.html#hp2-utils">hp2-utils</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../quickstart.html#explain-var">explain-var</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../quickstart.html#get-params">get-params</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../guide.html">Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../guide.html#processes-and-parameters">Processes and Parameters</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../guide.html#process-relationships-reference">Process Relationships Reference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../guide.html#read-taggers">Read Taggers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#mark-support">mark-support</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#mark-overlap">mark-overlap</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#mark-low-qual">mark-low-qual</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#mark-duplicates">mark-duplicates</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../guide.html#variant-flaggers">Variant Flaggers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#lqf">LQF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#dvf">DVF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#alf">ALF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../guide.html#adf">ADF</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../guide.html#writing-a-config">Writing a Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../guide.html#understanding-decisions">Understanding Decisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../guide.html#reproducibility-parameter-distribution">Reproducibility &amp; Parameter Distribution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../guide.html#assumptions-limitations">Assumptions &amp; Limitations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../guide.html#further-development">Further Development</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hairpin2.html">hairpin2 package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../hairpin2.html#scientific-modules">Scientific Modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../hairpin2.const.html">const module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.const.html#hairpin2.const.ValidNucleotides"><code class="docutils literal notranslate"><span class="pre">ValidNucleotides</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.const.html#hairpin2.const.Strand"><code class="docutils literal notranslate"><span class="pre">Strand</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.const.html#hairpin2.const.MutTypes"><code class="docutils literal notranslate"><span class="pre">MutTypes</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.const.html#hairpin2.const.Tags"><code class="docutils literal notranslate"><span class="pre">Tags</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.const.html#hairpin2.const.TaggerNamespaces"><code class="docutils literal notranslate"><span class="pre">TaggerNamespaces</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.const.html#hairpin2.const.FlaggerNamespaces"><code class="docutils literal notranslate"><span class="pre">FlaggerNamespaces</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../hairpin2.sci_funcs.html">sci_funcs module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagSupportingReads"><code class="docutils literal notranslate"><span class="pre">TagSupportingReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagLowQualReads"><code class="docutils literal notranslate"><span class="pre">TagLowQualReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagFragmentReads"><code class="docutils literal notranslate"><span class="pre">TagFragmentReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagStutterDuplicateReads"><code class="docutils literal notranslate"><span class="pre">TagStutterDuplicateReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.AlignmentScoreTest"><code class="docutils literal notranslate"><span class="pre">AlignmentScoreTest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.AnomalousDistributionTest"><code class="docutils literal notranslate"><span class="pre">AnomalousDistributionTest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.ProportionBasedTest"><code class="docutils literal notranslate"><span class="pre">ProportionBasedTest</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../hairpin2.main.html">main module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.main.html#hairpin2.main.hairpin2"><code class="docutils literal notranslate"><span class="pre">hairpin2()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../hairpin2.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../hairpin2.infrastructure.html">infrastructure package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.infrastructure.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../hairpin2.process_wrappers.html">process_wrappers package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../hairpin2.process_wrappers.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dev.html">Developer Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">hairpin2</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">hairpin2.infrastructure.structures</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for hairpin2.infrastructure.structures</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Flag</span><span class="p">,</span> <span class="n">StrEnum</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">chain</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">TYPE_CHECKING</span><span class="p">,</span>
+    <span class="n">Any</span><span class="p">,</span>
+    <span class="n">ClassVar</span><span class="p">,</span>
+    <span class="n">Generic</span><span class="p">,</span>
+    <span class="n">Literal</span><span class="p">,</span>
+    <span class="n">Protocol</span><span class="p">,</span>
+    <span class="n">TypeVar</span><span class="p">,</span>
+    <span class="n">final</span><span class="p">,</span>
+    <span class="n">overload</span><span class="p">,</span>
+    <span class="n">override</span><span class="p">,</span>
+    <span class="n">runtime_checkable</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pysam</span><span class="w"> </span><span class="kn">import</span> <span class="n">AlignedSegment</span><span class="p">,</span> <span class="n">VariantRecord</span>
+
+<span class="n">wrap_T</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;wrap_T&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="DataExtensionBase">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.DataExtensionBase">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DataExtensionBase</span><span class="p">(</span><span class="n">ABC</span><span class="p">,</span> <span class="n">Generic</span><span class="p">[</span><span class="n">wrap_T</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Wrapper adding metadata handling to the object and forwarding other methods to the wrapped object.</span>
+
+<span class="sd">    pysam objects which we expect to operate on are C extensions. This means no monkey patching.</span>
+<span class="sd">    One could store associated metadata in a separate object, but the ergonomics of doing so clash with the</span>
+<span class="sd">    intention of this library. Hence, this approach - a wrapper that uses method forwarding to the wrapped object</span>
+<span class="sd">    and adds non-clashing methods of its own to store per-object level data. Note that the wrapper is intentionally</span>
+<span class="sd">    non-transparent, i.e. it will not pass an isinstance check against the type of the wrapped object.</span>
+
+<span class="sd">    Note: the instance methods are all private as the opinion of the package is that one should define free</span>
+<span class="sd">    functions specific to any extended subclass one creates, encouraging greater flexibility with regard</span>
+<span class="sd">    to the properties of the wrapped object</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">__wrap_obj</span><span class="p">:</span> <span class="n">wrap_T</span>
+    <span class="n">__data_store</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+    <span class="n">__tag_store</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">__operation_record</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">wrap_obj</span><span class="p">:</span> <span class="n">wrap_T</span><span class="p">,</span>  <span class="c1"># I guess I trust you</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__wrap_obj</span> <span class="o">=</span> <span class="n">wrap_obj</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__data_store</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__tag_store</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__operation_record</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="c1"># pass through to wrapped</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__wrap_obj</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">unwrapped</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__wrap_obj</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_record_ext_op</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Record having performed a process on this object, regardless of outcome.</span>
+
+<span class="sd">        Useful when using _ext_mark, as objects may be checked, but on the outcome, not marked.</span>
+<span class="sd">        Without this record it would not be clear that they had been checked at all.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__operation_record</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">op</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_operation_history</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__operation_record</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_ext_mark</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">mark</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Record a truth tag on this object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__tag_store</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">mark</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_has_ext_mark</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mark</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">True</span> <span class="k">if</span> <span class="n">mark</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__tag_store</span> <span class="k">else</span> <span class="kc">False</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_store_ext_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">overwrite</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__data_store</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">overwrite</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Key already present and overwrite is False&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__data_store</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@overload</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_ext_data</span><span class="p">[</span><span class="n">T</span><span class="p">](</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">expected_type</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">T</span><span class="p">],</span> <span class="n">raise_on_missing</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="kc">True</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">T</span><span class="p">:</span> <span class="o">...</span>
+    <span class="nd">@overload</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_ext_data</span><span class="p">[</span><span class="n">T</span><span class="p">](</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">expected_type</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">T</span><span class="p">],</span> <span class="n">raise_on_missing</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="kc">False</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">T</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+    <span class="nd">@overload</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_ext_data</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">expected_type</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="n">raise_on_missing</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="kc">True</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span> <span class="o">...</span>
+    <span class="nd">@overload</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_ext_data</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">expected_type</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="n">raise_on_missing</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="kc">False</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_ext_data</span><span class="p">[</span><span class="n">T</span><span class="p">](</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">expected_type</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">T</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">raise_on_missing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">T</span> <span class="o">|</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__data_store</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">obj</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">raise_on_missing</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span>  <span class="c1"># placeholder</span>
+        <span class="k">if</span> <span class="n">expected_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">expected_type</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span>
+        <span class="k">return</span> <span class="n">obj</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_has_ext_data</span><span class="p">[</span><span class="n">T</span><span class="p">](</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="c1"># expected_type: type[T] | None = None,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__data_store</span></div>
+
+
+
+<div class="viewcode-block" id="record_operation">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.record_operation">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">record_operation</span><span class="p">(</span><span class="n">ext_obj</span><span class="p">:</span> <span class="n">DataExtensionBase</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">op</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="n">ext_obj</span><span class="o">.</span><span class="n">_record_ext_op</span><span class="p">(</span><span class="n">op</span><span class="p">)</span>  <span class="c1"># pyright: ignore[reportPrivateUsage]</span></div>
+
+
+
+<div class="viewcode-block" id="mark_ext_obj">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.mark_ext_obj">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">mark_ext_obj</span><span class="p">(</span><span class="n">ext_obj</span><span class="p">:</span> <span class="n">DataExtensionBase</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">mark</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">ext_obj</span><span class="o">.</span><span class="n">_ext_mark</span><span class="p">(</span><span class="n">mark</span><span class="p">)</span>  <span class="c1"># pyright: ignore[reportPrivateUsage]</span></div>
+
+
+
+<div class="viewcode-block" id="ext_obj_has_mark">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.ext_obj_has_mark">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">ext_obj_has_mark</span><span class="p">(</span><span class="n">ext_obj</span><span class="p">:</span> <span class="n">DataExtensionBase</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">mark</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">ext_obj</span><span class="o">.</span><span class="n">_has_ext_mark</span><span class="p">(</span><span class="n">mark</span><span class="p">)</span>  <span class="c1"># pyright: ignore[reportPrivateUsage]</span></div>
+
+
+
+<span class="c1"># TODO: hold private ref to Optional[ReadView] which this ExtendedRead is a part of</span>
+<span class="c1"># record tags/operations at that level also</span>
+<span class="n">_AlSegShim</span> <span class="o">=</span> <span class="n">AlignedSegment</span> <span class="k">if</span> <span class="n">TYPE_CHECKING</span> <span class="k">else</span> <span class="nb">object</span>
+
+
+<div class="viewcode-block" id="ExtendedRead">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.ExtendedRead">[docs]</a>
+<span class="nd">@final</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ExtendedRead</span><span class="p">(</span>  <span class="c1"># pyright: ignore[reportUnsafeMultipleInheritance] - because we&#39;re not really inheriting</span>
+    <span class="n">DataExtensionBase</span><span class="p">[</span><span class="n">AlignedSegment</span><span class="p">],</span>
+    <span class="n">_AlSegShim</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="c1"># TODO</span>
+    <span class="c1"># def write_mark_to_tag(</span>
+    <span class="c1">#     self,</span>
+    <span class="c1">#     key: str,</span>
+    <span class="c1">#     val: Any | None = None,</span>
+    <span class="c1">#     sam_tag_type: str | None,</span>
+    <span class="c1">#     tag_alias: str | None = None</span>
+    <span class="c1"># ):</span>
+    <span class="c1">#     val = self.has_ext_mark(key)</span>
+    <span class="c1">#     assert isinstance(val, bool)</span>
+    <span class="c1">#     sam_alias = key</span>
+    <span class="c1">#     if tag_alias is None:</span>
+    <span class="c1">#         if len(sam_alias) &gt; 2:</span>
+    <span class="c1">#             raise ValueError(&#39;sam tags may only be two characters long - use tag_alias&#39;)</span>
+    <span class="c1">#     if tag_alias:</span>
+    <span class="c1">#         if len(tag_alias) &gt; 2:</span>
+    <span class="c1">#             raise ValueError(&#39;sam tags may only be two characters long&#39;)</span>
+    <span class="c1">#         sam_alias = tag_alias</span>
+    <span class="c1">#     self.unwrapped.set_tag(sam_alias, val, &#39;i&#39;)</span>
+    <span class="k">pass</span></div>
+
+
+
+<div class="viewcode-block" id="make_extended_read">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.make_extended_read">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">make_extended_read</span><span class="p">(</span><span class="n">read</span><span class="p">:</span> <span class="n">AlignedSegment</span> <span class="o">|</span> <span class="n">ExtendedRead</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExtendedRead</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Free func and functional style to minimise pain points:</span>
+<span class="sd">        - ease of converting from AlignedSegment to ExtendedRead, no-op if already extended</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">read</span><span class="p">,</span> <span class="n">ExtendedRead</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">read</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">read</span><span class="p">,</span> <span class="n">AlignedSegment</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">ExtendedRead</span><span class="p">(</span><span class="n">read</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+            <span class="s2">&quot;data extension on read objects is only supported for pysam.AlignedSegment at this time&quot;</span>
+        <span class="p">)</span>  <span class="c1"># pyright: ignore[reportUnreachable]</span></div>
+
+
+
+<div class="viewcode-block" id="mark_read">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.mark_read">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">mark_read</span><span class="p">(</span>
+    <span class="n">read</span><span class="p">:</span> <span class="n">ExtendedRead</span><span class="p">,</span>  <span class="c1"># | AlignedSegment - TODO</span>
+    <span class="n">mark</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="c1"># write_to_segment: bool - TODO</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Free func and functional style so as to minimise pain points:</span>
+<span class="sd">        - since ExtendedRead uses method forwarding, a type checker is unhelpful when using .method() style</span>
+<span class="sd">        - can add behaviour on receiving unwrapped AlignedSegment rather than extended read</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">mark_ext_obj</span><span class="p">(</span><span class="n">read</span><span class="p">,</span> <span class="n">mark</span><span class="p">)</span></div>
+
+
+
+<span class="c1"># TODO: handle alignedsegment(?)</span>
+<div class="viewcode-block" id="read_has_mark">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.read_has_mark">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">read_has_mark</span><span class="p">(</span><span class="n">read</span><span class="p">:</span> <span class="n">ExtendedRead</span><span class="p">,</span> <span class="n">mark</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">ext_obj_has_mark</span><span class="p">(</span><span class="n">read</span><span class="p">,</span> <span class="n">mark</span><span class="p">)</span></div>
+
+
+
+<span class="n">_VarRecShim</span> <span class="o">=</span> <span class="n">VariantRecord</span> <span class="k">if</span> <span class="n">TYPE_CHECKING</span> <span class="k">else</span> <span class="nb">object</span>
+
+
+<div class="viewcode-block" id="ExtendedVariant">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.ExtendedVariant">[docs]</a>
+<span class="nd">@final</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ExtendedVariant</span><span class="p">(</span>
+    <span class="n">DataExtensionBase</span><span class="p">[</span><span class="n">VariantRecord</span><span class="p">],</span>
+    <span class="n">_VarRecShim</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="k">pass</span></div>
+
+
+
+<span class="c1"># TODO: record processes executed on readview object (for execution flow)</span>
+<span class="c1"># TODO: quick access to reads by tags, both union and intersections of</span>
+<span class="n">Read_T</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;Read_T&quot;</span><span class="p">,</span> <span class="n">ExtendedRead</span><span class="p">,</span> <span class="n">AlignedSegment</span><span class="p">,</span> <span class="n">covariant</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ReadView">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.ReadView">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ReadView</span><span class="p">(</span><span class="n">Mapping</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Read_T</span><span class="p">,</span> <span class="o">...</span><span class="p">]]):</span>
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;_data&quot;</span><span class="p">,)</span>  <span class="c1"># pyright: ignore[reportUnannotatedClassAttribute]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Read_T</span><span class="p">]],</span>
+        <span class="c1"># *,</span>
+        <span class="c1"># _internal_switches: list[str] | None = None # hidden dev options</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># switches = _internal_switches or []</span>
+        <span class="c1"># create a shallow private copy with frozen (tuple) sequences</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Read_T</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">ky</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">vl</span><span class="p">)</span> <span class="k">for</span> <span class="n">ky</span><span class="p">,</span> <span class="n">vl</span> <span class="ow">in</span> <span class="p">(</span><span class="n">data</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+
+    <span class="c1"># mapping interface with no modification surface</span>
+    <span class="nd">@override</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Read_T</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+    <span class="nd">@override</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">)</span>
+
+    <span class="nd">@override</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ReadView.keys">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.ReadView.keys">[docs]</a>
+    <span class="nd">@override</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="ReadView.values">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.ReadView.values">[docs]</a>
+    <span class="nd">@override</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">values</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  <span class="c1"># pyright: ignore[reportIncompatibleMethodOverride]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">values</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="ReadView.items">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.ReadView.items">[docs]</a>
+    <span class="nd">@override</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">items</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">items</span><span class="p">()</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">all</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">chain</span><span class="o">.</span><span class="n">from_iterable</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>  <span class="c1"># collate from all samples</span>
+
+<div class="viewcode-block" id="ReadView.validate_read_map">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.ReadView.validate_read_map">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_read_map</span><span class="p">(</span><span class="n">read_map</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">AlignedSegment</span><span class="p">]]):</span>
+        <span class="k">for</span> <span class="n">vals</span> <span class="ow">in</span> <span class="n">read_map</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">({</span><span class="nb">id</span><span class="p">(</span><span class="n">el</span><span class="p">)</span> <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">vals</span><span class="p">}):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Sequence of objects in mapping contains duplicated references pointing to the same object in memory (i.e. the same read has been included twice). Cannot create ReadView&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">rd</span><span class="p">,</span> <span class="n">AlignedSegment</span><span class="p">)</span> <span class="k">for</span> <span class="n">rd</span> <span class="ow">in</span> <span class="n">vals</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Sequence of objects in mapping contains objects that are not of type pysam.AlignedSegment&quot;</span>
+                <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ReadView.convert_pysam_to_extread">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.ReadView.convert_pysam_to_extread">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">convert_pysam_to_extread</span><span class="p">(</span><span class="n">read_map</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">AlignedSegment</span><span class="p">]],</span> <span class="n">validate</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">validate</span><span class="p">:</span>
+            <span class="n">ReadView</span><span class="o">.</span><span class="n">validate_read_map</span><span class="p">(</span><span class="n">read_map</span><span class="p">)</span>
+        <span class="n">retd</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">ExtendedRead</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">ky</span><span class="p">,</span> <span class="n">vals</span> <span class="ow">in</span> <span class="n">read_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">retd</span><span class="p">[</span><span class="n">ky</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">ExtendedRead</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">vals</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">retd</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="TestOutcomes">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.TestOutcomes">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TestOutcomes</span><span class="p">(</span><span class="n">StrEnum</span><span class="p">):</span>
+    <span class="n">VARIANT_PASS</span> <span class="o">=</span> <span class="s2">&quot;PASS&quot;</span>
+    <span class="n">VARIANT_FAIL</span> <span class="o">=</span> <span class="s2">&quot;FAIL&quot;</span>
+    <span class="n">NA</span> <span class="o">=</span> <span class="s2">&quot;NA&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="FlagResult">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.FlagResult">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">FlagResult</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parent ABC/pydantic BaseModel defining the implementation that must be followed by result subclasses - subclasses to hold results of running</span>
+<span class="sd">    the `test()` method of a specific subclass of FilterTester on a variant (e.g. for `FooFilter.test()`, the return value should include an instance of `FooResult`).</span>
+
+<span class="sd">    All filters should use subclasses that inherit from this class to hold their results, as enforced by the FilterTester ABC.</span>
+<span class="sd">    Defines and guarantees basic properties that must be shared by all filter results:</span>
+<span class="sd">        - a &#39;getinfo&#39; method for returning a string to report to the INFO field of the VCF record - a basic default is provided, but</span>
+<span class="sd">          subclasses probably want to override this.</span>
+<span class="sd">        - A basic set of instance variables, which may be extended in a subclass as necessary:</span>
+<span class="sd">            - name, a string id for the filter to be used in the VCF FILTER field.</span>
+<span class="sd">            - a flag, a boolean indicating if the filter is True/False, or None if untested.</span>
+<span class="sd">            - a code, an integer code from a set of possibilities, indicating the basis on which the test has returned True/False, or None if untested.</span>
+
+<span class="sd">    Note: FlagResult is the part of the abstractflaggers model about which I am most sceptical</span>
+<span class="sd">    since it uses init_subclass over a decorator, making it different</span>
+<span class="sd">    and because it requires the user to override an abstract method.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">FlagName</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">InfoFlags</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="n">Flag</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span>
+    <span class="n">InfoFlagsAllSet</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="n">Flag</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span>
+    <span class="n">variant_flagged</span><span class="p">:</span> <span class="n">TestOutcomes</span>
+    <span class="n">info_flag</span><span class="p">:</span> <span class="n">Flag</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="n">reads_seen</span><span class="p">:</span> <span class="nb">int</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">cls</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">InfoFlags</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">info_flag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;The class definition for FlagResult </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="n">FlagName</span><span class="si">!r}</span><span class="s2"> does not specify info flags, so you cannot set an info flag&quot;</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">cls</span><span class="o">.</span><span class="n">InfoFlags</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">info_flag</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;The class definition for FlagResult </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="n">FlagName</span><span class="si">!r}</span><span class="s2"> specifies info flags, so you must set an info flag&quot;</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">info_flag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">cls</span><span class="o">.</span><span class="n">InfoFlags</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="bp">cls</span><span class="o">.</span><span class="n">InfoFlagsAllSet</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">info_flag</span> <span class="o">&amp;</span> <span class="bp">cls</span><span class="o">.</span><span class="n">InfoFlagsAllSet</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Attempting to set info bits </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">info_flag</span><span class="si">}</span><span class="s2">, but this FlagResult </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="n">FlagName</span><span class="si">!r}</span><span class="s2"> only allows bits </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="n">InfoFlagsAllSet</span><span class="si">}</span><span class="s2">. Note that 0 is not allowed as it is reserved to indicate an unknown condition&quot;</span>
+                <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__init_subclass__</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">flag_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">info_enum</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">Flag</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">flag_name</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span>  <span class="c1"># pyright: ignore[reportUnreachable]</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">FlagName</span> <span class="o">=</span> <span class="n">flag_name</span>
+
+        <span class="k">if</span> <span class="n">info_enum</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">info_enum</span><span class="p">,</span> <span class="n">Flag</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span>  <span class="c1"># pyright: ignore[reportUnreachable]</span>
+
+            <span class="bp">cls</span><span class="o">.</span><span class="n">InfoFlags</span> <span class="o">=</span> <span class="n">info_enum</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">InfoFlagsAllSet</span> <span class="o">=</span> <span class="o">~</span><span class="n">info_enum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">InfoFlags</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">InfoFlagsAllSet</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># super().__init_subclass__(**kwargs)</span>
+
+<div class="viewcode-block" id="FlagResult.getinfo">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.FlagResult.getinfo">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">getinfo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alt</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return basic filter info in a string formatted for use in the VCF INFO field - &quot;&lt;flag&gt;|&lt;code&gt;&quot;.</span>
+
+<span class="sd">        Each filter must return INFO as it should be formatted for the VCF INFO field, or None if not applicable.</span>
+<span class="sd">        Subclasses must override this method to return more specific info.</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ResultPackProtocol">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.ResultPackProtocol">[docs]</a>
+<span class="nd">@runtime_checkable</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ResultPackProtocol</span><span class="p">[</span><span class="n">T</span><span class="p">:</span> <span class="n">Flag</span><span class="p">](</span><span class="n">Protocol</span><span class="p">):</span>
+    <span class="n">Info</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">T</span><span class="p">]</span>
+    <span class="n">outcome</span><span class="p">:</span> <span class="n">TestOutcomes</span>
+    <span class="n">reason</span><span class="p">:</span> <span class="n">T</span></div>
+
+
+
+<div class="viewcode-block" id="VariantTestProtocol">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.VariantTestProtocol">[docs]</a>
+<span class="nd">@runtime_checkable</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">VariantTestProtocol</span><span class="p">[</span><span class="n">T</span><span class="p">:</span> <span class="n">ResultPackProtocol</span><span class="p">[</span><span class="n">Flag</span><span class="p">]](</span><span class="n">Protocol</span><span class="p">):</span>
+    <span class="n">ResultPack</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">T</span><span class="p">]</span>
+
+<div class="viewcode-block" id="VariantTestProtocol.test_variant_reads">
+<a class="viewcode-back" href="../../../hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.VariantTestProtocol.test_variant_reads">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_variant_reads</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">T</span><span class="p">:</span> <span class="o">...</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Alex Byrne.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

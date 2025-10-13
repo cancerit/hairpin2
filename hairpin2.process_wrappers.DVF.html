@@ -1,0 +1,363 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DVF module &mdash; hairpin2 3.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=be469e84" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=acc74ff5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="LQF module" href="hairpin2.process_wrappers.LQF.html" />
+    <link rel="prev" title="ALF module" href="hairpin2.process_wrappers.ALF.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            hairpin2
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#usage">Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#command-line-interface">Command Line Interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#hp2-utils">hp2-utils</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="quickstart.html#explain-var">explain-var</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quickstart.html#get-params">get-params</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="guide.html">Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="guide.html#processes-and-parameters">Processes and Parameters</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="guide.html#process-relationships-reference">Process Relationships Reference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="guide.html#read-taggers">Read Taggers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#mark-support">mark-support</a></li>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#mark-overlap">mark-overlap</a></li>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#mark-low-qual">mark-low-qual</a></li>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#mark-duplicates">mark-duplicates</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="guide.html#variant-flaggers">Variant Flaggers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#lqf">LQF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#dvf">DVF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#alf">ALF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="guide.html#adf">ADF</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="guide.html#writing-a-config">Writing a Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide.html#understanding-decisions">Understanding Decisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide.html#reproducibility-parameter-distribution">Reproducibility &amp; Parameter Distribution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide.html#assumptions-limitations">Assumptions &amp; Limitations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide.html#further-development">Further Development</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="hairpin2.html">hairpin2 package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="hairpin2.html#scientific-modules">Scientific Modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="hairpin2.const.html">const module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.ValidNucleotides"><code class="docutils literal notranslate"><span class="pre">ValidNucleotides</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.Strand"><code class="docutils literal notranslate"><span class="pre">Strand</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.MutTypes"><code class="docutils literal notranslate"><span class="pre">MutTypes</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.Tags"><code class="docutils literal notranslate"><span class="pre">Tags</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.TaggerNamespaces"><code class="docutils literal notranslate"><span class="pre">TaggerNamespaces</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.const.html#hairpin2.const.FlaggerNamespaces"><code class="docutils literal notranslate"><span class="pre">FlaggerNamespaces</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="hairpin2.sci_funcs.html">sci_funcs module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagSupportingReads"><code class="docutils literal notranslate"><span class="pre">TagSupportingReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagLowQualReads"><code class="docutils literal notranslate"><span class="pre">TagLowQualReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagFragmentReads"><code class="docutils literal notranslate"><span class="pre">TagFragmentReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagStutterDuplicateReads"><code class="docutils literal notranslate"><span class="pre">TagStutterDuplicateReads</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.sci_funcs.html#hairpin2.sci_funcs.AlignmentScoreTest"><code class="docutils literal notranslate"><span class="pre">AlignmentScoreTest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.sci_funcs.html#hairpin2.sci_funcs.AnomalousDistributionTest"><code class="docutils literal notranslate"><span class="pre">AnomalousDistributionTest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.sci_funcs.html#hairpin2.sci_funcs.ProportionBasedTest"><code class="docutils literal notranslate"><span class="pre">ProportionBasedTest</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="hairpin2.main.html">main module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.main.html#hairpin2.main.hairpin2"><code class="docutils literal notranslate"><span class="pre">hairpin2()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="reference internal" href="hairpin2.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="hairpin2.infrastructure.html">infrastructure package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hairpin2.infrastructure.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3 current"><a class="reference internal" href="hairpin2.process_wrappers.html">process_wrappers package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="hairpin2.process_wrappers.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="dev.html">Developer Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">hairpin2</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="hairpin2.html">hairpin2 package</a></li>
+          <li class="breadcrumb-item"><a href="hairpin2.process_wrappers.html">process_wrappers package</a></li>
+      <li class="breadcrumb-item active">DVF module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/hairpin2.process_wrappers.DVF.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-hairpin2.process_wrappers.DVF">
+<span id="dvf-module"></span><h1>DVF module<a class="headerlink" href="#module-hairpin2.process_wrappers.DVF" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.process_wrappers.DVF.FixedParamsDupmark">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">FixedParamsDupmark</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duplication_window_size:</span> <span class="pre">~typing.Annotated[int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">~pydantic.functional_validators.AfterValidator(func=~hairpin2.process_wrappers.DVF.FixedParamsDupmark.&lt;lambda&gt;)]</span> <span class="pre">=</span> <span class="pre">6</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/process_wrappers/DVF.html#FixedParamsDupmark"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.process_wrappers.DVF.FixedParamsDupmark" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="hairpin2.infrastructure.process_params.html#hairpin2.infrastructure.process_params.FixedParams" title="hairpin2.infrastructure.process_params.FixedParams"><code class="xref py py-class docutils literal notranslate"><span class="pre">FixedParams</span></code></a></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.process_wrappers.DVF.FixedParamsDupmark.duplication_window_size">
+<span class="sig-name descname"><span class="pre">duplication_window_size</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">&lt;lambda&gt;)]</span></em><a class="headerlink" href="#hairpin2.process_wrappers.DVF.FixedParamsDupmark.duplication_window_size" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.process_wrappers.DVF.FixedParamsDupmark.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ConfigDict</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'arbitrary_types_allowed':</span> <span class="pre">True,</span> <span class="pre">'extra':</span> <span class="pre">'forbid',</span> <span class="pre">'frozen':</span> <span class="pre">True,</span> <span class="pre">'strict':</span> <span class="pre">True}</span></em><a class="headerlink" href="#hairpin2.process_wrappers.DVF.FixedParamsDupmark.model_config" title="Link to this definition"></a></dt>
+<dd><p>parent dataclass to be be inherited from to store specific fixed parameters for a particular subclass of FilterTester,
+or in other words for a particular filtering test. Using subclasses of this class for the fixed parameters provides
+type-safety and a consistent interface for implementing filters</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hairpin2.process_wrappers.DVF.tag_dups">
+<span class="sig-name descname"><span class="pre">tag_dups</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="hairpin2.process_wrappers.shared.html#hairpin2.process_wrappers.shared.RunParamsShared" title="hairpin2.process_wrappers.shared.RunParamsShared"><span class="pre">RunParamsShared</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">fixed_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#hairpin2.process_wrappers.DVF.FixedParamsDupmark" title="hairpin2.process_wrappers.DVF.FixedParamsDupmark"><span class="pre">FixedParamsDupmark</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/process_wrappers/DVF.html#tag_dups"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.process_wrappers.DVF.tag_dups" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.process_wrappers.DVF.TaggerDupmark">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">TaggerDupmark</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">engine_fixed_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="hairpin2.infrastructure.process_params.html#hairpin2.infrastructure.process_params.FixedParams" title="hairpin2.infrastructure.process_params.FixedParams"><span class="pre">FixedParams</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">require_marks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude_marks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/process_wrappers/DVF.html#TaggerDupmark"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.process_wrappers.DVF.TaggerDupmark" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="hairpin2.infrastructure.process.html#hairpin2.infrastructure.process.ReadAwareProcess" title="hairpin2.infrastructure.process.ReadAwareProcess"><code class="xref py py-class docutils literal notranslate"><span class="pre">ReadAwareProcess</span></code></a></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.process_wrappers.DVF.TaggerDupmark.AddsMarks">
+<span class="sig-name descname"><span class="pre">AddsMarks</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">set</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{Tags.STUTTER_DUP_TAG}</span></em><a class="headerlink" href="#hairpin2.process_wrappers.DVF.TaggerDupmark.AddsMarks" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hairpin2.process_wrappers.DVF.TaggerDupmark.EngineFactory">
+<span class="sig-name descname"><span class="pre">EngineFactory</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="hairpin2.infrastructure.process_engines.html#hairpin2.infrastructure.process_engines.ProcessEngineProtocol" title="hairpin2.infrastructure.process_engines.ProcessEngineProtocol"><span class="pre">ProcessEngineProtocol</span></a><span class="p"><span class="pre">[</span></span><span class="pre">RunParams_T</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#hairpin2.process_wrappers.DVF.TaggerDupmark.EngineFactory" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.process_wrappers.DVF.TaggerDupmark.FixedParamClass">
+<span class="sig-name descname"><span class="pre">FixedParamClass</span></span><a class="headerlink" href="#hairpin2.process_wrappers.DVF.TaggerDupmark.FixedParamClass" title="Link to this definition"></a></dt>
+<dd><p>alias of <a class="reference internal" href="#hairpin2.process_wrappers.DVF.FixedParamsDupmark" title="hairpin2.process_wrappers.DVF.FixedParamsDupmark"><code class="xref py py-class docutils literal notranslate"><span class="pre">FixedParamsDupmark</span></code></a></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.process_wrappers.DVF.TaggerDupmark.ProcessNamespace">
+<span class="sig-name descname"><span class="pre">ProcessNamespace</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'mark-duplicates'</span></em><a class="headerlink" href="#hairpin2.process_wrappers.DVF.TaggerDupmark.ProcessNamespace" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.process_wrappers.DVF.TaggerDupmark.ProcessType">
+<span class="sig-name descname"><span class="pre">ProcessType</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="hairpin2.infrastructure.process_engines.html#hairpin2.infrastructure.process_engines.ProcessKindEnum" title="hairpin2.infrastructure.process_engines.ProcessKindEnum"><span class="pre">ProcessKindEnum</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;class</span> <span class="pre">'hairpin2.infrastructure.process_engines.ReadTaggerEngine'&gt;</span></em><a class="headerlink" href="#hairpin2.process_wrappers.DVF.TaggerDupmark.ProcessType" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.process_wrappers.DVF.ResultDVF">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ResultDVF</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variant_flagged</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.TestOutcomes" title="hairpin2.infrastructure.structures.TestOutcomes"><span class="pre">TestOutcomes</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">info_flag</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">enum.Flag</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reads_seen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss_ratio</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/process_wrappers/DVF.html#ResultDVF"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.process_wrappers.DVF.ResultDVF" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.FlagResult" title="hairpin2.infrastructure.structures.FlagResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">FlagResult</span></code></a></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.process_wrappers.DVF.ResultDVF.reads_seen">
+<span class="sig-name descname"><span class="pre">reads_seen</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#hairpin2.process_wrappers.DVF.ResultDVF.reads_seen" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.process_wrappers.DVF.ResultDVF.loss_ratio">
+<span class="sig-name descname"><span class="pre">loss_ratio</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#hairpin2.process_wrappers.DVF.ResultDVF.loss_ratio" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hairpin2.process_wrappers.DVF.ResultDVF.getinfo">
+<span class="sig-name descname"><span class="pre">getinfo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/hairpin2/process_wrappers/DVF.html#ResultDVF.getinfo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.process_wrappers.DVF.ResultDVF.getinfo" title="Link to this definition"></a></dt>
+<dd><p>Return basic filter info in a string formatted for use in the VCF INFO field - “&lt;flag&gt;|&lt;code&gt;”.</p>
+<p>Each filter must return INFO as it should be formatted for the VCF INFO field, or None if not applicable.
+Subclasses must override this method to return more specific info.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.process_wrappers.DVF.ResultDVF.FlagName">
+<span class="sig-name descname"><span class="pre">FlagName</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'DVF'</span></em><a class="headerlink" href="#hairpin2.process_wrappers.DVF.ResultDVF.FlagName" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.process_wrappers.DVF.ResultDVF.InfoFlags">
+<span class="sig-name descname"><span class="pre">InfoFlags</span></span><a class="headerlink" href="#hairpin2.process_wrappers.DVF.ResultDVF.InfoFlags" title="Link to this definition"></a></dt>
+<dd><p>alias of <a class="reference internal" href="hairpin2.sci_funcs.html#hairpin2.sci_funcs.ProportionBasedTest.ResultPack.Info" title="hairpin2.sci_funcs.ProportionBasedTest.ResultPack.Info"><code class="xref py py-class docutils literal notranslate"><span class="pre">Info</span></code></a></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.process_wrappers.DVF.ResultDVF.InfoFlagsAllSet">
+<span class="sig-name descname"><span class="pre">InfoFlagsAllSet</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Flag</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">7</span></em><a class="headerlink" href="#hairpin2.process_wrappers.DVF.ResultDVF.InfoFlagsAllSet" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.process_wrappers.DVF.FixedParamsDVF">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">FixedParamsDVF</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">*,</span> <span class="pre">read_loss_threshold:</span> <span class="pre">~typing.Annotated[float,</span> <span class="pre">~pydantic.functional_validators.AfterValidator(func=~hairpin2.process_wrappers.DVF.FixedParamsDVF.&lt;lambda&gt;)],</span> <span class="pre">min_pass_reads:</span> <span class="pre">~typing.Annotated[int,</span> <span class="pre">~pydantic.functional_validators.AfterValidator(func=~hairpin2.process_wrappers.DVF.FixedParamsDVF.&lt;lambda&gt;)],</span> <span class="pre">nsamples_threshold:</span> <span class="pre">int</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/process_wrappers/DVF.html#FixedParamsDVF"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.process_wrappers.DVF.FixedParamsDVF" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="hairpin2.infrastructure.process_params.html#hairpin2.infrastructure.process_params.FixedParams" title="hairpin2.infrastructure.process_params.FixedParams"><code class="xref py py-class docutils literal notranslate"><span class="pre">FixedParams</span></code></a></p>
+<p>read_loss_threshold - percent threshold of N lq reads compared to N input reads for a given variant and sample, above which we flag DVF
+min_pass_reads - the absolute minimum number of reads required for a variant not to be flagged DVF</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.process_wrappers.DVF.FixedParamsDVF.read_loss_threshold">
+<span class="sig-name descname"><span class="pre">read_loss_threshold</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">&lt;lambda&gt;)]</span></em><a class="headerlink" href="#hairpin2.process_wrappers.DVF.FixedParamsDVF.read_loss_threshold" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.process_wrappers.DVF.FixedParamsDVF.min_pass_reads">
+<span class="sig-name descname"><span class="pre">min_pass_reads</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">&lt;lambda&gt;)]</span></em><a class="headerlink" href="#hairpin2.process_wrappers.DVF.FixedParamsDVF.min_pass_reads" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.process_wrappers.DVF.FixedParamsDVF.nsamples_threshold">
+<span class="sig-name descname"><span class="pre">nsamples_threshold</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#hairpin2.process_wrappers.DVF.FixedParamsDVF.nsamples_threshold" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.process_wrappers.DVF.FixedParamsDVF.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ConfigDict</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'arbitrary_types_allowed':</span> <span class="pre">True,</span> <span class="pre">'extra':</span> <span class="pre">'forbid',</span> <span class="pre">'frozen':</span> <span class="pre">True,</span> <span class="pre">'strict':</span> <span class="pre">True}</span></em><a class="headerlink" href="#hairpin2.process_wrappers.DVF.FixedParamsDVF.model_config" title="Link to this definition"></a></dt>
+<dd><p>parent dataclass to be be inherited from to store specific fixed parameters for a particular subclass of FilterTester,
+or in other words for a particular filtering test. Using subclasses of this class for the fixed parameters provides
+type-safety and a consistent interface for implementing filters</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hairpin2.process_wrappers.DVF.test_DVF">
+<span class="sig-name descname"><span class="pre">test_DVF</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="hairpin2.process_wrappers.shared.html#hairpin2.process_wrappers.shared.RunParamsShared" title="hairpin2.process_wrappers.shared.RunParamsShared"><span class="pre">RunParamsShared</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">fixed_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#hairpin2.process_wrappers.DVF.FixedParamsDVF" title="hairpin2.process_wrappers.DVF.FixedParamsDVF"><span class="pre">FixedParamsDVF</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/process_wrappers/DVF.html#test_DVF"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.process_wrappers.DVF.test_DVF" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hairpin2.process_wrappers.DVF.FlaggerDVF">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">FlaggerDVF</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">engine_fixed_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="hairpin2.infrastructure.process_params.html#hairpin2.infrastructure.process_params.FixedParams" title="hairpin2.infrastructure.process_params.FixedParams"><span class="pre">FixedParams</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">require_marks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude_marks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hairpin2/process_wrappers/DVF.html#FlaggerDVF"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hairpin2.process_wrappers.DVF.FlaggerDVF" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="hairpin2.infrastructure.process.html#hairpin2.infrastructure.process.ReadAwareProcess" title="hairpin2.infrastructure.process.ReadAwareProcess"><code class="xref py py-class docutils literal notranslate"><span class="pre">ReadAwareProcess</span></code></a></p>
+<p>duplication variant filter - a portion of the reads supporting the variant
+are suspected to arise from duplicated reads that have escaped dupmarking.</p>
+<p>In regions of low complexity, short repeats and homopolymer tracts can cause PCR stuttering.
+Leading to, for example, an additional A on the read when amplifying a tract of As.
+If duplicated reads contain stutter, this can lead to variation of read length and alignment to reference
+between reads that are in fact duplicates. Because of this, these duplicates then evade dupmarking and give rise to
+spurious variants when calling.</p>
+<p><cite>min_boundary_deviation</cite> sets the minimum deviation start/end coordinates, above which reads are assumed not to be duplicated
+<cite>read_number_difference_threshold</cite> sets the the threshold for absolute difference between the number of reads supporting the variant
+with and without duplicates removed. If this threshold is exceeded, the flag will be set.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.process_wrappers.DVF.FlaggerDVF.AddsMarks">
+<span class="sig-name descname"><span class="pre">AddsMarks</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">set</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#hairpin2.process_wrappers.DVF.FlaggerDVF.AddsMarks" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hairpin2.process_wrappers.DVF.FlaggerDVF.EngineFactory">
+<span class="sig-name descname"><span class="pre">EngineFactory</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="hairpin2.infrastructure.process_engines.html#hairpin2.infrastructure.process_engines.ProcessEngineProtocol" title="hairpin2.infrastructure.process_engines.ProcessEngineProtocol"><span class="pre">ProcessEngineProtocol</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="hairpin2.infrastructure.process_params.html#hairpin2.infrastructure.process_params.RunParams" title="hairpin2.infrastructure.process_params.RunParams"><span class="pre">RunParams</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="hairpin2.infrastructure.structures.html#hairpin2.infrastructure.structures.FlagResult" title="hairpin2.infrastructure.structures.FlagResult"><span class="pre">FlagResult</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#hairpin2.process_wrappers.DVF.FlaggerDVF.EngineFactory" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.process_wrappers.DVF.FlaggerDVF.FixedParamClass">
+<span class="sig-name descname"><span class="pre">FixedParamClass</span></span><a class="headerlink" href="#hairpin2.process_wrappers.DVF.FlaggerDVF.FixedParamClass" title="Link to this definition"></a></dt>
+<dd><p>alias of <a class="reference internal" href="#hairpin2.process_wrappers.DVF.FixedParamsDVF" title="hairpin2.process_wrappers.DVF.FixedParamsDVF"><code class="xref py py-class docutils literal notranslate"><span class="pre">FixedParamsDVF</span></code></a></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.process_wrappers.DVF.FlaggerDVF.ProcessNamespace">
+<span class="sig-name descname"><span class="pre">ProcessNamespace</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'DVF'</span></em><a class="headerlink" href="#hairpin2.process_wrappers.DVF.FlaggerDVF.ProcessNamespace" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hairpin2.process_wrappers.DVF.FlaggerDVF.ProcessType">
+<span class="sig-name descname"><span class="pre">ProcessType</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="hairpin2.infrastructure.process_engines.html#hairpin2.infrastructure.process_engines.ProcessKindEnum" title="hairpin2.infrastructure.process_engines.ProcessKindEnum"><span class="pre">ProcessKindEnum</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;class</span> <span class="pre">'hairpin2.infrastructure.process_engines.VariantFlaggerEngine'&gt;</span></em><a class="headerlink" href="#hairpin2.process_wrappers.DVF.FlaggerDVF.ProcessType" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="hairpin2.process_wrappers.ALF.html" class="btn btn-neutral float-left" title="ALF module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="hairpin2.process_wrappers.LQF.html" class="btn btn-neutral float-right" title="LQF module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Alex Byrne.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
