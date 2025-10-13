@@ -60,7 +60,7 @@ pip install -e ".[dev,doc]"
 `hairpin2` was developed at the Wellcome Sanger Institue in collaboration between CASM Informatics and CASM faculty. We thank all contributors and scientific collaborators for their input and expertise.
 
 `hairpin2` is chiefly the work of:  
- > Alex Byrne - CASM Informatics - [blex.bio](blex.bio) - Lead Developer/Contact  
+ > Alex Byrne - CASM Informatics - [blex.bio](https://blex.bio) - Lead Developer/Contact  
  > Anh Phuong Le - CASM - [GitHub](https://github.com/Phuong-Le)  
  > Peter Campbell - [Quotient Therapeutics](https://quotient-tx.com/team/peter-campbell)  
 
