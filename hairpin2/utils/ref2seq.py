@@ -28,6 +28,9 @@ def ref2querypos(
     read: pysam.AlignedSegment,
     ref_pos: int,
 ) -> int:
+    """
+    Find query position on read for a given reference position.
+    """
     pos_aln = read.get_aligned_pairs()
     query_pos = None
     for aln_pair in pos_aln:
