@@ -281,7 +281,6 @@ class RAExec:
         for proc in self.taggers:
             proc(run_data)
             proc.reset()
-
         res: list[FlagResult] = []
         for proc in self.flaggers:
             res.append(proc(run_data))

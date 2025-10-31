@@ -204,6 +204,7 @@ def _resolve_configd_callback(ctx: Any, param: Any, values: Iterable[dict[str, A
     type=ConfigFile(),
     help="path to config TOML/s or JSON/s from which processes and execution will be configured. May be provided multiple times; individual configs can be provided for each top level key (params, exec).",
     callback=_resolve_configd_callback,
+    required=True
 )
 @click.option(
     "-o",
@@ -287,8 +288,6 @@ def hairpin2_cli(
         path = Path(path_str)
         try:
             match path.suffix[1]:
-                case "s" | "S":
-                    mode = "r"
                 case "b" | "B":
                     mode = "rb"
                 case "c" | "C":
@@ -314,6 +313,15 @@ def hairpin2_cli(
         except Exception as er:
             logging.error(f"failed to read alignment file {path!r}, reporting {er}")
             sys.exit(EXIT_FAILURE)
+        idx_present = True
+        try:
+            idx_present = alignment.check_index()
+        except Exception as ex:
+            logging.error(f"failed to access alignment file index for {path!r}, reporting: {ex}")
+            sys.exit()
+        if not idx_present:
+            logging.error(f"no index present for alignment file at {path!r}")
+            sys.exit()
         # grab the sample name from the first SM field
         # in header field RG
         aln_sm = alignment.header.to_dict()["RG"][0]["SM"]  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]

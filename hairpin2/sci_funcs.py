@@ -105,9 +105,8 @@ class TagSupportingReads:
             except ValueError:
                 support_flag |= cls.SupportFlags.NOT_ALIGNED
             else:
-                if mut_type == MutTypes.SUB:
-                    if cast(str, read.query_sequence)[mut_pos : mut_pos + len(alt)] != alt:
-                        support_flag |= cls.SupportFlags.NOT_ALT
+                if cast(str, read.query_sequence)[mut_pos : mut_pos + len(alt)] != alt:
+                    support_flag |= cls.SupportFlags.NOT_ALT
                 if (
                     mut_type == MutTypes.INS
                 ):  # INS - mut_pos is position immediately before insertion
@@ -117,15 +116,10 @@ class TagSupportingReads:
                         mut_alns = [
                             (q, r)
                             for q, r in read.get_aligned_pairs()
-                            if q in range(mut_pos + 1, mut_pos + len(alt) + 1)
+                            if q in range(mut_pos + 1, mut_pos + len(alt))
                         ]
                         if any(r is not None for _, r in mut_alns):
                             support_flag |= cls.SupportFlags.BAD_OP
-                        if (
-                            cast(str, read.query_sequence)[mut_pos + 1 : mut_pos + len(alt) + 1]
-                            != alt
-                        ):
-                            support_flag |= cls.SupportFlags.NOT_ALT
         elif mut_type == MutTypes.DEL:
             rng = list(range(vcf_start, vcf_stop + 1))
             mut_alns = [q for q, r in read.get_aligned_pairs() if r in rng]

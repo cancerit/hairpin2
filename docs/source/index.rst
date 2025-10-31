@@ -8,7 +8,7 @@ hairpin2 documentation
 
 ``hairpin2``  –  *read-aware artefactual variant flagging*  –  GitHub_
 
-hairpin2 is designed to flag variants that are likely artefactual via a series of tests performed upon the read data associated with each variant. Initially, it was concieved to flag possible cruciform artefacts for LCM sequence data, but the concept has been extended and can detect a variety of potentially spurious variants (including indels). The tool operates on a VCF file containing one or more samples, and alignment files for all samples to be tested.
+hairpin2 is designed to flag variants that are likely artefactual via a series of tests performed upon the read data associated with each variant. Initially, it was concieved to flag possible cruciform artefacts for LCM sequence data, but the concept has been extended and can detect a variety of potentially spurious SNVs and small indels. The tool operates on a VCF file containing one or more samples, and alignment files for all samples to be tested.
 
 Read :ref:`quickstart-target` to get started!
 
