@@ -378,8 +378,7 @@ class AlignmentScoreTest:
             for read in reads:
                 try:
                     tag_dat = read.get_tag("AS", with_value_type=True)
-                    if (tag_dat[1] not in ['i', 'C']): # BUG/TODO revisit mysterious undescribed "C" type, appears to be an idiosyncracy of htslib at the leaset
-                        breakpoint()
+                    if (tag_dat[1] not in ['i', 'C']): # BUG/TODO revisit mysterious undescribed "C" type, appears to be an idiosyncracy of htslib at the least
                         raise RuntimeError(f"{read.query_name} AS tag is not of type 'i' as mandated by SAM format spec. Data in alignment file corrupted.")
                     ascore = int(tag_dat[0])
                     aln_scores.append(ascore / read.query_length)
