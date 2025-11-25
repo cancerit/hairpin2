@@ -57,6 +57,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="guide.html">Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="guide.html#rationale-assumptions-limitations">Rationale, Assumptions &amp; Limitations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="guide.html#processes-and-parameters">Processes and Parameters</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="guide.html#process-relationships-reference">Process Relationships Reference</a></li>
 <li class="toctree-l3"><a class="reference internal" href="guide.html#read-taggers">Read Taggers</a><ul>
@@ -78,7 +79,6 @@
 <li class="toctree-l2"><a class="reference internal" href="guide.html#writing-a-config">Writing a Config</a></li>
 <li class="toctree-l2"><a class="reference internal" href="guide.html#understanding-decisions">Understanding Decisions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="guide.html#reproducibility-parameter-distribution">Reproducibility &amp; Parameter Distribution</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guide.html#assumptions-limitations">Assumptions &amp; Limitations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="guide.html#further-development">Further Development</a></li>
 </ul>
 </li>
@@ -170,33 +170,28 @@ to include/exclude reads with that tag from their analysis.</p>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="hairpin2.sci_funcs.TagSupportingReads.SupportFlags.SAMFLAG">
-<span class="sig-name descname"><span class="pre">SAMFLAG</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#hairpin2.sci_funcs.TagSupportingReads.SupportFlags.SAMFLAG" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
 <dt class="sig sig-object py" id="hairpin2.sci_funcs.TagSupportingReads.SupportFlags.FIELDS_MISSING">
-<span class="sig-name descname"><span class="pre">FIELDS_MISSING</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#hairpin2.sci_funcs.TagSupportingReads.SupportFlags.FIELDS_MISSING" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">FIELDS_MISSING</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#hairpin2.sci_funcs.TagSupportingReads.SupportFlags.FIELDS_MISSING" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="hairpin2.sci_funcs.TagSupportingReads.SupportFlags.NOT_ALIGNED">
-<span class="sig-name descname"><span class="pre">NOT_ALIGNED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#hairpin2.sci_funcs.TagSupportingReads.SupportFlags.NOT_ALIGNED" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">NOT_ALIGNED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#hairpin2.sci_funcs.TagSupportingReads.SupportFlags.NOT_ALIGNED" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="hairpin2.sci_funcs.TagSupportingReads.SupportFlags.NOT_ALT">
-<span class="sig-name descname"><span class="pre">NOT_ALT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">8</span></em><a class="headerlink" href="#hairpin2.sci_funcs.TagSupportingReads.SupportFlags.NOT_ALT" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">NOT_ALT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#hairpin2.sci_funcs.TagSupportingReads.SupportFlags.NOT_ALT" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="hairpin2.sci_funcs.TagSupportingReads.SupportFlags.SHORT">
-<span class="sig-name descname"><span class="pre">SHORT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16</span></em><a class="headerlink" href="#hairpin2.sci_funcs.TagSupportingReads.SupportFlags.SHORT" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">SHORT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">8</span></em><a class="headerlink" href="#hairpin2.sci_funcs.TagSupportingReads.SupportFlags.SHORT" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="hairpin2.sci_funcs.TagSupportingReads.SupportFlags.BAD_OP">
-<span class="sig-name descname"><span class="pre">BAD_OP</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">32</span></em><a class="headerlink" href="#hairpin2.sci_funcs.TagSupportingReads.SupportFlags.BAD_OP" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">BAD_OP</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16</span></em><a class="headerlink" href="#hairpin2.sci_funcs.TagSupportingReads.SupportFlags.BAD_OP" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>

@@ -54,6 +54,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../guide.html">Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../guide.html#rationale-assumptions-limitations">Rationale, Assumptions &amp; Limitations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../guide.html#processes-and-parameters">Processes and Parameters</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../guide.html#process-relationships-reference">Process Relationships Reference</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../guide.html#read-taggers">Read Taggers</a><ul>
@@ -75,7 +76,6 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../guide.html#writing-a-config">Writing a Config</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../guide.html#understanding-decisions">Understanding Decisions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../guide.html#reproducibility-parameter-distribution">Reproducibility &amp; Parameter Distribution</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../guide.html#assumptions-limitations">Assumptions &amp; Limitations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../guide.html#further-development">Further Development</a></li>
 </ul>
 </li>
@@ -182,6 +182,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">cast</span><span class="p">,</span> <span class="n">override</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">traceback</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">click</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pysam</span>
@@ -279,11 +280,11 @@
 <span class="sd">    Set obj[path] = value where path is &#39;a.b.c&#39; and only override existing leaf.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span> <span class="ow">or</span> <span class="s2">&quot;.&quot;</span> <span class="ow">in</span> <span class="p">(</span><span class="n">path</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">path</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]):</span>
-        <span class="k">raise</span> <span class="n">click</span><span class="o">.</span><span class="n">BadParameter</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid path for --set: </span><span class="si">{</span><span class="n">path</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">click</span><span class="o">.</span><span class="n">BadParameter</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid path for --set: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
     <span class="n">dot_segments</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">seg</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="k">for</span> <span class="n">seg</span> <span class="ow">in</span> <span class="n">dot_segments</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="n">click</span><span class="o">.</span><span class="n">BadParameter</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid path (empty segment) for --set: </span><span class="si">{</span><span class="n">path</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">click</span><span class="o">.</span><span class="n">BadParameter</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid path (empty segment) for --set: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="n">d_recursor</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">targetd</span>
 
     <span class="c1"># walk all but last key</span>
@@ -365,6 +366,7 @@
     <span class="nb">type</span><span class="o">=</span><span class="n">ConfigFile</span><span class="p">(),</span>
     <span class="n">help</span><span class="o">=</span><span class="s2">&quot;path to config TOML/s or JSON/s from which processes and execution will be configured. May be provided multiple times; individual configs can be provided for each top level key (params, exec).&quot;</span><span class="p">,</span>
     <span class="n">callback</span><span class="o">=</span><span class="n">_resolve_configd_callback</span><span class="p">,</span>
+    <span class="n">required</span><span class="o">=</span><span class="kc">True</span>
 <span class="p">)</span>
 <span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
     <span class="s2">&quot;-o&quot;</span><span class="p">,</span>
@@ -434,8 +436,8 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">vcf_in_handle</span> <span class="o">=</span> <span class="n">pysam</span><span class="o">.</span><span class="n">VariantFile</span><span class="p">(</span><span class="n">vcf</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">er</span><span class="p">:</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;failed to open input VCF, reporting </span><span class="si">{</span><span class="n">er</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;failed to open input VCF, reporting </span><span class="si">{</span><span class="n">ex</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">)</span>
     <span class="n">vcf_names</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">vcf_in_handle</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">samples</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">vcf_names</span><span class="p">))</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">vcf_names</span><span class="p">):</span>
@@ -448,8 +450,6 @@
         <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path_str</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">match</span> <span class="n">path</span><span class="o">.</span><span class="n">suffix</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
-                <span class="k">case</span> <span class="s2">&quot;s&quot;</span> <span class="o">|</span> <span class="s2">&quot;S&quot;</span><span class="p">:</span>
-                    <span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;r&quot;</span>
                 <span class="k">case</span> <span class="s2">&quot;b&quot;</span> <span class="o">|</span> <span class="s2">&quot;B&quot;</span><span class="p">:</span>
                     <span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;rb&quot;</span>
                 <span class="k">case</span> <span class="s2">&quot;c&quot;</span> <span class="o">|</span> <span class="s2">&quot;C&quot;</span><span class="p">:</span>
@@ -458,12 +458,12 @@
                     <span class="k">raise</span> <span class="ne">ValueError</span>
         <span class="k">except</span> <span class="p">(</span><span class="ne">IndexError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Could not infer alignment format from suffix </span><span class="si">{</span><span class="n">path</span><span class="o">.</span><span class="n">suffix</span><span class="si">!r}</span><span class="s2"> of file </span><span class="si">{</span><span class="n">path_str</span><span class="si">!r}</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Could not infer alignment format from suffix </span><span class="si">{</span><span class="n">path</span><span class="o">.</span><span class="n">suffix</span><span class="si">}</span><span class="s2"> of file </span><span class="si">{</span><span class="n">path_str</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
             <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">cram_reference_path</span> <span class="ow">and</span> <span class="n">mode</span> <span class="o">!=</span> <span class="s2">&quot;rc&quot;</span><span class="p">:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;CRAM reference provided, but alignment at </span><span class="si">{</span><span class="n">path_str</span><span class="si">!r}</span><span class="s2"> not inferred as cram from suffix </span><span class="si">{</span><span class="n">path</span><span class="o">.</span><span class="n">suffix</span><span class="si">!r}</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;CRAM reference provided, but alignment at </span><span class="si">{</span><span class="n">path_str</span><span class="si">}</span><span class="s2"> not inferred as cram from suffix </span><span class="si">{</span><span class="n">path</span><span class="o">.</span><span class="n">suffix</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
             <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
@@ -472,9 +472,18 @@
                 <span class="n">mode</span><span class="p">,</span>
                 <span class="n">reference_filename</span><span class="o">=</span><span class="p">(</span><span class="n">cram_reference_path</span> <span class="k">if</span> <span class="n">cram_reference_path</span> <span class="k">else</span> <span class="kc">None</span><span class="p">),</span>
             <span class="p">)</span>
-        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">er</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;failed to read alignment file </span><span class="si">{</span><span class="n">path</span><span class="si">!r}</span><span class="s2">, reporting </span><span class="si">{</span><span class="n">er</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;failed to read alignment file </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">, reporting </span><span class="si">{</span><span class="n">ex</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">)</span>
+        <span class="n">idx_present</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">idx_present</span> <span class="o">=</span> <span class="n">alignment</span><span class="o">.</span><span class="n">check_index</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;failed to access alignment file index for </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">, reporting: </span><span class="si">{</span><span class="n">ex</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">idx_present</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;no index present for alignment file at </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
         <span class="c1"># grab the sample name from the first SM field</span>
         <span class="c1"># in header field RG</span>
         <span class="n">aln_sm</span> <span class="o">=</span> <span class="n">alignment</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()[</span><span class="s2">&quot;RG&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;SM&quot;</span><span class="p">]</span>  <span class="c1"># pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]</span>
@@ -649,9 +658,15 @@
         <span class="k">else</span><span class="p">:</span>  <span class="c1"># after exhausting records, print a line break</span>
             <span class="k">if</span> <span class="n">progress_bar</span><span class="p">:</span>
                 <span class="nb">print</span><span class="p">(</span><span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
-    <span class="k">except</span> <span class="n">ConfigError</span> <span class="k">as</span> <span class="n">er</span><span class="p">:</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;failed to start hairpin2 executor from config/s, reporting: </span><span class="si">{</span><span class="n">er</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">ConfigError</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;failed to start hairpin2 executor from config/s, reporting: </span><span class="si">{</span><span class="n">ex</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">RuntimeError</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;runtime error encountered during execution of hairpin2, reporting: </span><span class="si">{</span><span class="n">ex</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;unhandled error encountered, dumping stacktrace: </span><span class="si">{</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">this is an unhandled error state, please report it to the maintainers of hairpin2&quot;</span><span class="p">)</span>
+
 
     <span class="k">if</span> <span class="n">output_config_path</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>

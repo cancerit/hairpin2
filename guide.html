@@ -57,6 +57,7 @@
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#rationale-assumptions-limitations">Rationale, Assumptions &amp; Limitations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#processes-and-parameters">Processes and Parameters</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#process-relationships-reference">Process Relationships Reference</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#read-taggers">Read Taggers</a><ul>
@@ -78,7 +79,6 @@
 <li class="toctree-l2"><a class="reference internal" href="#writing-a-config">Writing a Config</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#understanding-decisions">Understanding Decisions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#reproducibility-parameter-distribution">Reproducibility &amp; Parameter Distribution</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#assumptions-limitations">Assumptions &amp; Limitations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#further-development">Further Development</a></li>
 </ul>
 </li>
@@ -175,7 +175,7 @@
 </tr>
 <tr class="row-odd"><td><p><strong>ALF</strong></p></td>
 <td><p><strong>AL</strong>ignment score <strong>F</strong>lag</p></td>
-<td><p>Indicates variants which are supported by reads with poor signal-to-noise, per the alignment score. It is complementary to the <code class="docutils literal notranslate"><span class="pre">ADF</span></code> flag – artefacts with anomalous distributions often cause a marked decrease in alignment score.</p></td>
+<td><p>Indicates variants which are supported by reads with poor signal-to-noise, per the alignment score. It is complementary to the <code class="docutils literal notranslate"><span class="pre">ADF</span></code> flag – artefacts with anomalous distributions are often accompanied by a marked decrease in alignment score.</p></td>
 </tr>
 <tr class="row-even"><td><p><strong>DVF</strong></p></td>
 <td><p><strong>D</strong>uplication <strong>V</strong>ariant <strong>F</strong>lag</p></td>
@@ -189,11 +189,21 @@
 </table>
 <p>Further details of the implementation of each flag can be found by reading the <a class="reference internal" href="#process-target">Process and Parameters</a> section below.</p>
 <p>All flags are tunable such that their parameters can be configured to a variety of use cases and sequencing methods.</p>
+<section id="rationale-assumptions-limitations">
+<h2>Rationale, Assumptions &amp; Limitations<a class="headerlink" href="#rationale-assumptions-limitations" title="Link to this heading"></a></h2>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is important!</p>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">hairpin2</span></code> is broadly speaking a collection of tests used in associating a given variant call with secondary structure formation during amplification (ADF, DVF, ALF), poorly mapped reads (ALF), or low-quality reads as defined by the user (LQF). The core rationale is to allow variant filtering based on a set of heuristics not considered by the variant caller. These range from relatively complex considerations to equally important but more simple ones. An example of a complex consideration might be accounting for a variant caller which does not compensate for secondary structure formation via the ADF flag. An example of a more simple consideration might be as follows; perhaps a user knows that, for a their sequencing type, reads with a mapping quality below X should not be considered for mutation calls, but this is unable to be expressed to the variant caller - spurious mutations from this issue can be accounted for via the LQF flag. In all cases, the appropriate parameters are determined by sequencing type, sequencing conditions, choice of aligner, and choice of variant caller. It is worth keeping this framing in mind during configuration and usage.</p>
+<p>The hairpin2 tests have been designed with SNVs and small (2-3bp) indels in mind. If a mutation does not fall into that category, then no guarantee is presently made about the validity of the result. This is not to say that the tests certainly don’t apply, only that it is an unsupported use case, and should be approached with caution. The same is also true of sequencing type; the basis of the ADF and DVF tests in particular were formed explicitly around short-read amplification-based sequencing technologies. Usage on other sequencing types is therefore also unsupported.</p>
+<p>hairpin2 requires paired-end data where alignment records have the <code class="docutils literal notranslate"><span class="pre">MC</span></code> tag and the complete CIGAR string is present in the <code class="docutils literal notranslate"><span class="pre">CIGAR</span></code> field (rather than the <code class="docutils literal notranslate"><span class="pre">CG:B,I</span></code> tag). If the <code class="docutils literal notranslate"><span class="pre">MC</span></code> tag is not present in your data, it can be added using <code class="docutils literal notranslate"><span class="pre">samtools</span> <span class="pre">fixmate</span></code> or <code class="docutils literal notranslate"><span class="pre">biobambam2</span> <span class="pre">bamsormadup</span></code>. The tool can handle substitions, insertions, and deletions formatted per the VCF specification. At this time, the tool will not investigate mutations notated with angle brackets, e.g. <code class="docutils literal notranslate"><span class="pre">&lt;DEL&gt;</span></code>, complex mutations, or monomorphic reference. No further assumptions are made – other alignment tags and VCF fields are used, however they are mandatory per the relevant format specifications.</p>
+</section>
 <section id="processes-and-parameters">
 <span id="process-target"></span><h2>Processes and Parameters<a class="headerlink" href="#processes-and-parameters" title="Link to this heading"></a></h2>
 <p>For an input VCF, <code class="docutils literal notranslate"><span class="pre">hairpin2</span></code> will iterate over the records therein and analyse each record via a series of interdependent scientific steps.</p>
 <p>This section details each process and its relevant parameters (if any) and outcomes, in execution order. The connection/interdependence between steps is also described. The parameters are also shown in their relevant TOML table as written in a hairpin2 TOML config at the top of each section.</p>
-<p>For each variant examined, <code class="docutils literal notranslate"><span class="pre">haripin2</span></code> determines the mutation type (SUB, INS, DEL), fetches all reads covering the mutant position from the alignments, and then walks through the steps described in this section. A reference table is provided below for a high level overview to refer back to while reading about each process in more detail.</p>
+<p>For each variant examined, hairpin2 determines the mutation type (SUB, INS, DEL), fetches all reads covering the mutant position from the alignments, and then walks through the steps described in this section. A reference table is provided below for a high level overview to refer back to while reading about each process in more detail.</p>
 <section id="process-relationships-reference">
 <h3>Process Relationships Reference<a class="headerlink" href="#process-relationships-reference" title="Link to this heading"></a></h3>
 <table class="docutils align-default" id="id1">
@@ -267,7 +277,10 @@
 <p>These processes execute prior to flaggers, examining the reads which cover the variant position. They apply extended tags to them such that downstream processes can filter/exclude/include reads from their analyses as needed. Note that tags applied to reads are internal, and are not written back to the alignment file.</p>
 <section id="mark-support">
 <h4>mark-support<a class="headerlink" href="#mark-support" title="Link to this heading"></a></h4>
-<p><code class="docutils literal notranslate"><span class="pre">mark-support</span></code> takes no parameters. This process uses <a class="reference internal" href="hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagSupportingReads" title="hairpin2.sci_funcs.TagSupportingReads"><code class="xref py py-class docutils literal notranslate"><span class="pre">TagSupportingReads</span></code></a> to tag supporting reads for the variant in question.</p>
+<p><code class="docutils literal notranslate"><span class="pre">mark-support</span></code> takes no parameters. This process uses <a class="reference internal" href="hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagSupportingReads" title="hairpin2.sci_funcs.TagSupportingReads"><code class="xref py py-class docutils literal notranslate"><span class="pre">TagSupportingReads</span></code></a> to tag supporting reads for the variant in question. In short the process checks that a given read:
+- has all appropriate data/fields
+- is not excluded by flag 0xE00
+- that the alignment at the variant position matches the mutation call, both in terms of operation (INS/DEL/MATCH) and by displayed nucleotides</p>
 <p>Reads found to support the variant are marked with the tag <a class="reference internal" href="hairpin2.const.html#hairpin2.const.Tags.SUPPORT_TAG" title="hairpin2.const.Tags.SUPPORT_TAG"><code class="xref py py-attr docutils literal notranslate"><span class="pre">SUPPORT_TAG</span></code></a></p>
 <p>mark-support has no dependence on other steps</p>
 </section>
@@ -761,13 +774,12 @@ strand.</p>
 <p>The parameters are stored in a reduced represenation and can be extracted from a VCF using <a class="reference internal" href="quickstart.html#get-params-qs-target"><span class="std std-ref">get-params</span></a> back into standard JSON format. It is not necessary to understand the way in which the parameters are encoded into the header (explained below) to use this functionality.</p>
 <p>The hairpin2_params key stores data in a JSON compressed with <code class="docutils literal notranslate"><span class="pre">zlib</span></code> and encoded to an ascii string using <code class="docutils literal notranslate"><span class="pre">base85</span></code>. The result is a string of ascii characters, much shorter than the original JSON, which does not invite or allow accidental editing of the parameters once written into the header (either by hand or by another tool). Since zlib compression includes an error-checking checksum, the string is guaranteed to transform back into the exact parameters encoded. Base85 encoding ensures that only VCF-safe characters are used  per the VCF format spec.</p>
 </section>
-<section id="assumptions-limitations">
-<h2>Assumptions &amp; Limitations<a class="headerlink" href="#assumptions-limitations" title="Link to this heading"></a></h2>
-<p>hairpin2 is designed for paired-end data where alignment records have the <code class="docutils literal notranslate"><span class="pre">MC</span></code> tag and the complete CIGAR string is present in the <code class="docutils literal notranslate"><span class="pre">CIGAR</span></code> field (rather than the <code class="docutils literal notranslate"><span class="pre">CG:B,I</span></code> tag). If the <code class="docutils literal notranslate"><span class="pre">MC</span></code> tag is not present in your data, it can be added using <code class="docutils literal notranslate"><span class="pre">samtools</span> <span class="pre">fixmate</span></code> or <code class="docutils literal notranslate"><span class="pre">biobambam2</span> <span class="pre">bamsormadup</span></code>. The tool can handle substitions, insertions, and deletions formatted per the VCF specification. At this time, the tool will not investigate mutations notated with angle brackets, e.g. <code class="docutils literal notranslate"><span class="pre">&lt;DEL&gt;</span></code>, complex mutations, or monomorphic reference. No further assumptions are made – other alignment tags and VCF fields are used, however they are mandatory per the relevant format specifications. If these requirements are limiting and you need the tool to be extended in some way, please request it.</p>
-</section>
 <section id="further-development">
 <h2>Further Development<a class="headerlink" href="#further-development" title="Link to this heading"></a></h2>
 <p>We are very open to making updates and improvements to the tool to support a wide variety of use cases. If you have a request, please get in touch via the <a class="reference external" href="https://github.com/cancerit/hairpin2">GitHub</a>.</p>
+<!-- TODO!! -->
+<!-- ## Troubleshooting -->
+<!-- NA variants -->
 </section>
 </section>
 

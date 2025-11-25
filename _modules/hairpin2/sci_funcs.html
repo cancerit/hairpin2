@@ -54,6 +54,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../guide.html">Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../guide.html#rationale-assumptions-limitations">Rationale, Assumptions &amp; Limitations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../guide.html#processes-and-parameters">Processes and Parameters</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../guide.html#process-relationships-reference">Process Relationships Reference</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../guide.html#read-taggers">Read Taggers</a><ul>
@@ -75,7 +76,6 @@
 <li class="toctree-l2"><a class="reference internal" href="../../guide.html#writing-a-config">Writing a Config</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../guide.html#understanding-decisions">Understanding Decisions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../guide.html#reproducibility-parameter-distribution">Reproducibility &amp; Parameter Distribution</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../guide.html#assumptions-limitations">Assumptions &amp; Limitations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../guide.html#further-development">Further Development</a></li>
 </ul>
 </li>
@@ -205,7 +205,6 @@
 <a class="viewcode-back" href="../../hairpin2.sci_funcs.html#hairpin2.sci_funcs.TagSupportingReads.SupportFlags">[docs]</a>
     <span class="k">class</span><span class="w"> </span><span class="nc">SupportFlags</span><span class="p">(</span><span class="n">Flag</span><span class="p">):</span>
         <span class="n">CLEAR</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="n">SAMFLAG</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
         <span class="n">FIELDS_MISSING</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
         <span class="n">NOT_ALIGNED</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
         <span class="n">NOT_ALT</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
@@ -230,18 +229,12 @@
                 <span class="sa">f</span><span class="s2">&quot;Unsupported mutation type </span><span class="si">{</span><span class="n">mut_type</span><span class="si">}</span><span class="s2"> provided to mut_type argument - supports </span><span class="si">{</span><span class="n">MutTypes</span><span class="si">}</span><span class="s2"> only&quot;</span>
             <span class="p">)</span>
 
-        <span class="n">support_flag</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">SupportFlags</span><span class="o">.</span><span class="n">CLEAR</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">mate_cig</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">read</span><span class="o">.</span><span class="n">get_tag</span><span class="p">(</span><span class="s2">&quot;MC&quot;</span><span class="p">))</span>
-        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-            <span class="n">mate_cig</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="p">(</span>
-                <span class="ow">not</span> <span class="n">mate_cig</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span>
-                <span class="ow">or</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">((</span><span class="n">c</span><span class="o">.</span><span class="n">isalnum</span><span class="p">()</span> <span class="ow">or</span> <span class="n">c</span> <span class="o">==</span> <span class="s2">&quot;=&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">mate_cig</span><span class="p">)</span>
-                <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">mate_cig</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span>
-            <span class="p">):</span>
-                <span class="n">mate_cig</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="c1"># if this check is passed, the subsequent</span>
+        <span class="c1"># two conditions can only be error states</span>
+        <span class="c1"># hence raise rather than return false</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">((</span><span class="n">read</span><span class="o">.</span><span class="n">flag</span> <span class="o">&amp;</span> <span class="mi">3</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)</span> <span class="ow">or</span> <span class="n">read</span><span class="o">.</span><span class="n">flag</span> <span class="o">&amp;</span> <span class="mi">3852</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
         <span class="k">if</span> <span class="nb">any</span><span class="p">(</span>
             <span class="n">flg</span> <span class="ow">is</span> <span class="kc">None</span>
             <span class="k">for</span> <span class="n">flg</span> <span class="ow">in</span> <span class="p">[</span>
@@ -251,19 +244,23 @@
                 <span class="n">read</span><span class="o">.</span><span class="n">query_alignment_qualities</span><span class="p">,</span>
                 <span class="n">read</span><span class="o">.</span><span class="n">cigarstring</span><span class="p">,</span>
                 <span class="n">read</span><span class="o">.</span><span class="n">cigartuples</span><span class="p">,</span>
-                <span class="n">mate_cig</span><span class="p">,</span>
             <span class="p">]</span>
-        <span class="p">):</span>
-            <span class="n">support_flag</span> <span class="o">|=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">SupportFlags</span><span class="o">.</span><span class="n">FIELDS_MISSING</span>
-        <span class="k">elif</span> <span class="n">mut_type</span> <span class="ow">in</span> <span class="p">[</span><span class="n">MutTypes</span><span class="o">.</span><span class="n">SUB</span><span class="p">,</span> <span class="n">MutTypes</span><span class="o">.</span><span class="n">INS</span><span class="p">]:</span>
+        <span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">read</span><span class="o">.</span><span class="n">has_tag</span><span class="p">(</span><span class="s2">&quot;MC&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Essential fields missing from alignment record </span><span class="si">{</span><span class="n">read</span><span class="o">.</span><span class="n">query_name</span><span class="si">}</span><span class="s2">, data in alignment file corrupted&quot;</span><span class="p">)</span>
+
+        <span class="n">tag_dat</span> <span class="o">=</span> <span class="n">read</span><span class="o">.</span><span class="n">get_tag</span><span class="p">(</span><span class="s2">&quot;MC&quot;</span><span class="p">,</span> <span class="n">with_value_type</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">tag_dat</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;Z&#39;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">read</span><span class="o">.</span><span class="n">query_name</span><span class="si">}</span><span class="s2"> MC tag is not of type &#39;Z&#39; as mandated by SAM format spec. Data in alignment file corrupted.&quot;</span><span class="p">)</span>
+
+        <span class="n">support_flag</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">SupportFlags</span><span class="o">.</span><span class="n">CLEAR</span>
+        <span class="k">if</span> <span class="n">mut_type</span> <span class="ow">in</span> <span class="p">[</span><span class="n">MutTypes</span><span class="o">.</span><span class="n">SUB</span><span class="p">,</span> <span class="n">MutTypes</span><span class="o">.</span><span class="n">INS</span><span class="p">]:</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">mut_pos</span> <span class="o">=</span> <span class="n">ref2querypos</span><span class="p">(</span><span class="n">read</span><span class="p">,</span> <span class="n">vcf_start</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
                 <span class="n">support_flag</span> <span class="o">|=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">SupportFlags</span><span class="o">.</span><span class="n">NOT_ALIGNED</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">mut_type</span> <span class="o">==</span> <span class="n">MutTypes</span><span class="o">.</span><span class="n">SUB</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">read</span><span class="o">.</span><span class="n">query_sequence</span><span class="p">)[</span><span class="n">mut_pos</span> <span class="p">:</span> <span class="n">mut_pos</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">alt</span><span class="p">)]</span> <span class="o">!=</span> <span class="n">alt</span><span class="p">:</span>
-                        <span class="n">support_flag</span> <span class="o">|=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">SupportFlags</span><span class="o">.</span><span class="n">NOT_ALT</span>
+                <span class="k">if</span> <span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">read</span><span class="o">.</span><span class="n">query_sequence</span><span class="p">)[</span><span class="n">mut_pos</span> <span class="p">:</span> <span class="n">mut_pos</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">alt</span><span class="p">)]</span> <span class="o">!=</span> <span class="n">alt</span><span class="p">:</span>
+                    <span class="n">support_flag</span> <span class="o">|=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">SupportFlags</span><span class="o">.</span><span class="n">NOT_ALT</span>
                 <span class="k">if</span> <span class="p">(</span>
                     <span class="n">mut_type</span> <span class="o">==</span> <span class="n">MutTypes</span><span class="o">.</span><span class="n">INS</span>
                 <span class="p">):</span>  <span class="c1"># INS - mut_pos is position immediately before insertion</span>
@@ -273,15 +270,10 @@
                         <span class="n">mut_alns</span> <span class="o">=</span> <span class="p">[</span>
                             <span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span>
                             <span class="k">for</span> <span class="n">q</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">read</span><span class="o">.</span><span class="n">get_aligned_pairs</span><span class="p">()</span>
-                            <span class="k">if</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mut_pos</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">mut_pos</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">alt</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mut_pos</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">mut_pos</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">alt</span><span class="p">))</span>
                         <span class="p">]</span>
                         <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">r</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">mut_alns</span><span class="p">):</span>
                             <span class="n">support_flag</span> <span class="o">|=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">SupportFlags</span><span class="o">.</span><span class="n">BAD_OP</span>
-                        <span class="k">if</span> <span class="p">(</span>
-                            <span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">read</span><span class="o">.</span><span class="n">query_sequence</span><span class="p">)[</span><span class="n">mut_pos</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:</span> <span class="n">mut_pos</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">alt</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
-                            <span class="o">!=</span> <span class="n">alt</span>
-                        <span class="p">):</span>
-                            <span class="n">support_flag</span> <span class="o">|=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">SupportFlags</span><span class="o">.</span><span class="n">NOT_ALT</span>
         <span class="k">elif</span> <span class="n">mut_type</span> <span class="o">==</span> <span class="n">MutTypes</span><span class="o">.</span><span class="n">DEL</span><span class="p">:</span>
             <span class="n">rng</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">vcf_start</span><span class="p">,</span> <span class="n">vcf_stop</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
             <span class="n">mut_alns</span> <span class="o">=</span> <span class="p">[</span><span class="n">q</span> <span class="k">for</span> <span class="n">q</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">read</span><span class="o">.</span><span class="n">get_aligned_pairs</span><span class="p">()</span> <span class="k">if</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rng</span><span class="p">]</span>
@@ -291,9 +283,6 @@
                 <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">[</span><span class="n">mut_alns</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">mut_alns</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
             <span class="p">):</span>
                 <span class="n">support_flag</span> <span class="o">|=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">SupportFlags</span><span class="o">.</span><span class="n">BAD_OP</span>
-
-        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">read</span><span class="o">.</span><span class="n">flag</span> <span class="o">&amp;</span> <span class="mh">0x2</span><span class="p">)</span> <span class="ow">or</span> <span class="n">read</span><span class="o">.</span><span class="n">flag</span> <span class="o">&amp;</span> <span class="mh">0xE00</span><span class="p">:</span>
-            <span class="n">support_flag</span> <span class="o">|=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">SupportFlags</span><span class="o">.</span><span class="n">SAMFLAG</span>
 
         <span class="c1"># ValidatorFlag not returned but kept in case useful in the future</span>
         <span class="k">if</span> <span class="n">support_flag</span> <span class="o">==</span> <span class="bp">cls</span><span class="o">.</span><span class="n">SupportFlags</span><span class="o">.</span><span class="n">CLEAR</span><span class="p">:</span>
@@ -453,8 +442,11 @@
         <span class="n">endpointsl</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">read</span> <span class="ow">in</span> <span class="n">reads</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="n">mate_cig</span> <span class="o">=</span> <span class="n">read</span><span class="o">.</span><span class="n">get_tag</span><span class="p">(</span><span class="s2">&quot;MC&quot;</span><span class="p">)</span>
-                <span class="n">next_ref_end</span> <span class="o">=</span> <span class="n">ref_end_via_cigar</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">mate_cig</span><span class="p">),</span> <span class="n">read</span><span class="o">.</span><span class="n">next_reference_start</span><span class="p">)</span>
+                <span class="n">tag_dat</span> <span class="o">=</span> <span class="n">read</span><span class="o">.</span><span class="n">get_tag</span><span class="p">(</span><span class="s2">&quot;MC&quot;</span><span class="p">,</span> <span class="n">with_value_type</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">tag_dat</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;Z&#39;</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;MC tag is not of type &#39;Z&#39; as mandated by SAM format spec. Data in alignment file corrupted.&quot;</span><span class="p">)</span>
+                <span class="n">mate_cig</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">tag_dat</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">next_ref_end</span> <span class="o">=</span> <span class="n">ref_end_via_cigar</span><span class="p">(</span><span class="n">mate_cig</span><span class="p">,</span> <span class="n">read</span><span class="o">.</span><span class="n">next_reference_start</span><span class="p">)</span>
             <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="n">CigarError</span><span class="p">):</span>
                 <span class="k">continue</span>
             <span class="k">if</span> <span class="n">read</span><span class="o">.</span><span class="n">reference_end</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -577,7 +569,11 @@
 
             <span class="k">for</span> <span class="n">read</span> <span class="ow">in</span> <span class="n">reads</span><span class="p">:</span>
                 <span class="k">try</span><span class="p">:</span>
-                    <span class="n">aln_scores</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">read</span><span class="o">.</span><span class="n">get_tag</span><span class="p">(</span><span class="s2">&quot;AS&quot;</span><span class="p">))</span> <span class="o">/</span> <span class="n">read</span><span class="o">.</span><span class="n">query_length</span><span class="p">)</span>
+                    <span class="n">tag_dat</span> <span class="o">=</span> <span class="n">read</span><span class="o">.</span><span class="n">get_tag</span><span class="p">(</span><span class="s2">&quot;AS&quot;</span><span class="p">,</span> <span class="n">with_value_type</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="n">tag_dat</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">,</span> <span class="s1">&#39;C&#39;</span><span class="p">]):</span> <span class="c1"># BUG/TODO revisit mysterious undescribed &quot;C&quot; type, appears to be an idiosyncracy of htslib at the least</span>
+                        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">read</span><span class="o">.</span><span class="n">query_name</span><span class="si">}</span><span class="s2"> AS tag is not of type &#39;i&#39; as mandated by SAM format spec. Data in alignment file corrupted.&quot;</span><span class="p">)</span>
+                    <span class="n">ascore</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tag_dat</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="n">aln_scores</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ascore</span> <span class="o">/</span> <span class="n">read</span><span class="o">.</span><span class="n">query_length</span><span class="p">)</span>
                 <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
                     <span class="k">pass</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">aln_scores</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>

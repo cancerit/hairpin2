@@ -14,7 +14,7 @@ hairpin --help
 
 ## Usage
 
-The recommended usage is to provide a config of flag parameters along with the VCF in question and the relavant alignment/s (.sam/.bam/.cram), like so:
+The recommended usage is to provide a config of flag parameters along with the VCF in question and the relavant alignment/s (.bam/.cram), like so:
 ```bash
 vcf_sample_name="TUMOUR"
 aln="aln.cram"

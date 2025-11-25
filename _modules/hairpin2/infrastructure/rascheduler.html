@@ -54,6 +54,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../guide.html">Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../guide.html#rationale-assumptions-limitations">Rationale, Assumptions &amp; Limitations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../guide.html#processes-and-parameters">Processes and Parameters</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../guide.html#process-relationships-reference">Process Relationships Reference</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../guide.html#read-taggers">Read Taggers</a><ul>
@@ -75,7 +76,6 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../guide.html#writing-a-config">Writing a Config</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../guide.html#understanding-decisions">Understanding Decisions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../guide.html#reproducibility-parameter-distribution">Reproducibility &amp; Parameter Distribution</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../guide.html#assumptions-limitations">Assumptions &amp; Limitations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../guide.html#further-development">Further Development</a></li>
 </ul>
 </li>
@@ -458,7 +458,6 @@
         <span class="k">for</span> <span class="n">proc</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">taggers</span><span class="p">:</span>
             <span class="n">proc</span><span class="p">(</span><span class="n">run_data</span><span class="p">)</span>
             <span class="n">proc</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
-
         <span class="n">res</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">FlagResult</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">proc</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">flaggers</span><span class="p">:</span>
             <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">proc</span><span class="p">(</span><span class="n">run_data</span><span class="p">))</span>
