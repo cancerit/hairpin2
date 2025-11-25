@@ -46,23 +46,25 @@ class CigarError(ValueError):
 
 
 def ref_end_via_cigar(cig_str: str, ref_start: int) -> int:
-    if (
-        not cig_str[0].isdigit()
-        or not all((c.isalnum() or c == "=") for c in cig_str)
-        or len(cig_str) < 2
-    ):
-        raise CigarError("could not interpret cigar string {}".format(cig_str))
-    cig_l = []
+    if type(cig_str) != str:
+        raise ValueError("cig_str not of type str")
+    if type(ref_start) != int:
+        raise ValueError("ref_start not of type int")
+    if not cig_str:
+        raise ValueError("cigar string empty")
+    opl: list[tuple[int, str]] = []
     digit_accumulator: str = ""
     for char in cig_str:
         if char.isdigit():
             digit_accumulator += char
-        else:
-            cig_l.append(digit_accumulator)
-            cig_l.append(char)
+        elif char in ["M", "D", "N", "=", "X", "I", "P", "H", "S"]:
+            opl.append((int(digit_accumulator), char))
             digit_accumulator = ""
-    cig_t = list(zip(cig_l[0::2], cig_l[1::2]))
-    for op_len, op_code in cig_t:
-        if op_code in ["M", "D", "N", "=", "X"]:
-            ref_start += int(op_len)
+        else:
+            raise CigarError("could not interpret cigar string {}".format(cig_str))
+    if not opl:
+        raise CigarError("could not interpret cigar string {}".format(cig_str))
+    for op_len, op_code in opl:
+        if op_code in ["M", "D", "N", "=", "X"]:  # if op consumes ref
+            ref_start += op_len
     return ref_start
