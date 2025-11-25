@@ -516,6 +516,7 @@ class AnomalousDistributionTest:
         low_n_supporting_reads_boundary: int,  # inclusive
         min_non_edge_reads: int,
     ) -> ResultPack:
+
         if not reads:
             result = cls.ResultPack(
                 TestOutcomes.NA,

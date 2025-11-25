@@ -1,7 +1,7 @@
 from typing import Any
 
-from hairpin2.abstractflaggers import _Params
-from hairpin2.structures import ReadView
+from hairpin2.infrastructure.process_params import _Params
+from hairpin2.infrastructure.structures import ReadView
 
 
 def comp_ReadView(s1: ReadView, s2: ReadView):
