@@ -33,6 +33,7 @@ import zlib
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any, cast, override
+import traceback
 
 import click
 import pysam
@@ -118,11 +119,11 @@ def _set_dleaf(targetd: dict[str, Any], path: str, value: Any) -> None:
     Set obj[path] = value where path is 'a.b.c' and only override existing leaf.
     """
     if not path or "." in (path[0], path[-1]):
-        raise click.BadParameter(f"Invalid path for --set: {path!r}")
+        raise click.BadParameter(f"Invalid path for --set: {path}")
 
     dot_segments = path.split(".")
     if any(seg == "" for seg in dot_segments):
-        raise click.BadParameter(f"Invalid path (empty segment) for --set: {path!r}")
+        raise click.BadParameter(f"Invalid path (empty segment) for --set: {path}")
     d_recursor: dict[str, Any] = targetd
 
     # walk all but last key
@@ -204,6 +205,7 @@ def _resolve_configd_callback(ctx: Any, param: Any, values: Iterable[dict[str, A
     type=ConfigFile(),
     help="path to config TOML/s or JSON/s from which processes and execution will be configured. May be provided multiple times; individual configs can be provided for each top level key (params, exec).",
     callback=_resolve_configd_callback,
+    required=True
 )
 @click.option(
     "-o",
@@ -273,8 +275,8 @@ def hairpin2_cli(
     """
     try:
         vcf_in_handle = pysam.VariantFile(vcf)
-    except Exception as er:
-        logging.error(f"failed to open input VCF, reporting {er}")
+    except Exception as ex:
+        logging.error(f"failed to open input VCF, reporting {ex}")
         sys.exit(EXIT_FAILURE)
     vcf_names: list[str] = list(vcf_in_handle.header.samples)
     if len(set(vcf_names)) != len(vcf_names):
@@ -287,8 +289,6 @@ def hairpin2_cli(
         path = Path(path_str)
         try:
             match path.suffix[1]:
-                case "s" | "S":
-                    mode = "r"
                 case "b" | "B":
                     mode = "rb"
                 case "c" | "C":
@@ -297,12 +297,12 @@ def hairpin2_cli(
                     raise ValueError
         except (IndexError, ValueError):
             logging.error(
-                f"Could not infer alignment format from suffix {path.suffix!r} of file {path_str!r}"
+                f"Could not infer alignment format from suffix {path.suffix} of file {path_str}"
             )
             sys.exit(EXIT_FAILURE)
         if cram_reference_path and mode != "rc":
             logging.error(
-                f"CRAM reference provided, but alignment at {path_str!r} not inferred as cram from suffix {path.suffix!r}"
+                f"CRAM reference provided, but alignment at {path_str} not inferred as cram from suffix {path.suffix}"
             )
             sys.exit(EXIT_FAILURE)
         try:
@@ -311,9 +311,18 @@ def hairpin2_cli(
                 mode,
                 reference_filename=(cram_reference_path if cram_reference_path else None),
             )
-        except Exception as er:
-            logging.error(f"failed to read alignment file {path!r}, reporting {er}")
+        except Exception as ex:
+            logging.error(f"failed to read alignment file {path}, reporting {ex}")
             sys.exit(EXIT_FAILURE)
+        idx_present = True
+        try:
+            idx_present = alignment.check_index()
+        except Exception as ex:
+            logging.error(f"failed to access alignment file index for {path}, reporting: {ex}")
+            sys.exit()
+        if not idx_present:
+            logging.error(f"no index present for alignment file at {path}")
+            sys.exit()
         # grab the sample name from the first SM field
         # in header field RG
         aln_sm = alignment.header.to_dict()["RG"][0]["SM"]  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
@@ -488,9 +497,15 @@ def hairpin2_cli(
         else:  # after exhausting records, print a line break
             if progress_bar:
                 print(file=sys.stderr)
-    except ConfigError as er:
-        logging.error(f"failed to start hairpin2 executor from config/s, reporting: {er}")
+    except ConfigError as ex:
+        logging.error(f"failed to start hairpin2 executor from config/s, reporting: {ex}")
         sys.exit(EXIT_FAILURE)
+    except RuntimeError as ex:
+        logging.error(f"runtime error encountered during execution of hairpin2, reporting: {ex}")
+        sys.exit(EXIT_FAILURE)
+    except Exception as ex:
+        logging.error(f"unhandled error encountered, dumping stacktrace: {traceback.format_exc}\n\nthis is an unhandled error state, please report it to the maintainers of hairpin2")
+
 
     if output_config_path:
         try:

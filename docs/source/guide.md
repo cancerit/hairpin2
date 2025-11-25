@@ -20,7 +20,7 @@ Given a VCF, and alignment files for the relevant samples of that VCF, `hairpin2
     - An implementation and extension of the artefact detection algorithm described in [Ellis et al, 2020](https://www.nature.com/articles/s41596-020-00437-6). It detects variants which appear with anomalously regular positional distribution in supporting reads.
 *   - **ALF**
     - **AL**ignment score **F**lag
-    - Indicates variants which are supported by reads with poor signal-to-noise, per the alignment score. It is complementary to the `ADF` flag – artefacts with anomalous distributions often cause a marked decrease in alignment score.
+    - Indicates variants which are supported by reads with poor signal-to-noise, per the alignment score. It is complementary to the `ADF` flag – artefacts with anomalous distributions are often accompanied by a marked decrease in alignment score.
 *   - **DVF**
     - **D**uplication **V**ariant **F**lag
     -  Uses a relatively naive but effective algorithm for detecting variants that are the result of [hidden duplicates](#dup-explain-target), themselves a result of PCR error.
@@ -34,6 +34,18 @@ Further details of the implementation of each flag can be found by reading the [
 
 All flags are tunable such that their parameters can be configured to a variety of use cases and sequencing methods.
 
+## Rationale, Assumptions & Limitations
+
+```{note}
+This is important!
+```
+
+`hairpin2` is broadly speaking a collection of tests used in associating a given variant call with secondary structure formation during amplification (ADF, DVF, ALF), poorly mapped reads (ALF), or low-quality reads as defined by the user (LQF). The core rationale is to allow variant filtering based on a set of heuristics not considered by the variant caller. These range from relatively complex considerations to equally important but more simple ones. An example of a complex consideration might be accounting for a variant caller which does not compensate for secondary structure formation via the ADF flag. An example of a more simple consideration might be as follows; perhaps a user knows that, for a their sequencing type, reads with a mapping quality below X should not be considered for mutation calls, but this is unable to be expressed to the variant caller - spurious mutations from this issue can be accounted for via the LQF flag. In all cases, the appropriate parameters are determined by sequencing type, sequencing conditions, choice of aligner, and choice of variant caller. It is worth keeping this framing in mind during configuration and usage.  
+
+The hairpin2 tests have been designed with SNVs and small (2-3bp) indels in mind. If a mutation does not fall into that category, then no guarantee is presently made about the validity of the result. This is not to say that the tests certainly don't apply, only that it is an unsupported use case, and should be approached with caution. The same is also true of sequencing type; the basis of the ADF and DVF tests in particular were formed explicitly around short-read amplification-based sequencing technologies. Usage on other sequencing types is therefore also unsupported.  
+
+hairpin2 requires paired-end data where alignment records have the `MC` tag and the complete CIGAR string is present in the `CIGAR` field (rather than the `CG:B,I` tag). If the `MC` tag is not present in your data, it can be added using `samtools fixmate` or `biobambam2 bamsormadup`. The tool can handle substitions, insertions, and deletions formatted per the VCF specification. At this time, the tool will not investigate mutations notated with angle brackets, e.g. `<DEL>`, complex mutations, or monomorphic reference. No further assumptions are made – other alignment tags and VCF fields are used, however they are mandatory per the relevant format specifications.  
+
 (process-target)=
 ## Processes and Parameters
 
@@ -41,7 +53,7 @@ For an input VCF, `hairpin2` will iterate over the records therein and analyse e
 
 This section details each process and its relevant parameters (if any) and outcomes, in execution order. The connection/interdependence between steps is also described. The parameters are also shown in their relevant TOML table as written in a hairpin2 TOML config at the top of each section.
 
-For each variant examined, `haripin2` determines the mutation type (SUB, INS, DEL), fetches all reads covering the mutant position from the alignments, and then walks through the steps described in this section. A reference table is provided below for a high level overview to refer back to while reading about each process in more detail.  
+For each variant examined, hairpin2 determines the mutation type (SUB, INS, DEL), fetches all reads covering the mutant position from the alignments, and then walks through the steps described in this section. A reference table is provided below for a high level overview to refer back to while reading about each process in more detail.  
 
 ### Process Relationships Reference
 
@@ -101,7 +113,10 @@ These processes execute prior to flaggers, examining the reads which cover the v
 
 #### mark-support
 
-`mark-support` takes no parameters. This process uses {py:class}`~hairpin2.sci_funcs.TagSupportingReads` to tag supporting reads for the variant in question.
+`mark-support` takes no parameters. This process uses {py:class}`~hairpin2.sci_funcs.TagSupportingReads` to tag supporting reads for the variant in question. In short the process checks that a given read:
+    - has all appropriate data/fields
+    - is not excluded by flag 0xE00
+    - that the alignment at the variant position matches the mutation call, both in terms of operation (INS/DEL/MATCH) and by displayed nucleotides
 
 Reads found to support the variant are marked with the tag {py:attr}`~hairpin2.const.Tags.SUPPORT_TAG`
 
@@ -512,11 +527,12 @@ The parameters are stored in a reduced represenation and can be extracted from a
 
 The hairpin2_params key stores data in a JSON compressed with `zlib` and encoded to an ascii string using `base85`. The result is a string of ascii characters, much shorter than the original JSON, which does not invite or allow accidental editing of the parameters once written into the header (either by hand or by another tool). Since zlib compression includes an error-checking checksum, the string is guaranteed to transform back into the exact parameters encoded. Base85 encoding ensures that only VCF-safe characters are used  per the VCF format spec. 
 
-## Assumptions & Limitations
-
-hairpin2 is designed for paired-end data where alignment records have the `MC` tag and the complete CIGAR string is present in the `CIGAR` field (rather than the `CG:B,I` tag). If the `MC` tag is not present in your data, it can be added using `samtools fixmate` or `biobambam2 bamsormadup`. The tool can handle substitions, insertions, and deletions formatted per the VCF specification. At this time, the tool will not investigate mutations notated with angle brackets, e.g. `<DEL>`, complex mutations, or monomorphic reference. No further assumptions are made – other alignment tags and VCF fields are used, however they are mandatory per the relevant format specifications. If these requirements are limiting and you need the tool to be extended in some way, please request it.
-
 ## Further Development
 
 We are very open to making updates and improvements to the tool to support a wide variety of use cases. If you have a request, please get in touch via the [GitHub](https://github.com/cancerit/hairpin2).
+
+<!-- TODO!! -->
+<!-- ## Troubleshooting -->
+
+<!-- NA variants -->
 

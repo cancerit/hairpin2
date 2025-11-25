@@ -52,7 +52,6 @@ class TagSupportingReads:
 
     class SupportFlags(Flag):
         CLEAR = 0
-        SAMFLAG = auto()
         FIELDS_MISSING = auto()
         NOT_ALIGNED = auto()
         NOT_ALT = auto()
@@ -74,18 +73,12 @@ class TagSupportingReads:
                 f"Unsupported mutation type {mut_type} provided to mut_type argument - supports {MutTypes} only"
             )
 
-        support_flag = cls.SupportFlags.CLEAR
-        try:
-            mate_cig = str(read.get_tag("MC"))
-        except KeyError:
-            mate_cig = None
-        else:
-            if (
-                not mate_cig[0].isdigit()
-                or not all((c.isalnum() or c == "=") for c in mate_cig)
-                or len(mate_cig) < 2
-            ):
-                mate_cig = None
+        # if this check is passed, the subsequent
+        # two conditions can only be error states
+        # hence raise rather than return false
+        if not ((read.flag & 3) == 3) or read.flag & 3852:
+            return False
+
         if any(
             flg is None
             for flg in [
@@ -95,19 +88,23 @@ class TagSupportingReads:
                 read.query_alignment_qualities,
                 read.cigarstring,
                 read.cigartuples,
-                mate_cig,
             ]
-        ):
-            support_flag |= cls.SupportFlags.FIELDS_MISSING
-        elif mut_type in [MutTypes.SUB, MutTypes.INS]:
+        ) or not read.has_tag("MC"):
+            raise ValueError(f"Essential fields missing from alignment record {read.query_name}, data in alignment file corrupted")
+
+        tag_dat = read.get_tag("MC", with_value_type=True)
+        if (tag_dat[1] != 'Z'):
+            raise RuntimeError(f"{read.query_name} MC tag is not of type 'Z' as mandated by SAM format spec. Data in alignment file corrupted.")
+
+        support_flag = cls.SupportFlags.CLEAR
+        if mut_type in [MutTypes.SUB, MutTypes.INS]:
             try:
                 mut_pos = ref2querypos(read, vcf_start)
             except ValueError:
                 support_flag |= cls.SupportFlags.NOT_ALIGNED
             else:
-                if mut_type == MutTypes.SUB:
-                    if cast(str, read.query_sequence)[mut_pos : mut_pos + len(alt)] != alt:
-                        support_flag |= cls.SupportFlags.NOT_ALT
+                if cast(str, read.query_sequence)[mut_pos : mut_pos + len(alt)] != alt:
+                    support_flag |= cls.SupportFlags.NOT_ALT
                 if (
                     mut_type == MutTypes.INS
                 ):  # INS - mut_pos is position immediately before insertion
@@ -117,15 +114,10 @@ class TagSupportingReads:
                         mut_alns = [
                             (q, r)
                             for q, r in read.get_aligned_pairs()
-                            if q in range(mut_pos + 1, mut_pos + len(alt) + 1)
+                            if q in range(mut_pos + 1, mut_pos + len(alt))
                         ]
                         if any(r is not None for _, r in mut_alns):
                             support_flag |= cls.SupportFlags.BAD_OP
-                        if (
-                            cast(str, read.query_sequence)[mut_pos + 1 : mut_pos + len(alt) + 1]
-                            != alt
-                        ):
-                            support_flag |= cls.SupportFlags.NOT_ALT
         elif mut_type == MutTypes.DEL:
             rng = list(range(vcf_start, vcf_stop + 1))
             mut_alns = [q for q, r in read.get_aligned_pairs() if r in rng]
@@ -135,9 +127,6 @@ class TagSupportingReads:
                 x is None for x in [mut_alns[0], mut_alns[-1]]
             ):
                 support_flag |= cls.SupportFlags.BAD_OP
-
-        if not (read.flag & 0x2) or read.flag & 0xE00:
-            support_flag |= cls.SupportFlags.SAMFLAG
 
         # ValidatorFlag not returned but kept in case useful in the future
         if support_flag == cls.SupportFlags.CLEAR:
@@ -273,8 +262,11 @@ class TagStutterDuplicateReads:
         endpointsl = []
         for read in reads:
             try:
-                mate_cig = read.get_tag("MC")
-                next_ref_end = ref_end_via_cigar(str(mate_cig), read.next_reference_start)
+                tag_dat = read.get_tag("MC", with_value_type=True)
+                if (tag_dat[1] != 'Z'):
+                    raise RuntimeError("MC tag is not of type 'Z' as mandated by SAM format spec. Data in alignment file corrupted.")
+                mate_cig = str(tag_dat[0])
+                next_ref_end = ref_end_via_cigar(mate_cig, read.next_reference_start)
             except (KeyError, CigarError):
                 continue
             if read.reference_end is None:
@@ -385,7 +377,11 @@ class AlignmentScoreTest:
 
             for read in reads:
                 try:
-                    aln_scores.append(int(read.get_tag("AS")) / read.query_length)
+                    tag_dat = read.get_tag("AS", with_value_type=True)
+                    if (tag_dat[1] not in ['i', 'C']): # BUG/TODO revisit mysterious undescribed "C" type, appears to be an idiosyncracy of htslib at the least
+                        raise RuntimeError(f"{read.query_name} AS tag is not of type 'i' as mandated by SAM format spec. Data in alignment file corrupted.")
+                    ascore = int(tag_dat[0])
+                    aln_scores.append(ascore / read.query_length)
                 except KeyError:
                     pass
             if len(aln_scores) != 0:

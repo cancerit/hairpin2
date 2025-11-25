@@ -7,7 +7,7 @@ include = ["hairpin2*"]
 
 [project]
 name = "hairpin2"
-version = "3.0.0"
+version = "3.0.2"
 description = "CLI for running read-aware artefactual variant flagging algorithms over VCFs"
 authors = [
   {name = "Alex Byrne"}
@@ -24,8 +24,8 @@ requires-python = ">= 3.12"
 
 [project.optional-dependencies]
 dev = [
-  "pytest==8.*",
-  "pytest-cov==6.*",
+  "pytest==9.*",
+  "pytest-cov==7.*",
   "ruff"
 ]
 docs = [
