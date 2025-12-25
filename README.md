@@ -8,7 +8,7 @@
 
 `hairpin2` – read-aware artefactual variant flagging
 
-`hairpin2` is designed to flag variants that are likely artefactual via a series of tests performed upon the read data associated with each variant. Initially, it was concieved to flag possible cruciform artefacts for LCM sequence data, but the concept has been extended and can detect a variety of potentially spurious variants (including indels). The tool operates on a VCF file containing one or more samples, and alignment files for all samples to be tested.
+`hairpin2` is designed to flag variants that are likely artefactual via a series of tests performed upon the read data associated with each variant. Initially, it was concieved to flag possible cruciform artefacts for LCM sequence data, but the concept has been extended and can detect a variety of potentially spurious variants (including indels). The tool operates on a VCF file containing one or more samples, and alignment files for all samples to be tested. 
 
 Given a VCF, and BAM files for the samples of that VCF, return a VCF with variants flagged with `ADF` if variants have anomalous distributions indicating that they are likely to be artefactual, `ALF` if relevant reads have lower median alignment score per base than a specified threshold, `DVF` if variants appear to be the result of PCR error, and `LQF` if the variant is largely supported by low quality reads.
 
